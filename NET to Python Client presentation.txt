@@ -1,0 +1,222 @@
+﻿Project Title:
+ Migration from .NET Modular Monolith to Python (FastAPI)
+________________
+
+
+1. Project Overview
+Objective:
+ Convert the existing .NET-based eShop Modular Monolith to Python using FastAPI, while preserving its architecture, structure, naming conventions, and business logic.
+Goals:
+* Maintain 1:1 parity with the .NET codebase
+
+* Deliver a modular, testable, scalable FastAPI backend
+
+* Ensure each milestone is client-runnable with Docker
+
+________________
+
+
+2. Current vs Proposed Architecture
+Current (.NET) Architecture:
+   * Modules: Identity, Catalog, Ordering
+
+   * Layers: API, Application, Domain, Infrastructure
+
+   * Patterns: DDD, CQRS, Mediator, Outbox[a]
+
+Proposed (Python) Architecture:
+      * Maintain modular structure: modules/identity, modules/catalog, modules/ordering
+
+      * Preserve layered design: api/, application/, domain/, infrastructure/
+
+      * Replicate patterns: CQRS, DI, Mediator, DDD, Outbox, Object Mapping
+
+________________
+
+
+3. Architectural Mapping
+Concern
+	.NET
+	Python (FastAPI)
+	CQRS
+	MediatR, Commands, Queries
+	Command/Query classes, Handlers
+	DDD
+	Entities, VOs, Aggregates
+	Python classes, Pydantic models
+	Outbox Pattern
+	DB table + Event dispatcher
+	SQLAlchemy + Background worker
+	DI
+	.NET IoC Container
+	python-dependency-injector[b]
+	Object Mapping
+	AutoMapper
+	Pydantic .from_entity() or py-mapper
+	Logging
+	SEQ
+	structlog → SEQ
+	________________
+
+
+4. Module Deep Dive: Identity
+Responsibilities:
+         * User registration & login
+
+         * Password hashing, token generation
+
+         * Domain: User, Email VO
+
+         * Application: RegisterUserCommand, GetUserByIdQuery
+
+         * API: /register, /login
+
+         * Infrastructure: SQLAlchemy repo, Alembic migration, JWT service
+[c]
+[d]
+________________
+
+
+5. Migration Roadmap
+[e]
+Phase
+	Deliverable
+	Time Est.
+	Setup & Boilerplate
+	Project structure, DI, Docker, CI setup
+	1–2 days
+	Identity Module
+	Domain, App, Infra, API, tests
+	3–4 days
+	Catalog Module
+	Product CRUD, queries, events
+	2–3 days
+	Ordering Module
+	Events, Outbox, RabbitMQ integration
+	3–4 days
+	Polish & Testing
+	Final test coverage, docs, CI polish
+	1–2 days
+	________________
+
+
+6. Tech Stack[f]
+            * Python 3.11+, FastAPI
+
+            * PostgreSQL, SQLAlchemy, Alembic
+
+            * Redis, RabbitMQ
+
+            * Pydantic, structlog, py-mapper
+
+            * python-dependency-injector
+
+            * pytest, pytest-cov, bandit, ruff
+
+            * Docker, GitHub Actions, poetry
+
+________________
+
+
+
+
+7. Testing Strategy
+               * Goal: ≥ 80% coverage
+
+               * Tools: pytest, pytest-cov, bandit, safety, Postman
+
+Type
+	Scope
+	Unit
+	Handlers, services, repos
+	Integration
+	API → DB / MQ
+	API
+	Manual via Postman (no Swagger[g])
+	________________
+
+
+8. Delivery Expectations
+At each milestone:
+                  * Full codebase with Docker support
+
+                  * README.md + .env.example
+
+                  * Setup scripts
+
+                  * Postman collection
+
+                  * Test coverage report 
+
+                  * Walkthrough calls (2 per milestone)
+
+________________
+
+
+9. Anticipated Client Questions
+Question
+	Answer Summary
+	Why FastAPI?
+	Lightweight, async-ready, DI support
+	How will CQRS be handled?
+	Separate command/query files + handlers
+	How will parity with .NET be ensured?
+	Mirrored structure, naming, architecture
+	What logging mechanism will be used?
+	structlog → SEQ
+	How do you ensure reproducibility?
+	Docker, scripts, GitHub Actions
+
+
+
+
+
+
+
+
+
+
+
+
+	________________
+
+
+10. Risks & Mitigation
+Risk
+	Mitigation Strategy
+	Divergence from .NET logic
+	Document & review deviations early
+	Messaging/Outbox complexity
+	Build + test in isolation first
+	Testing & CI consistency
+	Integrate pytest-cov, GitHub Actions
+	Dependency lifecycle
+	Use a container-based dependency injector
+	________________
+
+
+11. Final Note
+This migration emphasizes architectural fidelity, modular clarity, and production-grade delivery readiness. All deliverables will be structured for reproducibility, testability, and scale.
+
+
+[a]take a look on REPR
+[b]why no FASTAPI DI?
+[c]How do we handle rollback?
+[d]Cancellation token
+[e]Add dates
+[f]Tony Kappen
+9:15 PM
+Tech Stack & Tooling:
+Languages & Frameworks: Python 3.11+, FastAPI
+ORM & DB: SQLAlchemy, PostgreSQL, Alembic
+Messaging: Redis, RabbitMQ
+Logging: structlog to SEQ
+Object Mapping: py-mapper
+DI: python-dependency-injector
+Testing: pytest, pytest-cov
+Tooling: black, ruff, pyright, bandit, pip-audit, safety, poetry, pre-commit
+CI/CD: GitHub Actions
+Deployment: Docker Desktop for local environment
+Note:
+hnj-xszj-yco
+[g]get postman collection from tony

@@ -45,7 +45,6 @@ async def lifespan(app: FastAPI):
         }
     })
     
-    # Scan for services
     # scanner = app.state.container.assembly_scanner()
     # scanner.scan_directory("eshop/modules", "eshop.modules")
     
@@ -97,8 +96,9 @@ async def health_check():
 # from modules.basket.api import router as basket_router
 # from modules.ordering.api import router as ordering_router
 
+
+
 # app.include_router(catalog_router, prefix="/catalog", tags=["catalog"])
-# app.include_router(basket_router, prefix="/basket", tags=["basket"])
 # app.include_router(ordering_router, prefix="/ordering", tags=["ordering"])
 
 

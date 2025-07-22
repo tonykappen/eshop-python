@@ -22,20 +22,20 @@ class Entity(ABC, BaseModel):
     """Base Entity class following DDD patterns."""
     
     id: UUID = Field(default_factory=uuid4)
-    _domain_events: List[DomainEvent] = Field(default_factory=list, exclude=True)
+    domain_events: List[DomainEvent] = Field(default_factory=list, exclude=True)
     
     def add_domain_event(self, event: DomainEvent) -> None:
         """Add a domain event to the entity."""
-        self._domain_events.append(event)
+        self.domain_events.append(event)
     
     def clear_domain_events(self) -> None:
         """Clear all domain events."""
-        self._domain_events.clear()
+        self.domain_events.clear()
     
     @property
-    def domain_events(self) -> List[DomainEvent]:
+    def domain_events_copy(self) -> List[DomainEvent]:
         """Get all domain events."""
-        return self._domain_events.copy()
+        return self.domain_events.copy()
     
     def __eq__(self, other: Any) -> bool:
         """Compare entities by ID."""

@@ -1,1 +1,1 @@
-"""Catalog infrastructure layer - repositories and data access.""" 
+"""Catalog infrastructure layer - repositories and data access."""

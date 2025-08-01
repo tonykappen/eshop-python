@@ -1,1 +1,1 @@
-"""Catalog API layer - REPR endpoints.""" 
+"""Catalog API layer - REPR endpoints."""

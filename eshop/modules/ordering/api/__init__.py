@@ -1,1 +1,1 @@
-"""Ordering API layer - REPR endpoints.""" 
+"""Ordering API layer - REPR endpoints."""

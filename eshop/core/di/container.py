@@ -1,158 +1,102 @@
-"""Dependency injection container with assembly scanning."""
+"""Dependency injection container with assembly scanning support."""
 
-import importlib
-import inspect
-import os
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from dependency_injector import containers, providers
-from dependency_injector.wiring import inject, Provide
 
+from ..logging.logger import get_logger
+from .assembly_scanner import AssemblyScanner
 
-class AssemblyScanner:
-    """Scans assemblies for services and registers them automatically."""
-    
-    def __init__(self, container):
-        self.container = container
-        self.scanned_modules: List[str] = []
-    
-    def scan_module(self, module_name: str) -> None:
-        """Scan a module for services and register them."""
-        if module_name in self.scanned_modules:
-            return
-        
-        try:
-            module = importlib.import_module(module_name)
-            self._scan_module_for_services(module)
-            self.scanned_modules.append(module_name)
-        except ImportError as e:
-            print(f"Warning: Could not import module {module_name}: {e}")
-    
-    def scan_directory(self, directory_path: str, package_name: str) -> None:
-        """Scan a directory for Python modules and register services."""
-        if not os.path.exists(directory_path):
-            return
-        
-        for root, dirs, files in os.walk(directory_path):
-            for file in files:
-                if file.endswith('.py') and not file.startswith('__'):
-                    # Convert file path to module path
-                    rel_path = os.path.relpath(root, directory_path)
-                    if rel_path == '.':
-                        module_path = f"{package_name}.{file[:-3]}"
-                    else:
-                        rel_path = rel_path.replace(os.sep, '.')
-                        module_path = f"{package_name}.{rel_path}.{file[:-3]}"
-                    
-                    self.scan_module(module_path)
-    
-    def _scan_module_for_services(self, module: Any) -> None:
-        """Scan a module for service classes and register them."""
-        for name, obj in inspect.getmembers(module):
-            if inspect.isclass(obj):
-                # Check for service decorators or naming conventions
-                if self._is_service_class(obj):
-                    self._register_service(obj)
-    
-    def _is_service_class(self, cls: Type) -> bool:
-        """Check if a class should be registered as a service."""
-        # Check for service decorators
-        if hasattr(cls, '__service__'):
-            return True
-        
-        # Check naming conventions
-        service_suffixes = ['Service', 'Repository', 'Handler', 'Manager']
-        return any(cls.__name__.endswith(suffix) for suffix in service_suffixes)
-    
-    def _register_service(self, service_class: Type) -> None:
-        """Register a service class in the container."""
-        service_name = service_class.__name__
-        
-        # Determine scope based on class attributes or naming
-        if hasattr(service_class, '__scope__'):
-            scope = service_class.__scope__
-        elif 'Repository' in service_name:
-            scope = 'singleton'
-        elif 'Service' in service_name:
-            scope = 'singleton'
-        else:
-            scope = 'transient'
-        
-        # Register based on scope
-        if scope == 'singleton':
-            provider = providers.Singleton(service_class)
-        elif scope == 'scoped':
-            provider = providers.Factory(service_class)
-        else:  # transient
-            provider = providers.Factory(service_class)
-        
-        setattr(self.container, service_name.lower(), provider)
+logger = get_logger(__name__)
 
 
 class Container(containers.DeclarativeContainer):
     """Main dependency injection container."""
-    
+
     # Configuration
     config = providers.Configuration()
-    
+
     # Core services
+    logger = providers.Singleton(lambda: get_logger("eshop"))
+
+    # Assembly scanner
     assembly_scanner = providers.Singleton(AssemblyScanner, container=providers.Self())
-    
-    # Database
-    database = providers.Singleton(lambda: None)  # Will be configured later
-    
-    # Cache
-    cache_service = providers.Singleton(lambda: None)  # Will be configured later
-    
-    # Messaging
-    event_publisher = providers.Singleton(lambda: None)  # Will be configured later
-    outbox_processor = providers.Singleton(lambda: None)  # Will be configured later
-    
-    # Logging
-    logger = providers.Singleton(lambda: None)  # Will be configured later
 
 
 class ServiceProvider:
-    """Service provider for dependency injection."""
-    
+    """Service provider for retrieving services from the container."""
+
     def __init__(self, container: Container):
         self.container = container
-        self._scoped_services: Dict[str, Any] = {}
-    
-    def get_service(self, service_type: Type) -> Any:
-        """Get a service from the container."""
-        return self.container.providers.get(service_type.__name__)
-    
-    def get_scoped_service(self, service_type: Type) -> Any:
-        """Get a scoped service (singleton per request)."""
-        service_name = service_type.__name__
-        if service_name not in self._scoped_services:
-            self._scoped_services[service_name] = self.get_service(service_type)()
-        return self._scoped_services[service_name]
-    
-    def clear_scoped_services(self) -> None:
-        """Clear all scoped services (called at end of request)."""
-        self._scoped_services.clear()
+
+    def get_service(self, service_name: str) -> Any:
+        """Get a service by name."""
+        if hasattr(self.container, service_name):
+            return getattr(self.container, service_name)()
+        else:
+            raise ValueError(f"Service '{service_name}' not found")
+
+    def get_required_service(self, service_type: type) -> Any:
+        """Get a service by type."""
+        for name, provider in self.container.providers.items():
+            if hasattr(provider, "provides") and provider.provides == service_type:
+                return provider()
+
+        raise ValueError(f"Service of type '{service_type.__name__}' not found")
+
+    def get_optional_service(self, service_type: type) -> Any | None:
+        """Get a service by type, returning None if not found."""
+        try:
+            return self.get_required_service(service_type)
+        except ValueError:
+            return None
 
 
-def inject_service(service_type: Type):
-    """Decorator to inject a service dependency."""
-    return inject(service_type, Provide[Container])
+def create_container() -> Container:
+    """Create and configure the main container."""
+    container = Container()
+
+    # Configure the container
+    container.config.from_dict(
+        {
+            "database": {"connection_string": "postgresql://user:pass@localhost/db"},
+            "redis": {"connection_string": "redis://localhost:6379"},
+            "rabbitmq": {"connection_string": "amqp://guest:guest@localhost:5672/"},
+        }
+    )
+
+    return container
 
 
-def scoped_service():
-    """Decorator to mark a class as a scoped service."""
-    def decorator(cls):
-        cls.__service__ = True
-        cls.__scope__ = 'scoped'
-        return cls
-    return decorator
+def configure_container(container: Container, config_dict: dict[str, Any]) -> None:
+    """Configure the container with settings."""
+    container.config.from_dict(config_dict)
 
 
-def singleton_service():
-    """Decorator to mark a class as a singleton service."""
-    def decorator(cls):
-        cls.__service__ = True
-        cls.__scope__ = 'singleton'
-        return cls
-    return decorator 
+def scan_assemblies(container: Container, packages: list) -> None:
+    """Scan packages for automatic service registration."""
+    scanner = container.assembly_scanner()
+
+    for package in packages:
+        try:
+            scanner.scan_package(package)
+            logger.info(f"Scanned package: {package}")
+        except Exception as e:
+            logger.error(f"Failed to scan package {package}: {e}")
+
+
+def wire_container(container: Container, packages: list) -> None:
+    """Wire the container with packages for dependency injection."""
+    container.wire(packages=packages)
+    logger.info(f"Wired container with packages: {packages}")
+
+
+# Convenience functions
+def get_container() -> Container:
+    """Get the global container instance."""
+    return create_container()
+
+
+def get_service_provider(container: Container) -> ServiceProvider:
+    """Get a service provider for the container."""
+    return ServiceProvider(container)

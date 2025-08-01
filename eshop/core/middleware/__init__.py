@@ -1,1 +1,1 @@
-"""Middleware and behavior components.""" 
+"""Middleware and behavior components."""

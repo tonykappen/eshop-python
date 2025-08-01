@@ -1,1 +1,1 @@
-"""Dependency injection and assembly scanning.""" 
+"""Dependency injection and assembly scanning."""

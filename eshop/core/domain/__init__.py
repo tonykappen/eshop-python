@@ -1,1 +1,1 @@
-"""Domain layer - Core DDD abstractions and patterns.""" 
+"""Domain layer - Core DDD abstractions and patterns."""

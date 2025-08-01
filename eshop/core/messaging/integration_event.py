@@ -1,73 +1,107 @@
-"""Integration events and outbox pattern implementation."""
+"""Integration events and outbox pattern implementation using faststream."""
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
+from faststream import FastStream
+from faststream.rabbit import RabbitBroker
 from pydantic import BaseModel, Field
-
-from ..domain.entity import DomainEvent
 
 
 class IntegrationEvent(BaseModel):
     """Base class for integration events."""
-    
+
     id: UUID = Field(default_factory=uuid4)
     creation_date: datetime = Field(default_factory=datetime.utcnow)
     event_type: str = Field(default="")
-    data: Dict[str, Any] = Field(default_factory=dict)
-    
+    data: dict[str, Any] = Field(default_factory=dict)
+
     class Config:
         arbitrary_types_allowed = True
 
 
 class OutboxMessage(BaseModel):
     """Outbox message for reliable event publishing."""
-    
+
     id: UUID = Field(default_factory=uuid4)
-    event_type: str
-    event_data: Dict[str, Any]
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    processed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
-    retry_count: int = 0
-    max_retries: int = 3
-    
+    type: str
+    content: str
+    created_on: datetime = Field(default_factory=datetime.utcnow)
+    processed_on: datetime | None = None
+    error: str | None = None
+
     class Config:
         arbitrary_types_allowed = True
 
 
 class IIntegrationEventHandler:
     """Base interface for integration event handlers."""
-    
+
     async def handle(self, event: IntegrationEvent) -> None:
         """Handle an integration event."""
-        raise NotImplementedError
+        pass
 
 
 class IEventPublisher:
     """Base interface for event publishers."""
-    
+
     async def publish(self, event: IntegrationEvent) -> None:
         """Publish an integration event."""
-        raise NotImplementedError
-    
-    async def publish_domain_event(self, event: DomainEvent) -> None:
-        """Publish a domain event."""
-        raise NotImplementedError
+        pass
 
 
-class IOutboxProcessor:
-    """Base interface for outbox processors."""
-    
-    async def process_pending_messages(self) -> None:
-        """Process pending outbox messages."""
-        raise NotImplementedError
-    
-    async def mark_as_processed(self, message_id: UUID) -> None:
-        """Mark a message as processed."""
-        raise NotImplementedError
-    
-    async def mark_as_failed(self, message_id: UUID, error: str) -> None:
-        """Mark a message as failed."""
-        raise NotImplementedError 
+class FastStreamEventPublisher(IEventPublisher):
+    """FastStream-based event publisher."""
+
+    def __init__(self, broker: RabbitBroker):
+        self.broker = broker
+
+    async def publish(self, event: IntegrationEvent) -> None:
+        """Publish an integration event using FastStream."""
+        await self.broker.publish(event.model_dump(), routing_key=event.event_type)
+
+
+class FastStreamEventHandler(IIntegrationEventHandler):
+    """FastStream-based event handler."""
+
+    def __init__(self, handler_func):
+        self.handler_func = handler_func
+
+    async def handle(self, event: IntegrationEvent) -> None:
+        """Handle an integration event using the provided handler function."""
+        await self.handler_func(event)
+
+
+class EventBus:
+    """Event bus for managing integration events."""
+
+    def __init__(self, broker: RabbitBroker):
+        self.broker = broker
+        self.app = FastStream(broker)
+        self.handlers: dict[str, IIntegrationEventHandler] = {}
+
+    def register_handler(
+        self, event_type: str, handler: IIntegrationEventHandler
+    ) -> None:
+        """Register an event handler for a specific event type."""
+        self.handlers[event_type] = handler
+
+    async def publish(self, event: IntegrationEvent) -> None:
+        """Publish an integration event."""
+        publisher = FastStreamEventPublisher(self.broker)
+        await publisher.publish(event)
+
+    async def handle_event(self, event: IntegrationEvent) -> None:
+        """Handle an integration event."""
+        handler = self.handlers.get(event.event_type)
+        if handler:
+            await handler.handle(event)
+        else:
+            raise ValueError(
+                f"No handler registered for event type: {event.event_type}"
+            )
+
+    def get_app(self) -> FastStream:
+        """Get the FastStream application."""
+        return self.app

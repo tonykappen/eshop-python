@@ -1,1 +1,1 @@
-"""Catalog domain models and business logic.""" 
+"""Catalog domain models and business logic."""

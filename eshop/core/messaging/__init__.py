@@ -1,1 +1,1 @@
-"""Messaging and integration events infrastructure.""" 
+"""Messaging and integration events infrastructure."""

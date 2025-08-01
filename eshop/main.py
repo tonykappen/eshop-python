@@ -2,12 +2,16 @@
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination
 
 from eshop.config.settings import settings
-from eshop.core.di.container import Container
+from eshop.core.di.container import create_container, scan_assemblies, wire_container
 from eshop.core.logging.logger import configure_logging, get_logger
+from eshop.core.health.health_service import health_service
+from eshop.core.auth.keycloak import keycloak_service, KeycloakUser
+from eshop.core.middleware.auth_middleware import add_auth_middleware, get_current_user_required
 
 
 @asynccontextmanager
@@ -16,42 +20,49 @@ async def lifespan(app: FastAPI):
     # Startup
     logger = get_logger("main")
     logger.info("Starting eShop Modular Monolith application")
-    
+
     # Configure logging
     configure_logging(
         log_level=settings.log_level,
+        log_format="json",
+        enable_seq=settings.log_enable_seq,
         seq_url=settings.seq_url,
-        enable_console=settings.log_enable_console,
-        enable_seq=settings.log_enable_seq
     )
-    
+
     # Initialize DI container
-    app.state.container = Container()
-    app.state.container.config.from_dict({
-        "database": {
-            "connection_string": settings.database_connection_string
-        },
-        "redis": {
-            "connection_string": settings.redis_connection_string
-        },
-        "rabbitmq": {
-            "connection_string": settings.rabbitmq_connection_string
-        },
-        "keycloak": {
-            "server_url": settings.keycloak_server_url,
-            "realm": settings.keycloak_realm,
-            "client_id": settings.keycloak_client_id,
-            "client_secret": settings.keycloak_client_secret
+    container = create_container()
+    container.config.from_dict(
+        {
+            "database": {"connection_string": settings.database_connection_string},
+            "redis": {"connection_string": settings.redis_connection_string},
+            "rabbitmq": {"connection_string": settings.rabbitmq_connection_string},
+            "keycloak": {
+                "server_url": settings.keycloak_server_url,
+                "realm": settings.keycloak_realm,
+                "client_id": settings.keycloak_client_id,
+                "client_secret": settings.keycloak_client_secret,
+            },
         }
-    })
-    
-    # scanner = app.state.container.assembly_scanner()
-    # scanner.scan_directory("eshop/modules", "eshop.modules")
-    
+    )
+
+    # Scan assemblies for automatic service registration
+    scan_assemblies(
+        container,
+        ["eshop.modules.catalog", "eshop.modules.basket", "eshop.modules.ordering"],
+    )
+
+    # Wire container with packages
+    wire_container(
+        container,
+        ["eshop.modules.catalog", "eshop.modules.basket", "eshop.modules.ordering"],
+    )
+
+    app.state.container = container
+
     logger.info("Application startup complete")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down eShop Modular Monolith application")
 
@@ -60,8 +71,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.name,
     version=settings.version,
-    debug=settings.debug,
-    lifespan=lifespan
+    description="Modular Monolith eShop migrated from .NET to Python (FastAPI)",
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -73,47 +84,103 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add authentication middleware
+add_auth_middleware(app)
+
+# Add pagination support
+add_pagination(app)
+
 
 @app.get("/")
 async def root():
     """Root endpoint."""
     return {
-        "message": f"{settings.name} (Python/FastAPI)",
+        "message": "eShop Modular Monolith API",
         "version": settings.version,
-        "status": "running"
+        "status": "running",
     }
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy"}
+    """Basic health check endpoint."""
+    return {
+        "status": "healthy",
+        "version": settings.version,
+        "timestamp": "2024-01-01T00:00:00Z",
+    }
+
+
+@app.get("/api/v1/health")
+async def api_health_check():
+    """API health check endpoint."""
+    return {
+        "status": "healthy",
+        "api_version": "v1",
+        "modules": ["catalog", "basket", "ordering"],
+    }
+
+
+@app.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed health check for all services."""
+    return await health_service.check_all_services()
+
+
+@app.get("/health/database")
+async def database_health_check():
+    """Database health check endpoint."""
+    return await health_service.check_database()
+
+
+@app.get("/health/redis")
+async def redis_health_check():
+    """Redis health check endpoint."""
+    return await health_service.check_redis()
+
+
+@app.get("/health/rabbitmq")
+async def rabbitmq_health_check():
+    """RabbitMQ health check endpoint."""
+    return await health_service.check_rabbitmq()
+
+
+@app.get("/health/keycloak")
+async def keycloak_health_check():
+    """Keycloak health check endpoint."""
+    return await health_service.check_keycloak()
+
+
+@app.get("/api/v1/auth/me")
+async def get_current_user_info(user: KeycloakUser = Depends(get_current_user_required)):
+    """Get current user information (requires authentication)."""
+    return {
+        "user_id": user.sub,
+        "email": user.email,
+        "name": user.name,
+        "username": user.preferred_username,
+        "roles": user.roles,
+    }
 
 
 # Import and include module routers
-# Note: These will be added as we implement each module
-# from modules.catalog.api import router as catalog_router
-# from modules.basket.api import router as basket_router
-# from modules.ordering.api import router as ordering_router
+# Note: These will be added as modules are implemented
+# from eshop.modules.catalog.api.router import router as catalog_router
+# from eshop.modules.basket.api.router import router as basket_router
+# from eshop.modules.ordering.api.router import router as ordering_router
+
+# app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
+# app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
+# app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])
 
 
-
-# app.include_router(catalog_router, prefix="/catalog", tags=["catalog"])
-# app.include_router(ordering_router, prefix="/ordering", tags=["ordering"])
-
-
-def run():
-    """Run the application."""
+if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "eshop.main:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug,
-        log_level=settings.log_level.lower()
+        log_level=settings.log_level.lower(),
     )
-
-
-if __name__ == "__main__":
-    run() 

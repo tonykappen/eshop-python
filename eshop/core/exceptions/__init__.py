@@ -1,1 +1,1 @@
-"""Exception handling and custom exceptions.""" 
+"""Exception handling and custom exceptions."""

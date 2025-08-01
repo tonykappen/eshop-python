@@ -1,1 +1,1 @@
-"""Ordering module.""" 
+"""Ordering module."""

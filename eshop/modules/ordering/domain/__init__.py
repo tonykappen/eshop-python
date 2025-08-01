@@ -1,1 +1,1 @@
-"""Ordering domain models and business logic.""" 
+"""Ordering domain models and business logic."""

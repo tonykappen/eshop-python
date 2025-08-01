@@ -1,1 +1,1 @@
-"""Ordering application layer - CQRS commands and queries.""" 
+"""Ordering application layer - CQRS commands and queries."""

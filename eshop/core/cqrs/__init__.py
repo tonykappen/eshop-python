@@ -1,1 +1,1 @@
-"""CQRS (Command Query Responsibility Segregation) abstractions.""" 
+"""CQRS (Command Query Responsibility Segregation) abstractions."""

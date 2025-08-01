@@ -1,1 +1,1 @@
-"""Catalog module.""" 
+"""Catalog module."""

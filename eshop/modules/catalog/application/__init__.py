@@ -1,1 +1,1 @@
-"""Catalog application layer - CQRS commands and queries.""" 
+"""Catalog application layer - CQRS commands and queries."""

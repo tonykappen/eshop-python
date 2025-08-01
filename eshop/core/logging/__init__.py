@@ -1,1 +1,1 @@
-"""Logging configuration with SEQ and structlog.""" 
+"""Logging configuration with SEQ and structlog."""

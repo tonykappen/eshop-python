@@ -2,6 +2,12 @@
 
 A modular monolith e-commerce application migrated from .NET to Python using FastAPI, implementing Domain-Driven Design (DDD), CQRS, and other enterprise patterns.
 
+## 🎯 Current Status
+
+**✅ Milestone 1 COMPLETE**: Core infrastructure with Keycloak authentication, comprehensive health checks, and 1-1 parity with .NET project.
+
+**🚀 Ready for Development**: All services healthy, authentication working, automated deployment available.
+
 ## 🏗️ Architecture
 
 This application follows a **Modular Monolith** architecture with the following patterns:
@@ -16,7 +22,7 @@ This application follows a **Modular Monolith** architecture with the following 
 
 ## 🚀 Features
 
-### ✅ **Milestone 1: Core Infrastructure (COMPLETED)**
+### ✅ **Milestone 1: Core Infrastructure (COMPLETED & TESTED)**
 - **DDD Base Classes**: Entity, Aggregate, ValueObject, DomainEvent with audit fields
 - **CQRS Abstractions**: ICommand, IQuery, ICommandHandler, IQueryHandler
 - **Outbox Pattern**: Reliable event publishing with OutboxMessage
@@ -76,7 +82,11 @@ This application follows a **Modular Monolith** architecture with the following 
 
 5. **Start infrastructure services**
    ```bash
-   docker-compose up -d postgres redis rabbitmq
+   # Option 1: Using Docker Compose
+   docker-compose up -d postgres redis rabbitmq keycloak
+   
+   # Option 2: Using Podman (recommended)
+   ./setup-podman.sh
    ```
 
 6. **Run database migrations**
@@ -139,7 +149,13 @@ poetry run uvicorn eshop.main:app --host 0.0.0.0 --port 8000 --reload
 # Test health endpoints
 curl http://localhost:8000/health
 curl http://localhost:8000/health/detailed
-curl http://localhost:8000/docs
+curl http://localhost:8000/health/keycloak
+
+# Test authentication (requires Bearer token)
+curl http://localhost:8000/api/v1/auth/me
+
+# Test all services are healthy
+curl http://localhost:8000/health/detailed | jq .
 ```
 
 ### Testing Tools
@@ -240,11 +256,40 @@ eshop/
 
 ## 🔐 Authentication
 
-The application uses Keycloak for authentication. For development, you can:
+The application uses Keycloak for authentication with automatic setup.
 
-1. Set up a local Keycloak instance
-2. Create a realm and client
-3. Configure the settings in `.env`
+### Quick Setup with Podman
+```bash
+# Complete setup including Keycloak
+./setup-podman.sh
+```
+
+### Manual Keycloak Setup
+1. **Start Keycloak with Docker Compose**
+   ```bash
+   docker-compose up -d keycloak
+   ```
+
+2. **Run the Keycloak setup script**
+   ```bash
+   ./setup-keycloak.sh
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp env.example .env
+   # Update Keycloak settings in .env
+   ```
+
+### Keycloak Configuration
+- **Admin Console**: http://localhost:8080/admin/ (admin/admin)
+- **Realm**: eshop
+- **Client**: eshop-api
+- **Test User**: testuser/password
+
+### Authentication Endpoints
+- **Get Current User**: `GET /api/v1/auth/me` (requires Bearer token)
+- **Health Check**: `GET /health/keycloak`
 
 ## 📊 Monitoring & Health Checks
 

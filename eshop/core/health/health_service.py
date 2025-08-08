@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import asyncpg
 import redis.asyncio as redis
@@ -24,7 +24,7 @@ class HealthService:
         self.db_pool = None
         self.rabbit_broker = None
 
-    async def check_database(self) -> Dict[str, Any]:
+    async def check_database(self) -> dict[str, Any]:
         """Check database connectivity."""
         try:
             # Create connection pool for health check
@@ -37,13 +37,13 @@ class HealthService:
                 min_size=1,
                 max_size=5,
             )
-            
+
             # Test connection
             async with pool.acquire() as conn:
                 await conn.execute("SELECT 1")
-            
+
             await pool.close()
-            
+
             return {
                 "status": "healthy",
                 "service": "database",
@@ -63,7 +63,7 @@ class HealthService:
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-    async def check_redis(self) -> Dict[str, Any]:
+    async def check_redis(self) -> dict[str, Any]:
         """Check Redis connectivity."""
         try:
             # Create Redis client
@@ -74,11 +74,11 @@ class HealthService:
                 db=settings.redis_db,
                 decode_responses=True,
             )
-            
+
             # Test connection
             await redis_client.ping()
             await redis_client.close()
-            
+
             return {
                 "status": "healthy",
                 "service": "redis",
@@ -97,18 +97,18 @@ class HealthService:
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-    async def check_rabbitmq(self) -> Dict[str, Any]:
+    async def check_rabbitmq(self) -> dict[str, Any]:
         """Check RabbitMQ connectivity."""
         try:
             # Create RabbitMQ broker
             broker = RabbitBroker(
                 settings.rabbitmq_connection_string
             )
-            
+
             # Test connection
             await broker.connect()
             await broker.close()
-            
+
             return {
                 "status": "healthy",
                 "service": "rabbitmq",
@@ -127,11 +127,11 @@ class HealthService:
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-    async def check_keycloak(self) -> Dict[str, Any]:
+    async def check_keycloak(self) -> dict[str, Any]:
         """Check Keycloak connectivity."""
         return await keycloak_service.health_check()
 
-    async def check_all_services(self) -> Dict[str, Any]:
+    async def check_all_services(self) -> dict[str, Any]:
         """Check health of all services."""
         try:
             # Run all health checks concurrently
@@ -142,11 +142,11 @@ class HealthService:
                 self.check_keycloak(),
                 return_exceptions=True,
             )
-            
+
             # Process results
             services = {}
             overall_status = "healthy"
-            
+
             for result in results:
                 if isinstance(result, Exception):
                     services["error"] = {
@@ -160,7 +160,7 @@ class HealthService:
                     services[service_name] = result
                     if result.get("status") == "unhealthy":
                         overall_status = "unhealthy"
-            
+
             return {
                 "status": overall_status,
                 "timestamp": datetime.utcnow().isoformat(),
@@ -178,4 +178,4 @@ class HealthService:
 
 
 # Global health service instance
-health_service = HealthService() 
+health_service = HealthService()

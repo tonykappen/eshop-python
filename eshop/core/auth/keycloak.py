@@ -1,10 +1,10 @@
 """Keycloak authentication service."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from keycloak import KeycloakOpenID
 from pydantic import BaseModel
 
@@ -19,9 +19,9 @@ security = HTTPBearer()
 class KeycloakUser(BaseModel):
     """Keycloak user model."""
     sub: str
-    email: Optional[str] = None
-    name: Optional[str] = None
-    preferred_username: Optional[str] = None
+    email: str | None = None
+    name: str | None = None
+    preferred_username: str | None = None
     roles: list[str] = []
 
 
@@ -57,7 +57,7 @@ class KeycloakService:
                 self._public_key = None
         return self._public_key
 
-    async def verify_token(self, token: str) -> Dict[str, Any]:
+    async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
         try:
             # Decode token
@@ -82,7 +82,7 @@ class KeycloakService:
     async def get_user_info(self, token: str) -> KeycloakUser:
         """Get user information from token."""
         token_info = await self.verify_token(token)
-        
+
         # Extract user information
         user = KeycloakUser(
             sub=token_info.get("sub", ""),
@@ -91,14 +91,14 @@ class KeycloakService:
             preferred_username=token_info.get("preferred_username"),
             roles=token_info.get("realm_access", {}).get("roles", [])
         )
-        
+
         return user
 
     async def check_role(self, user: KeycloakUser, required_role: str) -> bool:
         """Check if user has required role."""
         return required_role in user.roles
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Check Keycloak service health."""
         try:
             # Try to get public key to verify connection
@@ -140,4 +140,4 @@ async def require_role(required_role: str):
                 detail=f"Role '{required_role}' required",
             )
         return current_user
-    return role_checker 
+    return role_checker

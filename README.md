@@ -48,7 +48,7 @@ This application follows a **Modular Monolith** architecture with the following 
 
 ## 📋 Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - Poetry (for dependency management)
 - Docker & Docker Compose
 - PostgreSQL

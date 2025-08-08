@@ -101,7 +101,7 @@ Phase
 
 
 6. Tech Stack[f]
-            * Python 3.11+, FastAPI
+            * Python 3.12+, FastAPI
 
             * PostgreSQL, SQLAlchemy, Alembic
 
@@ -207,7 +207,7 @@ This migration emphasizes architectural fidelity, modular clarity, and productio
 [f]Tony Kappen
 9:15 PM
 Tech Stack & Tooling:
-Languages & Frameworks: Python 3.11+, FastAPI
+Languages & Frameworks: Python 3.12+, FastAPI
 ORM & DB: SQLAlchemy, PostgreSQL, Alembic
 Messaging: Redis, RabbitMQ
 Logging: structlog to SEQ

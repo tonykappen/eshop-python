@@ -1,12 +1,11 @@
 """Authentication middleware for Keycloak integration."""
 
 import logging
-from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from eshop.core.auth.keycloak import keycloak_service, KeycloakUser
+from eshop.core.auth.keycloak import KeycloakUser, keycloak_service
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +15,12 @@ security = HTTPBearer(auto_error=False)
 
 async def get_current_user_optional(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-) -> Optional[KeycloakUser]:
+    credentials: HTTPAuthorizationCredentials | None = Depends(security)
+) -> KeycloakUser | None:
     """Get current user if authenticated, otherwise return None."""
     if not credentials:
         return None
-    
+
     try:
         return await keycloak_service.get_user_info(credentials.credentials)
     except Exception as e:
@@ -29,12 +28,12 @@ async def get_current_user_optional(
         return None
 
 
-async def get_current_user_optional_from_request(request: Request) -> Optional[KeycloakUser]:
+async def get_current_user_optional_from_request(request: Request) -> KeycloakUser | None:
     """Get current user from request (for middleware)."""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return None
-    
+
     token = auth_header.replace("Bearer ", "")
     try:
         return await keycloak_service.get_user_info(token)
@@ -73,15 +72,15 @@ async def require_role(required_role: str):
 
 def add_auth_middleware(app):
     """Add authentication middleware to FastAPI app."""
-    
+
     # Add user to request state for optional authentication
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         # Add user to request state if authenticated
         user = await get_current_user_optional_from_request(request)
         request.state.user = user
-        
+
         response = await call_next(request)
         return response
-    
-    return app 
+
+    return app

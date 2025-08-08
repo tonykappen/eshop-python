@@ -7,11 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
 from eshop.config.settings import settings
+from eshop.core.auth.keycloak import KeycloakUser
 from eshop.core.di.container import create_container, scan_assemblies, wire_container
-from eshop.core.logging.logger import configure_logging, get_logger
 from eshop.core.health.health_service import health_service
-from eshop.core.auth.keycloak import keycloak_service, KeycloakUser
-from eshop.core.middleware.auth_middleware import add_auth_middleware, get_current_user_required
+from eshop.core.logging.logger import configure_logging, get_logger
+from eshop.core.middleware.auth_middleware import (
+    add_auth_middleware,
+    get_current_user_required,
+)
 
 
 @asynccontextmanager

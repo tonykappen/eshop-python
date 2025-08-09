@@ -66,11 +66,10 @@ class HealthService:
     async def check_redis(self) -> dict[str, Any]:
         """Check Redis connectivity."""
         try:
-            # Create Redis client
+            # Create async Redis client
             redis_client = redis.Redis(
                 host=settings.redis_host,
                 port=settings.redis_port,
-                password=settings.redis_password,
                 db=settings.redis_db,
                 decode_responses=True,
             )

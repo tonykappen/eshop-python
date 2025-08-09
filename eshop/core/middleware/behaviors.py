@@ -95,7 +95,10 @@ class DispatchDomainEventsInterceptor:
     async def dispatch_events(self, entity: Any) -> None:
         """Dispatch domain events from an entity."""
         if hasattr(entity, "domain_events") and entity.domain_events:
-            async with AutoLogContext(self.logger, f"dispatching {len(entity.domain_events)} events from {type(entity).__name__}"):
+            async with AutoLogContext(
+                self.logger,
+                f"dispatching {len(entity.domain_events)} events from {type(entity).__name__}",
+            ):
                 for event in entity.domain_events:
                     self.logger.debug(f"Dispatching event: {type(event).__name__}")
                     await self.event_publisher.publish_domain_event(event)
@@ -104,8 +107,9 @@ class DispatchDomainEventsInterceptor:
 
 
 # Auto-logging decorators for various scenarios
-def auto_log_async(operation_name: str | None = None):
+def auto_log_async(operation_name: str | None = None) -> Callable[..., Any]:
     """Decorator for automatic async function logging."""
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -114,12 +118,15 @@ def auto_log_async(operation_name: str | None = None):
 
             async with AutoLogContext(logger, op_name):
                 return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
-def auto_log_sync(operation_name: str | None = None):
+def auto_log_sync(operation_name: str | None = None) -> Callable[..., Any]:
     """Decorator for automatic sync function logging."""
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -140,15 +147,20 @@ def auto_log_sync(operation_name: str | None = None):
                     f"Failed {op_name}: {e}",
                     execution_time=execution_time,
                     error_type=type(e).__name__,
-                    error_message=str(e)
+                    error_message=str(e),
                 )
                 raise
+
         return wrapper
+
     return decorator
 
 
-def auto_log_database_operation(operation_name: str | None = None):
+def auto_log_database_operation(
+    operation_name: str | None = None,
+) -> Callable[..., Any]:
     """Decorator specifically for database operations with enhanced logging."""
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -160,7 +172,9 @@ def auto_log_database_operation(operation_name: str | None = None):
                 if hasattr(args[0], "__class__"):
                     logger.debug(f"Database operation on: {args[0].__class__.__name__}")
                 return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -176,7 +190,7 @@ class PerformanceLoggingMixin:
         self.logger.info(
             f"Performance: {operation}",
             duration_ms=round(duration * 1000, 2),
-            **context
+            **context,
         )
 
         # Log warning for slow operations
@@ -184,5 +198,5 @@ class PerformanceLoggingMixin:
             self.logger.warning(
                 f"Slow operation detected: {operation}",
                 duration_ms=round(duration * 1000, 2),
-                **context
+                **context,
             )

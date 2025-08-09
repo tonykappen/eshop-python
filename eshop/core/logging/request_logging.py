@@ -31,19 +31,21 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         # Add common health check paths to exclusion list
         if exclude_health_checks:
-            self.exclude_paths.extend([
-                "/health",
-                "/health/",
-                "/health/detailed",
-                "/health/database",
-                "/health/redis",
-                "/health/rabbitmq",
-                "/health/keycloak",
-                "/api/v1/health",
-                "/docs",
-                "/redoc",
-                "/openapi.json"
-            ])
+            self.exclude_paths.extend(
+                [
+                    "/health",
+                    "/health/",
+                    "/health/detailed",
+                    "/health/database",
+                    "/health/redis",
+                    "/health/rabbitmq",
+                    "/health/keycloak",
+                    "/api/v1/health",
+                    "/docs",
+                    "/redoc",
+                    "/openapi.json",
+                ]
+            )
 
     async def dispatch(self, request: Request, call_next: Any) -> Any:
         """Process request and response with automatic logging."""
@@ -103,13 +105,19 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             # Log response body if enabled and small enough
             if self.log_response_body and hasattr(response, "body"):
                 try:
-                    if response.headers.get("content-type", "").startswith("application/json"):
+                    if response.headers.get("content-type", "").startswith(
+                        "application/json"
+                    ):
                         # Only log JSON responses and limit size
                         body_size = len(response.body) if response.body else 0
                         if body_size < 10000:  # 10KB limit
-                            response_info["body"] = response.body.decode("utf-8") if response.body else None
+                            response_info["body"] = (
+                                response.body.decode("utf-8") if response.body else None
+                            )
                         else:
-                            response_info["body"] = f"<large response: {body_size} bytes>"
+                            response_info["body"] = (
+                                f"<large response: {body_size} bytes>"
+                            )
                 except Exception as e:
                     response_info["body_error"] = str(e)
 
@@ -169,7 +177,9 @@ def add_request_logging_middleware(
         exclude_health_checks=exclude_health_checks,
     )
 
-    logger.info("Request logging middleware added",
-                log_request_body=log_request_body,
-                log_response_body=log_response_body,
-                exclude_health_checks=exclude_health_checks)
+    logger.info(
+        "Request logging middleware added",
+        log_request_body=log_request_body,
+        log_response_body=log_response_body,
+        exclude_health_checks=exclude_health_checks,
+    )

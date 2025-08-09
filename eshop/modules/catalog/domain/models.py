@@ -3,7 +3,7 @@
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from eshop.core.domain.entity import Aggregate
 from eshop.modules.catalog.domain.events import (
@@ -21,15 +21,17 @@ class Product(Aggregate):
     image_file: str = Field(..., description="Product image file path")
     price: Decimal = Field(..., description="Product price", gt=0)
 
-    @validator("name")
-    def validate_name(self, v: str) -> str:
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
         """Validate product name is not empty."""
         if not v or not v.strip():
             raise ValueError("Product name cannot be empty")
         return v.strip()
 
-    @validator("price")
-    def validate_price(self, v: Decimal) -> Decimal:
+    @field_validator("price")
+    @classmethod
+    def validate_price(cls, v: Decimal) -> Decimal:
         """Validate price is positive."""
         if v <= 0:
             raise ValueError("Product price must be positive")

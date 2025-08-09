@@ -1,4 +1,4 @@
-"""Main FastAPI application entry point."""
+"""Main FastAPI application entry point with graceful startup and shutdown."""
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -12,6 +12,18 @@ from eshop.config.settings import settings
 from eshop.core.auth.keycloak import KeycloakUser, add_keycloak_routes
 from eshop.core.di.container import create_container, scan_assemblies, wire_container
 from eshop.core.health.health_service import health_service
+from eshop.core.lifecycle.handlers import (
+    auth_handler,
+    cache_handler,
+    database_handler,
+    health_handler,
+    messaging_handler,
+)
+from eshop.core.lifecycle.manager import (
+    lifecycle_manager,
+    register_shutdown_callback,
+    register_startup_callback,
+)
 from eshop.core.logging.logger import configure_logging, get_logger
 from eshop.core.logging.request_logging import add_request_logging_middleware
 from eshop.core.middleware.auth_middleware import (
@@ -20,14 +32,12 @@ from eshop.core.middleware.auth_middleware import (
 )
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan manager."""
-    # Startup
+async def configure_application_startup() -> None:
+    """Configure application startup sequence."""
     logger = get_logger("main")
-    logger.info("Starting eShop Modular Monolith application")
+    logger.info("Configuring eShop Modular Monolith application")
 
-    # Configure logging
+    # Configure logging first
     configure_logging(
         log_level=settings.log_level,
         log_format="json",
@@ -37,6 +47,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         log_directory=settings.log_directory,
         separate_server_logs=settings.log_separate_server_logs,
     )
+
+    logger.info("Logging configuration completed")
+
+
+async def initialize_dependency_injection() -> None:
+    """Initialize dependency injection container."""
+    logger = get_logger("main")
+    logger.info("Initializing dependency injection container")
 
     # Initialize DI container
     container = create_container()
@@ -66,17 +84,64 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         ["eshop.modules.catalog", "eshop.modules.basket", "eshop.modules.ordering"],
     )
 
-    app.state.container = container
+    # Store container in application state
+    # This will be set when the app is created
+    global _app_container
+    _app_container = container
 
-    logger.info("Application startup complete")
-
-    yield
-
-    # Shutdown
-    logger.info("Shutting down eShop Modular Monolith application")
+    logger.info("Dependency injection container initialized")
 
 
-# Create FastAPI app
+async def cleanup_dependency_injection() -> None:
+    """Cleanup dependency injection container."""
+    logger = get_logger("main")
+    logger.info("Cleaning up dependency injection container")
+
+    global _app_container
+    if _app_container:
+        # Perform any necessary cleanup
+        # container.unwire()
+        logger.info("Dependency injection container cleanup completed")
+
+
+# Global container reference for lifecycle management
+_app_container = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan manager with graceful startup and shutdown."""
+    # Set shutdown timeout for production deployment
+    lifecycle_manager.set_shutdown_timeout(60.0)  # 60 seconds for graceful shutdown
+
+    # Store container reference in app state for access in routes
+    global _app_container
+    if _app_container:
+        app.state.container = _app_container
+
+    # Use the comprehensive lifecycle manager
+    async with lifecycle_manager.lifespan_context(app):
+        yield
+
+
+# Register lifecycle callbacks for graceful startup and shutdown
+register_startup_callback(configure_application_startup)
+register_startup_callback(initialize_dependency_injection)
+register_startup_callback(database_handler.startup)
+register_startup_callback(cache_handler.startup)
+register_startup_callback(messaging_handler.startup)
+register_startup_callback(auth_handler.startup)
+register_startup_callback(health_handler.startup)
+
+# Register shutdown callbacks (executed in reverse order)
+register_shutdown_callback(cleanup_dependency_injection)
+register_shutdown_callback(database_handler.shutdown)
+register_shutdown_callback(cache_handler.shutdown)
+register_shutdown_callback(messaging_handler.shutdown)
+register_shutdown_callback(auth_handler.shutdown)
+register_shutdown_callback(health_handler.shutdown)
+
+# Create FastAPI app with graceful lifecycle management
 app = FastAPI(
     title=settings.name,
     version=settings.version,

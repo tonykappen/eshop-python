@@ -116,22 +116,123 @@ class AssemblyScanner:
 
     def _is_service_class(self, obj: Any) -> bool:
         """Check if an object is a service class."""
-        return (
-            inspect.isclass(obj)
-            and not inspect.isabstract(obj)
-            and not obj.__name__.startswith("_")
-            and hasattr(obj, "__module__")
-            and not obj.__module__.startswith("builtins")
+        if not inspect.isclass(obj):
+            return False
+
+        # Skip abstract classes
+        if inspect.isabstract(obj):
+            return False
+
+        # Skip private classes
+        if obj.__name__.startswith("_"):
+            return False
+
+        # Skip if no module or builtin module
+        if not hasattr(obj, "__module__") or obj.__module__.startswith("builtins"):
+            return False
+
+        # Skip imports from other packages (not defined in current module)
+        if not obj.__module__.startswith("eshop"):
+            return False
+
+        # Skip common framework/library classes
+        skip_classes = {
+            "BaseModel",
+            "BaseSettings",
+            "Field",
+            "UUID",
+            "Decimal",
+            "datetime",
+            "List",
+            "Optional",
+            "Dict",
+            "Any",
+            "Type",
+            "Callable",
+            "Generic",
+            "ABC",
+            "DeclarativeBase",
+            "Mapped",
+            "AsyncSession",
+            "Engine",
+            "String",
+            "Integer",
+            "Boolean",
+            "Text",
+            "DateTime",
+            "Numeric",
+            "ForeignKey",
+            "relationship",
+            "mapped_column",
+            "Entity",
+            "DomainEvent",
+        }
+        if obj.__name__ in skip_classes:
+            return False
+
+        # Only include classes with service-like naming patterns
+        name_lower = obj.__name__.lower()
+        service_patterns = [
+            "service",
+            "repository",
+            "handler",
+            "controller",
+            "manager",
+            "processor",
+            "factory",
+            "builder",
+            "adapter",
+            "provider",
+        ]
+
+        # Must have service pattern in name or have explicit service annotation
+        has_service_pattern = any(pattern in name_lower for pattern in service_patterns)
+        has_service_annotation = hasattr(obj, "__service_name__") or hasattr(
+            obj, "__service_scope__"
         )
+
+        return has_service_pattern or has_service_annotation
 
     def _is_service_function(self, obj: Any) -> bool:
         """Check if an object is a service function."""
-        return (
-            inspect.isfunction(obj)
-            and not obj.__name__.startswith("_")
-            and hasattr(obj, "__module__")
-            and not obj.__module__.startswith("builtins")
+        if not inspect.isfunction(obj):
+            return False
+
+        # Skip private functions
+        if obj.__name__.startswith("_"):
+            return False
+
+        # Skip if no module or builtin module
+        if not hasattr(obj, "__module__") or obj.__module__.startswith("builtins"):
+            return False
+
+        # Skip imports from other packages
+        if not obj.__module__.startswith("eshop"):
+            return False
+
+        # Skip common framework/library functions
+        skip_functions = {
+            "field",
+            "field_validator",
+            "validator",
+            "mapped_column",
+            "relationship",
+            "select",
+            "update",
+            "delete",
+            "insert",
+            "selectinload",
+            "joinedload",
+        }
+        if obj.__name__ in skip_functions:
+            return False
+
+        # Only include functions with explicit service annotation
+        has_service_annotation = hasattr(obj, "__service_name__") or hasattr(
+            obj, "__service_scope__"
         )
+
+        return has_service_annotation
 
     def _get_service_name(self, obj: Any, name: str) -> str:
         """Get the service name for registration."""
@@ -195,7 +296,11 @@ class AssemblyScanner:
         except Exception as e:
             logger.error(f"Failed to register function service {service_name}: {e}")
 
-    def _determine_scope(self, service_class: type, service_name: str) -> str:  # noqa: ARG002
+    def _determine_scope(
+        self,
+        service_class: type,  # noqa: ARG002
+        service_name: str,
+    ) -> str:
         """Determine the scope of a service based on naming conventions."""
         name_lower = service_name.lower()
 

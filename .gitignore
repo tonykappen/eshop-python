@@ -28,4 +28,9 @@ just_for_reference_do_not_commit/
 
 # Logs
 logs/
-*.log 
+*.log
+
+# Coverage reports
+.coverage
+htmlcov/
+.pytest_cache/ 

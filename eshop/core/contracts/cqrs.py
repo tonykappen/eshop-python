@@ -11,7 +11,7 @@ TCommand = TypeVar("TCommand", bound="ICommand[Any]")
 TQuery = TypeVar("TQuery", bound="IQuery[Any]")
 
 
-class ICommand(Generic[TResponse], BaseModel, ABC):
+class ICommand(BaseModel, Generic[TResponse], ABC):
     """Base command interface matching .NET ICommand<TResponse>."""
 
     class Config:
@@ -26,7 +26,7 @@ class ICommandNoResponse(ICommand[None], ABC):
     pass
 
 
-class IQuery(Generic[TResponse], BaseModel, ABC):
+class IQuery(BaseModel, Generic[TResponse], ABC):
     """Base query interface matching .NET IQuery<T>."""
 
     class Config:

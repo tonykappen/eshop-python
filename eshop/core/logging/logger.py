@@ -59,7 +59,7 @@ def configure_logging(
     )
 
     # Configure handlers
-    handlers = []
+    handlers: list[logging.Handler] = []
 
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -93,12 +93,16 @@ def configure_logging(
     # Configure Uvicorn server logs separately if enabled
     if separate_server_logs and enable_file_logging:
         # Create separate handlers for uvicorn
-        uvicorn_access_handler = logging.FileHandler(f"{log_directory}/uvicorn_access.log")
+        uvicorn_access_handler = logging.FileHandler(
+            f"{log_directory}/uvicorn_access.log"
+        )
         uvicorn_access_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         )
 
-        uvicorn_error_handler = logging.FileHandler(f"{log_directory}/uvicorn_error.log")
+        uvicorn_error_handler = logging.FileHandler(
+            f"{log_directory}/uvicorn_error.log"
+        )
         uvicorn_error_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         )
@@ -187,27 +191,28 @@ class AutoLogContext:
     def __init__(self, logger: structlog.stdlib.BoundLogger, operation: str):
         self.logger = logger
         self.operation = operation
-        self.start_time = None
+        self.start_time: float | None = None
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "AutoLogContext":
         import time
+
         self.start_time = time.time()
         self.logger.info(f"Starting {self.operation}")
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         import time
+
         execution_time = time.time() - self.start_time if self.start_time else 0
 
         if exc_type is None:
             self.logger.info(
-                f"Completed {self.operation}",
-                execution_time=execution_time
+                f"Completed {self.operation}", execution_time=execution_time
             )
         else:
             self.logger.error(
                 f"Failed {self.operation}: {exc_val}",
                 execution_time=execution_time,
                 error_type=exc_type.__name__,
-                error_message=str(exc_val)
+                error_message=str(exc_val),
             )

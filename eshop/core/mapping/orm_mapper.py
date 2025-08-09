@@ -194,7 +194,7 @@ class ORMMapper:
             fields.update(
                 param.name for param in sig.parameters.values() if param.name != "self"
             )
-        except Exception:
+        except Exception:  # nosec B110
             pass
 
         return fields
@@ -274,14 +274,14 @@ class ORMMapper:
                     if arg_type != type(None):
                         try:
                             return ORMMapper._convert_single_value(value, arg_type)
-                        except Exception:
+                        except Exception:  # nosec B112
                             continue
 
         # Default: return as-is or try direct conversion
         try:
             if not isinstance(value, expected_type) and callable(expected_type):
                 return expected_type(value)
-        except Exception:
+        except Exception:  # nosec B110
             pass
 
         return value

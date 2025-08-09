@@ -1,7 +1,7 @@
 """Integration events and outbox pattern implementation using faststream."""
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -14,7 +14,7 @@ class IntegrationEvent(BaseModel):
     """Base class for integration events."""
 
     id: UUID = Field(default_factory=uuid4)
-    creation_date: datetime = Field(default_factory=datetime.utcnow)
+    creation_date: datetime = Field(default_factory=lambda: datetime.now(UTC))
     event_type: str = Field(default="")
     data: dict[str, Any] = Field(default_factory=dict)
 
@@ -28,7 +28,7 @@ class OutboxMessage(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     type: str
     content: str
-    created_on: datetime = Field(default_factory=datetime.utcnow)
+    created_on: datetime = Field(default_factory=lambda: datetime.now(UTC))
     processed_on: datetime | None = None
     error: str | None = None
 

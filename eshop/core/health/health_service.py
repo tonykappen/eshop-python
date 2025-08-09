@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import asyncpg
@@ -50,7 +50,7 @@ class HealthService:
                 "host": settings.db_host,
                 "port": settings.db_port,
                 "database": settings.db_name,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
@@ -60,7 +60,7 @@ class HealthService:
                 "error": str(e),
                 "host": settings.db_host,
                 "port": settings.db_port,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
     async def check_redis(self) -> dict[str, Any]:
@@ -84,7 +84,7 @@ class HealthService:
                 "service": "redis",
                 "host": settings.redis_host,
                 "port": settings.redis_port,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
             logger.error(f"Redis health check failed: {e}")
@@ -94,7 +94,7 @@ class HealthService:
                 "error": str(e),
                 "host": settings.redis_host,
                 "port": settings.redis_port,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
     async def check_rabbitmq(self) -> dict[str, Any]:
@@ -112,7 +112,7 @@ class HealthService:
                 "service": "rabbitmq",
                 "host": settings.rabbitmq_host,
                 "port": settings.rabbitmq_port,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
             logger.error(f"RabbitMQ health check failed: {e}")
@@ -122,7 +122,7 @@ class HealthService:
                 "error": str(e),
                 "host": settings.rabbitmq_host,
                 "port": settings.rabbitmq_port,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
     async def check_keycloak(self) -> dict[str, Any]:
@@ -150,7 +150,7 @@ class HealthService:
                     services["error"] = {
                         "status": "unhealthy",
                         "error": str(result),
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                     }
                     overall_status = "unhealthy"
                 elif isinstance(result, dict):
@@ -162,13 +162,13 @@ class HealthService:
                     services["unknown"] = {
                         "status": "unhealthy",
                         "error": f"Unexpected result type: {type(result)}",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                     }
                     overall_status = "unhealthy"
 
             return {
                 "status": overall_status,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": settings.version,
                 "services": services,
             }
@@ -177,7 +177,7 @@ class HealthService:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": settings.version,
             }
 

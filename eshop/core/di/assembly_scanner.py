@@ -257,9 +257,9 @@ def service(
     """Decorator to mark a class as a service."""
 
     def decorator(cls: type) -> type:
-        setattr(cls, "__service_scope__", scope)
+        cls.__service_scope__ = scope
         if name:
-            setattr(cls, "__service_name__", name)
+            cls.__service_name__ = name
         return cls
 
     return decorator
@@ -282,7 +282,7 @@ def function_service(
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if name:
-            setattr(func, "__service_name__", name)
+            func.__service_name__ = name
         return func
 
     return decorator

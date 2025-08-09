@@ -13,6 +13,7 @@ from eshop.core.auth.keycloak import KeycloakUser, add_keycloak_routes
 from eshop.core.di.container import create_container, scan_assemblies, wire_container
 from eshop.core.health.health_service import health_service
 from eshop.core.logging.logger import configure_logging, get_logger
+from eshop.core.logging.request_logging import add_request_logging_middleware
 from eshop.core.middleware.auth_middleware import (
     add_auth_middleware,
     get_current_user_required,
@@ -32,6 +33,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         log_format="json",
         enable_seq=settings.log_enable_seq,
         seq_url=settings.seq_url,
+        enable_file_logging=settings.log_enable_file,
+        log_directory=settings.log_directory,
+        separate_server_logs=settings.log_separate_server_logs,
     )
 
     # Initialize DI container
@@ -97,6 +101,15 @@ add_auth_middleware(app)
 
 # Add pagination support
 add_pagination(app)
+
+# Add request logging middleware (before other middleware)
+if settings.log_enable_request_logging:
+    add_request_logging_middleware(
+        app,
+        log_request_body=settings.log_request_body,
+        log_response_body=settings.log_response_body,
+        exclude_health_checks=True,
+    )
 
 
 @app.get("/")

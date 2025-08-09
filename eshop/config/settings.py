@@ -61,6 +61,12 @@ class AppSettings(BaseSettings):
     seq_url: str = Field(default="http://localhost:5341", alias="SEQ_URL")
     log_enable_console: bool = Field(default=True, alias="LOG_ENABLE_CONSOLE")
     log_enable_seq: bool = Field(default=False, alias="LOG_ENABLE_SEQ")
+    log_enable_file: bool = Field(default=True, alias="LOG_ENABLE_FILE")
+    log_directory: str = Field(default="logs", alias="LOG_DIRECTORY")
+    log_separate_server_logs: bool = Field(default=True, alias="LOG_SEPARATE_SERVER_LOGS")
+    log_enable_request_logging: bool = Field(default=True, alias="LOG_ENABLE_REQUEST_LOGGING")
+    log_request_body: bool = Field(default=False, alias="LOG_REQUEST_BODY")
+    log_response_body: bool = Field(default=False, alias="LOG_RESPONSE_BODY")
 
     @property
     def database_connection_string(self) -> str:

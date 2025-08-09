@@ -24,7 +24,7 @@ class AssemblyScanner:
     def scan_package(
         self,
         package_name: str,
-        base_path: str | None = None,
+        base_path: str | None = None,  # noqa: ARG002
         recursive: bool = True,
         include_patterns: list[str] | None = None,
         exclude_patterns: list[str] | None = None,
@@ -195,7 +195,7 @@ class AssemblyScanner:
         except Exception as e:
             logger.error(f"Failed to register function service {service_name}: {e}")
 
-    def _determine_scope(self, service_class: type, service_name: str) -> str:
+    def _determine_scope(self, service_class: type, service_name: str) -> str:  # noqa: ARG002
         """Determine the scope of a service based on naming conventions."""
         name_lower = service_name.lower()
 
@@ -257,9 +257,9 @@ def service(
     """Decorator to mark a class as a service."""
 
     def decorator(cls: type) -> type:
-        cls.__service_scope__ = scope
+        setattr(cls, "__service_scope__", scope)  # noqa: B010
         if name:
-            cls.__service_name__ = name
+            setattr(cls, "__service_name__", name)  # noqa: B010
         return cls
 
     return decorator
@@ -282,7 +282,7 @@ def function_service(
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if name:
-            func.__service_name__ = name
+            setattr(func, "__service_name__", name)  # noqa: B010
         return func
 
     return decorator

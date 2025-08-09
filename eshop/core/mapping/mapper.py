@@ -92,7 +92,7 @@ class MsgspecMapper:
         try:
             return msgspec.convert(converted_data, type=dto_class)
         except Exception as e:
-            raise ValueError(f"Failed to convert to DTO {dto_class.__name__}: {e}")
+            raise ValueError(f"Failed to convert to DTO {dto_class.__name__}: {e}") from e
 
     @staticmethod
     def _convert_to_entity(data: dict[str, Any], entity_class: type[T]) -> T:
@@ -119,7 +119,7 @@ class MsgspecMapper:
         except Exception as e:
             raise ValueError(
                 f"Failed to convert to entity {entity_class.__name__}: {e}"
-            )
+            ) from e
 
     @staticmethod
     def _convert_nested_object(obj: Any) -> Any:

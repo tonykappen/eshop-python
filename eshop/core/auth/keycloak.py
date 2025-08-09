@@ -72,7 +72,7 @@ class KeycloakService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
-            )
+            ) from e
 
     async def get_user_info(self, token: str) -> KeycloakUser:
         """Get user information from token."""

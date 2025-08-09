@@ -16,7 +16,7 @@ security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user_optional(
-    request: Request,
+    request: Request,  # noqa: ARG001
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> KeycloakUser | None:
     """Get current user if authenticated, otherwise return None."""
@@ -58,7 +58,7 @@ async def get_current_user_required(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
 
 def require_role(required_role: str) -> Callable[[KeycloakUser], Any]:

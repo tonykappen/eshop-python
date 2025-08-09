@@ -9,14 +9,14 @@ class BaseError(Exception):
         super().__init__(self.message)
 
 
-class BadRequestException(BaseError):
+class BadRequestError(BaseError):
     """Exception for bad request errors (400)."""
 
     def __init__(self, message: str = "Bad request"):
         super().__init__(message)
 
 
-class NotFoundException(BaseError):
+class NotFoundError(BaseError):
     """Exception for not found errors (404)."""
 
     def __init__(
@@ -30,14 +30,14 @@ class NotFoundException(BaseError):
         super().__init__(message)
 
 
-class InternalServerException(BaseError):
+class InternalServerError(BaseError):
     """Exception for internal server errors (500)."""
 
     def __init__(self, message: str = "Internal server error"):
         super().__init__(message)
 
 
-class ValidationException(BaseError):
+class ValidationError(BaseError):
     """Exception for validation errors."""
 
     def __init__(self, message: str = "Validation error", errors: dict | None = None):

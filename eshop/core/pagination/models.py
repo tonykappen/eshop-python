@@ -32,11 +32,11 @@ class PaginatedResult(BaseModel, Generic[T]):
     def from_page(cls, page: Page[T]) -> "PaginatedResult[T]":
         """Create PaginatedResult from fastapi-pagination Page."""
         return cls(
-            items=page.items,
-            total=page.total,
-            page=page.page,
-            size=page.size,
-            pages=page.pages,
+            items=list(page.items),
+            total=page.total or 0,
+            page=page.page or 1,
+            size=page.size or 10,
+            pages=page.pages or 1,
         )
 
     @classmethod

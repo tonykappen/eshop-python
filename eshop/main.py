@@ -1,13 +1,15 @@
 """Main FastAPI application entry point."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
 from eshop.config.settings import settings
-from eshop.core.auth.keycloak import KeycloakUser
+from eshop.core.auth.keycloak import KeycloakUser, add_keycloak_routes
 from eshop.core.di.container import create_container, scan_assemblies, wire_container
 from eshop.core.health.health_service import health_service
 from eshop.core.logging.logger import configure_logging, get_logger
@@ -18,7 +20,7 @@ from eshop.core.middleware.auth_middleware import (
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
     # Startup
     logger = get_logger("main")
@@ -87,6 +89,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add Keycloak authentication routes
+add_keycloak_routes(app)
+
 # Add authentication middleware
 add_auth_middleware(app)
 
@@ -95,7 +100,7 @@ add_pagination(app)
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Root endpoint."""
     return {
         "message": "eShop Modular Monolith API",
@@ -105,7 +110,7 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     """Basic health check endpoint."""
     return {
         "status": "healthy",
@@ -115,7 +120,7 @@ async def health_check():
 
 
 @app.get("/api/v1/health")
-async def api_health_check():
+async def api_health_check() -> dict[str, str | list[str]]:
     """API health check endpoint."""
     return {
         "status": "healthy",
@@ -125,44 +130,46 @@ async def api_health_check():
 
 
 @app.get("/health/detailed")
-async def detailed_health_check():
+async def detailed_health_check() -> dict[str, Any]:
     """Detailed health check for all services."""
     return await health_service.check_all_services()
 
 
 @app.get("/health/database")
-async def database_health_check():
+async def database_health_check() -> dict[str, Any]:
     """Database health check endpoint."""
     return await health_service.check_database()
 
 
 @app.get("/health/redis")
-async def redis_health_check():
+async def redis_health_check() -> dict[str, Any]:
     """Redis health check endpoint."""
     return await health_service.check_redis()
 
 
 @app.get("/health/rabbitmq")
-async def rabbitmq_health_check():
+async def rabbitmq_health_check() -> dict[str, Any]:
     """RabbitMQ health check endpoint."""
     return await health_service.check_rabbitmq()
 
 
 @app.get("/health/keycloak")
-async def keycloak_health_check():
+async def keycloak_health_check() -> dict[str, Any]:
     """Keycloak health check endpoint."""
     return await health_service.check_keycloak()
 
 
 @app.get("/api/v1/auth/me")
-async def get_current_user_info(user: KeycloakUser = Depends(get_current_user_required)):
+async def get_current_user_info(
+    user: KeycloakUser = Depends(get_current_user_required),
+) -> dict[str, str | list[str]]:
     """Get current user information (requires authentication)."""
     return {
-        "user_id": user.sub,
-        "email": user.email,
-        "name": user.name,
-        "username": user.preferred_username,
-        "roles": user.roles,
+        "user_id": user.sub or "",
+        "email": user.email or "",
+        "name": user.name or "",
+        "username": user.preferred_username or "",
+        "roles": user.roles or [],
     }
 
 

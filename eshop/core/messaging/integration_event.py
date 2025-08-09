@@ -1,5 +1,6 @@
 """Integration events and outbox pattern implementation using faststream."""
 
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
@@ -65,7 +66,7 @@ class FastStreamEventPublisher(IEventPublisher):
 class FastStreamEventHandler(IIntegrationEventHandler):
     """FastStream-based event handler."""
 
-    def __init__(self, handler_func):
+    def __init__(self, handler_func: Callable[[IntegrationEvent], Any]) -> None:
         self.handler_func = handler_func
 
     async def handle(self, event: IntegrationEvent) -> None:

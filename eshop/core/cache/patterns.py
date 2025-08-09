@@ -1,6 +1,7 @@
 """Cache patterns: Cache Aside and Cache Invalidation."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 from uuid import UUID
 
@@ -42,7 +43,9 @@ class CacheAsidePattern:
     def __init__(self, cache_service: ICacheService):
         self.cache = cache_service
 
-    async def get_or_set(self, key: str, fetch_func, ttl: int | None = None) -> Any:
+    async def get_or_set(
+        self, key: str, fetch_func: Callable[[], Awaitable[Any]], ttl: int | None = None
+    ) -> Any:
         """Get from cache or fetch and set if not exists."""
         # Try to get from cache first
         cached_value = await self.cache.get(key)
@@ -59,7 +62,7 @@ class CacheAsidePattern:
         return value
 
     async def invalidate_and_refetch(
-        self, key: str, fetch_func, ttl: int | None = None
+        self, key: str, fetch_func: Callable[[], Awaitable[Any]], ttl: int | None = None
     ) -> Any:
         """Invalidate cache and refetch data."""
         await self.cache.delete(key)
@@ -112,7 +115,7 @@ class CacheKeyBuilder:
         return key
 
     @staticmethod
-    def collection_key(entity_type: str, filters: dict = None) -> str:
+    def collection_key(entity_type: str, filters: dict | None = None) -> str:
         """Build cache key for a collection."""
         key = f"{entity_type}:collection"
         if filters:

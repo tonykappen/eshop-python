@@ -37,7 +37,7 @@ class RetryConfig:
 
 def retry_operation(
     config: RetryConfig | None = None, operation_name: str = "operation"
-) -> Callable:
+) -> Callable[..., Any]:
     """Decorator for retrying operations with configurable retry logic."""
 
     if config is None:
@@ -52,7 +52,7 @@ def retry_operation(
             retry=retry_if_exception_type(config.retry_exceptions),
         )
         @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
@@ -71,7 +71,7 @@ def retry_operation(
             retry=retry_if_exception_type(config.retry_exceptions),
         )
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
             except Exception as e:
@@ -90,7 +90,7 @@ def retry_operation(
     return decorator
 
 
-def retry_database_operation(func: Callable) -> Callable:
+def retry_database_operation(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator for retrying database operations."""
     config = RetryConfig(
         max_attempts=3,
@@ -98,10 +98,10 @@ def retry_database_operation(func: Callable) -> Callable:
         max_wait_time=10.0,
         retry_exceptions=(ConnectionError, TimeoutError, OSError),
     )
-    return retry_operation(config, "database_operation")(func)
+    return retry_operation(config, "database_operation")(func)  # type: ignore
 
 
-def retry_api_call(func: Callable) -> Callable:
+def retry_api_call(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator for retrying API calls."""
     config = RetryConfig(
         max_attempts=3,
@@ -109,10 +109,10 @@ def retry_api_call(func: Callable) -> Callable:
         max_wait_time=30.0,
         retry_exceptions=(ConnectionError, TimeoutError, OSError),
     )
-    return retry_operation(config, "api_call")(func)
+    return retry_operation(config, "api_call")(func)  # type: ignore
 
 
-def retry_messaging_operation(func: Callable) -> Callable:
+def retry_messaging_operation(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator for retrying messaging operations."""
     config = RetryConfig(
         max_attempts=5,
@@ -120,7 +120,7 @@ def retry_messaging_operation(func: Callable) -> Callable:
         max_wait_time=15.0,
         retry_exceptions=(ConnectionError, TimeoutError, OSError),
     )
-    return retry_operation(config, "messaging_operation")(func)
+    return retry_operation(config, "messaging_operation")(func)  # type: ignore
 
 
 class RetryableOperation:
@@ -129,7 +129,9 @@ class RetryableOperation:
     def __init__(self, config: RetryConfig | None = None):
         self.config = config or RetryConfig()
 
-    async def execute(self, operation: Callable, *args, **kwargs) -> Any:
+    async def execute(
+        self, operation: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute an operation with retry logic."""
         retry_func = retry_operation(self.config)(operation)
         return await retry_func(*args, **kwargs)
@@ -141,21 +143,21 @@ class RetryableOperation:
 
 # Convenience functions
 def retry_with_backoff(
-    func: Callable,
+    func: Callable[..., Any],
     max_attempts: int = 3,
     base_delay: float = 1.0,
     max_delay: float = 60.0,
-) -> Callable:
+) -> Callable[..., Any]:
     """Retry function with exponential backoff."""
     config = RetryConfig(
         max_attempts=max_attempts, wait_time=base_delay, max_wait_time=max_delay
     )
-    return retry_operation(config)(func)
+    return retry_operation(config)(func)  # type: ignore
 
 
 def retry_with_timeout(
-    func: Callable, timeout: float = 30.0, max_attempts: int = 3
-) -> Callable:
+    func: Callable[..., Any], timeout: float = 30.0, max_attempts: int = 3
+) -> Callable[..., Any]:
     """Retry function with timeout."""
     config = RetryConfig(max_attempts=max_attempts, timeout=timeout)
-    return retry_operation(config)(func)
+    return retry_operation(config)(func)  # type: ignore

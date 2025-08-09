@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class HealthService:
     """Health check service for all infrastructure components."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize health service."""
         self.redis_client = None
         self.db_pool = None
@@ -101,9 +101,7 @@ class HealthService:
         """Check RabbitMQ connectivity."""
         try:
             # Create RabbitMQ broker
-            broker = RabbitBroker(
-                settings.rabbitmq_connection_string
-            )
+            broker = RabbitBroker(settings.rabbitmq_connection_string)
 
             # Test connection
             await broker.connect()
@@ -155,11 +153,18 @@ class HealthService:
                         "timestamp": datetime.utcnow().isoformat(),
                     }
                     overall_status = "unhealthy"
-                else:
+                elif isinstance(result, dict):
                     service_name = result.get("service", "unknown")
                     services[service_name] = result
                     if result.get("status") == "unhealthy":
                         overall_status = "unhealthy"
+                else:
+                    services["unknown"] = {
+                        "status": "unhealthy",
+                        "error": f"Unexpected result type: {type(result)}",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                    overall_status = "unhealthy"
 
             return {
                 "status": overall_status,

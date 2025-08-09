@@ -37,7 +37,7 @@ class Endpoint(ABC, Generic[TRequest, TResponse]):
 
     async def check_disconnection(self, request: Request) -> bool:
         """Check if client has disconnected (collection token pattern)."""
-        return request.is_disconnected()
+        return await request.is_disconnected()
 
     async def execute(self, request: Request, data: TRequest) -> TResponse:
         """Execute the endpoint with disconnection check."""

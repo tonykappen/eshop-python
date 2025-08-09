@@ -52,7 +52,7 @@ class MsgspecMapper:
     @staticmethod
     def to_json(obj: Any) -> str:
         """Serialize object to JSON string using msgspec."""
-        return msgspec.json.encode(obj)
+        return msgspec.json.encode(obj).decode("utf-8")
 
     @staticmethod
     def from_json(json_str: str, target_class: type[T]) -> T:

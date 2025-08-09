@@ -1,6 +1,8 @@
 """Authentication middleware for Keycloak integration."""
 
 import logging
+from collections.abc import Callable
+from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -15,7 +17,7 @@ security = HTTPBearer(auto_error=False)
 
 async def get_current_user_optional(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(security)
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> KeycloakUser | None:
     """Get current user if authenticated, otherwise return None."""
     if not credentials:
@@ -28,7 +30,9 @@ async def get_current_user_optional(
         return None
 
 
-async def get_current_user_optional_from_request(request: Request) -> KeycloakUser | None:
+async def get_current_user_optional_from_request(
+    request: Request,
+) -> KeycloakUser | None:
     """Get current user from request (for middleware)."""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -43,7 +47,7 @@ async def get_current_user_optional_from_request(request: Request) -> KeycloakUs
 
 
 async def get_current_user_required(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> KeycloakUser:
     """Get current authenticated user, raise 401 if not authenticated."""
     try:
@@ -57,9 +61,12 @@ async def get_current_user_required(
         )
 
 
-async def require_role(required_role: str):
+def require_role(required_role: str) -> Callable[[KeycloakUser], Any]:
     """Dependency to require specific role."""
-    async def role_checker(current_user: KeycloakUser = Depends(get_current_user_required)):
+
+    async def role_checker(
+        current_user: KeycloakUser = Depends(get_current_user_required),
+    ) -> KeycloakUser:
         has_role = await keycloak_service.check_role(current_user, required_role)
         if not has_role:
             raise HTTPException(
@@ -67,15 +74,16 @@ async def require_role(required_role: str):
                 detail=f"Role '{required_role}' required",
             )
         return current_user
+
     return role_checker
 
 
-def add_auth_middleware(app):
+def add_auth_middleware(app: Any) -> Any:
     """Add authentication middleware to FastAPI app."""
 
     # Add user to request state for optional authentication
     @app.middleware("http")
-    async def auth_middleware(request: Request, call_next):
+    async def auth_middleware(request: Request, call_next: Any) -> Any:
         # Add user to request state if authenticated
         user = await get_current_user_optional_from_request(request)
         request.state.user = user
@@ -83,4 +91,4 @@ def add_auth_middleware(app):
         response = await call_next(request)
         return response
 
-    return app
+    return None  # Actually return None as this modifies app in-place

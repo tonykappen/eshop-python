@@ -8,11 +8,11 @@ from typing import Any
 from eshop.core.logging.logger import get_logger
 
 
-def logging_behavior(func: Callable) -> Callable:
+def logging_behavior(func: Callable[..., Any]) -> Callable[..., Any]:
     """Logging behavior decorator."""
 
     @wraps(func)
-    async def wrapper(*args, **kwargs) -> Any:
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         logger = get_logger(func.__module__)
 
         start_time = time.time()
@@ -45,11 +45,11 @@ def logging_behavior(func: Callable) -> Callable:
     return wrapper
 
 
-def validation_behavior(func: Callable) -> Callable:
+def validation_behavior(func: Callable[..., Any]) -> Callable[..., Any]:
     """Validation behavior decorator."""
 
     @wraps(func)
-    async def wrapper(*args, **kwargs) -> Any:
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         logger = get_logger(func.__module__)
 
         # Validate input parameters
@@ -71,7 +71,7 @@ def validation_behavior(func: Callable) -> Callable:
 class AuditableEntityInterceptor:
     """Interceptor for auditable entities."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = get_logger(__name__)
 
     async def before_save(self, entity: Any) -> None:
@@ -88,7 +88,7 @@ class AuditableEntityInterceptor:
 class DispatchDomainEventsInterceptor:
     """Interceptor for dispatching domain events."""
 
-    def __init__(self, event_publisher):
+    def __init__(self, event_publisher: Any) -> None:
         self.event_publisher = event_publisher
         self.logger = get_logger(__name__)
 

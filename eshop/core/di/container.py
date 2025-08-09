@@ -38,7 +38,7 @@ class ServiceProvider:
 
     def get_required_service(self, service_type: type) -> Any:
         """Get a service by type."""
-        for name, provider in self.container.providers.items():
+        for _name, provider in self.container.providers.items():
             if hasattr(provider, "provides") and provider.provides == service_type:
                 return provider()
 

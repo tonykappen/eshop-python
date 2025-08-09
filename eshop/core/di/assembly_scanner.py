@@ -137,7 +137,7 @@ class AssemblyScanner:
         """Get the service name for registration."""
         # Check for custom service name annotation
         if hasattr(obj, "__service_name__"):
-            return obj.__service_name__
+            return str(obj.__service_name__)  # Explicitly cast to str
 
         # Use class/function name as service name
         return name.lower()
@@ -236,10 +236,7 @@ class AssemblyScanner:
                     return False
 
         if include_patterns:
-            for pattern in include_patterns:
-                if pattern in name:
-                    return True
-            return False
+            return any(pattern in name for pattern in include_patterns)
 
         return True
 
@@ -254,34 +251,38 @@ class AssemblyScanner:
 
 
 # Decorators for service registration
-def service(scope: str = "singleton", name: str | None = None):
+def service(
+    scope: str = "singleton", name: str | None = None
+) -> Callable[[type], type]:
     """Decorator to mark a class as a service."""
 
-    def decorator(cls):
-        cls.__service_scope__ = scope
+    def decorator(cls: type) -> type:
+        setattr(cls, "__service_scope__", scope)
         if name:
-            cls.__service_name__ = name
+            setattr(cls, "__service_name__", name)
         return cls
 
     return decorator
 
 
-def singleton_service(name: str | None = None):
+def singleton_service(name: str | None = None) -> Callable[[type], type]:
     """Decorator to mark a class as a singleton service."""
     return service("singleton", name)
 
 
-def transient_service(name: str | None = None):
+def transient_service(name: str | None = None) -> Callable[[type], type]:
     """Decorator to mark a class as a transient service."""
     return service("transient", name)
 
 
-def function_service(name: str | None = None):
+def function_service(
+    name: str | None = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to mark a function as a service."""
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if name:
-            func.__service_name__ = name
+            setattr(func, "__service_name__", name)
         return func
 
     return decorator

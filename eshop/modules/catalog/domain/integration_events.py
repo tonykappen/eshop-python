@@ -5,7 +5,10 @@ from uuid import UUID
 
 from pydantic import Field
 
-from eshop.core.messaging.integration_event import CatalogIntegrationEvent, IntegrationEvent
+from eshop.core.messaging.integration_event import (
+    CatalogIntegrationEvent,
+    IntegrationEvent,
+)
 
 
 class ProductCreatedIntegrationEvent(CatalogIntegrationEvent):

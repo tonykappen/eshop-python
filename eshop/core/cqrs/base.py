@@ -5,21 +5,19 @@ from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
+# Import and re-export from core contracts
+from eshop.core.contracts.cqrs import (
+    ICommand as ICommandContract,
+)
+from eshop.core.contracts.cqrs import (
+    IQuery as IQueryContract,
+)
+
 TResult = TypeVar("TResult")
 
-
-class ICommand(BaseModel, ABC):
-    """Base interface for commands."""
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
-class IQuery(BaseModel, ABC):
-    """Base interface for queries."""
-
-    class Config:
-        arbitrary_types_allowed = True
+# Backward compatibility aliases
+ICommand = ICommandContract[Any]
+IQuery = IQueryContract[Any]
 
 
 class ICommandHandler(ABC, Generic[TResult]):

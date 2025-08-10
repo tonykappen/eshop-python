@@ -1,6 +1,5 @@
 """Product endpoints demonstrating enhanced REPR pattern with CQRS."""
 
-from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 
 from eshop.core.contracts.cqrs import ICommand, IQuery
+from eshop.core.mediator.fastapi_integration import get_mediator_dependency
 from eshop.core.repr.base import (
     BaseRequest,
     CQRSEndpointFactory,
@@ -19,7 +19,6 @@ from eshop.core.repr.base import (
 from eshop.modules.catalog.contracts.products.dtos import ProductDto
 from eshop.modules.catalog.contracts.products.features.get_product_by_id import (
     GetProductByIdQuery,
-    GetProductByIdResult,
 )
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -51,11 +50,13 @@ class GetProductsRequest(PaginatedRequest):
 # Response models (HTTP layer)
 class ProductResponse(DataResponse[ProductDto]):
     """HTTP response containing a single product."""
+
     pass
 
 
 class ProductsResponse(PaginatedResponse[ProductDto]):
     """HTTP response containing multiple products with pagination."""
+
     pass
 
 
@@ -79,75 +80,28 @@ class GetProductsQuery(IQuery[dict]):
     search_term: str | None = None
 
 
-# Mediator implementation (simplified for demo)
-class CatalogMediator(IMediator):
-    """Simple mediator implementation for catalog commands and queries."""
-
-    async def send_command(self, command: Any) -> Any:
-        """Handle commands (write operations)."""
-        if isinstance(command, CreateProductCommand):
-            # Simulate product creation
-            return {"id": "generated-uuid", "created": True}
-        raise NotImplementedError(f"Command {type(command)} not implemented")
-
-    async def send_query(self, query: Any) -> Any:
-        """Handle queries (read operations)."""
-        if isinstance(query, GetProductByIdQuery):
-            # Simulate product retrieval
-            return GetProductByIdResult(
-                product=ProductDto(
-                    id=query.id,
-                    name="Sample Product",
-                    description="A sample product",
-                    price=Decimal("99.99"),
-                    image_file="product.jpg"
-                )
-            )
-        elif isinstance(query, GetProductsQuery):
-            # Simulate paginated product list
-            return {
-                "data": [
-                    ProductDto(
-                        id=UUID("123e4567-e89b-12d3-a456-426614174000"),
-                        name="Product 1",
-                        description="First product",
-                        price=Decimal("29.99"),
-                        image_file="product1.jpg"
-                    ),
-                    ProductDto(
-                        id=UUID("123e4567-e89b-12d3-a456-426614174001"),
-                        name="Product 2",
-                        description="Second product",
-                        price=Decimal("39.99"),
-                        image_file="product2.jpg"
-                    )
-                ],
-                "total_count": 50,
-                "page": query.page,
-                "page_size": query.page_size
-            }
-        raise NotImplementedError(f"Query {type(query)} not implemented")
-
-
-# Dependency for mediator
+# Dependency for mediator - matches .NET ISender dependency injection
 def get_mediator() -> IMediator:
-    """Get mediator instance."""
-    return CatalogMediator()
+    """Get mediator instance - matches .NET ISender dependency injection."""
+    return get_mediator_dependency()
 
 
 # Dependency for CQRS endpoint factory
-def get_endpoint_factory(mediator: IMediator = Depends(get_mediator)) -> CQRSEndpointFactory:
+def get_endpoint_factory(
+    mediator: IMediator = Depends(get_mediator),
+) -> CQRSEndpointFactory:
     """Get CQRS endpoint factory."""
     return CQRSEndpointFactory(mediator)
 
 
 # Endpoints demonstrating the REPR pattern: Request -> Command/Query -> Result -> Response
 
+
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product_by_id(
     product_id: UUID,
     request: Request,
-    factory: CQRSEndpointFactory = Depends(get_endpoint_factory)
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
 ) -> ProductResponse:
     """
     Get a product by ID.
@@ -160,7 +114,7 @@ async def get_product_by_id(
     # Create query endpoint using factory
     endpoint: Any = factory.create_query_endpoint(
         query_factory=GetProductByIdQuery,
-        result_mapper=None  # Will use default DataResponse mapper
+        result_mapper=None,  # Will use default DataResponse mapper
     )
 
     # Execute the REPR pattern flow
@@ -173,7 +127,7 @@ async def get_product_by_id(
 async def create_product(
     product_data: CreateProductRequest,
     request: Request,
-    factory: CQRSEndpointFactory = Depends(get_endpoint_factory)
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
 ) -> ProductResponse:
     """
     Create a new product.
@@ -183,7 +137,7 @@ async def create_product(
     # Create command endpoint using factory
     endpoint: Any = factory.create_command_endpoint(
         command_factory=CreateProductCommand,
-        result_mapper=None  # Will use default response mapper
+        result_mapper=None,  # Will use default response mapper
     )
 
     # Execute the REPR pattern flow
@@ -199,7 +153,7 @@ async def get_products(
     page_size: int = 10,
     category_id: UUID | None = None,
     search_term: str | None = None,
-    factory: CQRSEndpointFactory = Depends(get_endpoint_factory)
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
 ) -> ProductsResponse:
     """
     Get products with pagination and filtering.
@@ -208,10 +162,7 @@ async def get_products(
     """
     # Create the HTTP request model
     http_request = GetProductsRequest(
-        page=page,
-        page_size=page_size,
-        category_id=category_id,
-        search_term=search_term
+        page=page, page_size=page_size, category_id=category_id, search_term=search_term
     )
 
     # Create query endpoint with custom pagination mapper
@@ -219,7 +170,7 @@ async def get_products(
 
     endpoint: Any = factory.create_query_endpoint(
         query_factory=GetProductsQuery,
-        result_mapper=PaginatedResultToResponseMapper[ProductDto]()
+        result_mapper=PaginatedResultToResponseMapper[ProductDto](),
     )
 
     # Execute the REPR pattern flow
@@ -232,7 +183,9 @@ async def get_products(
 class CustomGetProductRequestMapper:
     """Custom mapper that adds request context to queries."""
 
-    async def map_to_command_or_query(self, request: GetProductRequest, http_request: Request) -> GetProductByIdQuery:
+    async def map_to_command_or_query(
+        self, request: GetProductRequest, http_request: Request
+    ) -> GetProductByIdQuery:
         """Map HTTP request to query with additional context."""
         # Could add user context, tracing, etc.
         user_id = http_request.headers.get("X-User-ID")

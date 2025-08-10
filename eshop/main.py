@@ -26,6 +26,7 @@ from eshop.core.lifecycle.manager import (
 )
 from eshop.core.logging.logger import configure_logging, get_logger
 from eshop.core.logging.request_logging import add_request_logging_middleware
+from eshop.core.mediator.fastapi_integration import configure_mediator
 from eshop.core.middleware.auth_middleware import (
     add_auth_middleware,
     get_current_user_required,
@@ -92,6 +93,17 @@ async def initialize_dependency_injection() -> None:
     logger.info("Dependency injection container initialized")
 
 
+async def initialize_mediator() -> None:
+    """Initialize mediator pattern - matches .NET AddMediatRWithAssemblies()."""
+    logger = get_logger("main")
+    logger.info("Initializing mediator pattern")
+
+    # Configure mediator (matches .NET Program.cs configuration)
+    configure_mediator()
+
+    logger.info("Mediator pattern initialized")
+
+
 async def cleanup_dependency_injection() -> None:
     """Cleanup dependency injection container."""
     logger = get_logger("main")
@@ -127,6 +139,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # Register lifecycle callbacks for graceful startup and shutdown
 register_startup_callback(configure_application_startup)
 register_startup_callback(initialize_dependency_injection)
+register_startup_callback(initialize_mediator)
 register_startup_callback(database_handler.startup)
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)

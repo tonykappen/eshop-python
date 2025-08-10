@@ -44,8 +44,7 @@ class IntegrationEvent(BaseModel):
         # Auto-set routing_key if not provided
         if not data.get("routing_key"):
             data["routing_key"] = self._generate_routing_key(
-                data.get("event_type", ""),
-                data.get("source_module", "")
+                data.get("event_type", ""), data.get("source_module", "")
             )
 
         super().__init__(**data)
@@ -85,7 +84,7 @@ class IntegrationEvent(BaseModel):
         return self._routing_pattern.format(
             prefix=self._topic_prefix,
             module=module_name or self._extract_module_name(),
-            event_type=event_type or self._generate_event_type()
+            event_type=event_type or self._generate_event_type(),
         )
 
     @field_validator("event_type", mode="before")
@@ -101,7 +100,9 @@ class IntegrationEvent(BaseModel):
         return v
 
     @classmethod
-    def from_domain_event(cls, domain_event: Any, **additional_data: Any) -> "IntegrationEvent":
+    def from_domain_event(
+        cls, domain_event: Any, **additional_data: Any
+    ) -> "IntegrationEvent":
         """Create integration event from domain event with enhanced metadata."""
         # Extract triggering class information
         triggering_class = domain_event.__class__.__name__
@@ -114,8 +115,8 @@ class IntegrationEvent(BaseModel):
                 "domain_event_type": triggering_class,
                 "domain_event_module": triggering_module,
                 **domain_event.model_dump(),
-                **additional_data
-            }
+                **additional_data,
+            },
         }
 
         return cls(**data)
@@ -127,7 +128,7 @@ class IntegrationEvent(BaseModel):
         name = class_name
         for suffix in ["Event", "Command", "Query", "Request", "Response"]:
             if name.endswith(suffix):
-                name = name[:-len(suffix)]
+                name = name[: -len(suffix)]
                 break
 
         return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
@@ -203,7 +204,9 @@ class IIntegrationEventHandler:
 class IEventPublisher:
     """Base interface for event publishers."""
 
-    async def publish(self, event: IntegrationEvent, routing_key: str | None = None) -> None:
+    async def publish(
+        self, event: IntegrationEvent, routing_key: str | None = None
+    ) -> None:
         """Publish an integration event."""
         pass
 
@@ -214,7 +217,9 @@ class FastStreamEventPublisher(IEventPublisher):
     def __init__(self, broker: RabbitBroker):
         self.broker = broker
 
-    async def publish(self, event: IntegrationEvent, routing_key: str | None = None) -> None:
+    async def publish(
+        self, event: IntegrationEvent, routing_key: str | None = None
+    ) -> None:
         """Publish an integration event using FastStream with proper routing."""
         # Use provided routing key or auto-generated one
         key = routing_key or event.routing_key or event.event_type
@@ -226,8 +231,8 @@ class FastStreamEventPublisher(IEventPublisher):
                 "topic": event.topic,
                 "routing_key": key,
                 "source_module": event.source_module,
-                "published_at": datetime.now(UTC).isoformat()
-            }
+                "published_at": datetime.now(UTC).isoformat(),
+            },
         }
 
         await self.broker.publish(message, routing_key=key)
@@ -257,28 +262,36 @@ class EventBus:
         self,
         event_type: str,
         handler: IIntegrationEventHandler,
-        routing_pattern: str | None = None
+        routing_pattern: str | None = None,
     ) -> None:
         """Register an event handler for a specific event type with optional routing pattern."""
         self.handlers[event_type] = handler
         if routing_pattern:
             self.routing_patterns[event_type] = routing_pattern
 
-    def register_module_handlers(self, module_name: str, handlers: dict[str, IIntegrationEventHandler]) -> None:
+    def register_module_handlers(
+        self, module_name: str, handlers: dict[str, IIntegrationEventHandler]
+    ) -> None:
         """Register multiple handlers for a specific module."""
         for event_type, handler in handlers.items():
             # Auto-generate routing pattern for module
             routing_pattern = f"eshop.{module_name}.{event_type}"
             self.register_handler(event_type, handler, routing_pattern)
 
-    async def publish(self, event: IntegrationEvent, routing_key: str | None = None) -> None:
+    async def publish(
+        self, event: IntegrationEvent, routing_key: str | None = None
+    ) -> None:
         """Publish an integration event with enhanced routing."""
         publisher = FastStreamEventPublisher(self.broker)
         await publisher.publish(event, routing_key)
 
-    async def publish_from_domain_event(self, domain_event: Any, **additional_data: Any) -> None:
+    async def publish_from_domain_event(
+        self, domain_event: Any, **additional_data: Any
+    ) -> None:
         """Publish integration event created from domain event."""
-        integration_event = IntegrationEvent.from_domain_event(domain_event, **additional_data)
+        integration_event = IntegrationEvent.from_domain_event(
+            domain_event, **additional_data
+        )
         await self.publish(integration_event)
 
     async def handle_event(self, event: IntegrationEvent) -> None:

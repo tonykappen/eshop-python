@@ -10,6 +10,7 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from eshop.core.contracts.cqrs import ICommand, IQuery
+from eshop.core.mediator.mediator import IMediator
 
 # Type variables for REPR pattern
 TRequest = TypeVar("TRequest", bound=BaseModel)
@@ -32,9 +33,16 @@ class BaseRequest(BaseModel):
 class BaseResponse(BaseModel):
     """Base response class for REPR pattern."""
 
-    success: bool = Field(default=True, description="Indicates if the operation was successful")
+    success: bool = Field(
+        default=True, description="Indicates if the operation was successful"
+    )
     message: str = Field(default="", description="Optional message about the operation")
-    timestamp: str = Field(default_factory=lambda: __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), description="Response timestamp")
+    timestamp: str = Field(
+        default_factory=lambda: __import__("datetime")
+        .datetime.now(__import__("datetime").timezone.utc)
+        .isoformat(),
+        description="Response timestamp",
+    )
 
     class Config:
         arbitrary_types_allowed = True
@@ -45,7 +53,9 @@ class ErrorResponse(BaseResponse):
 
     success: bool = Field(default=False)
     error_code: str = Field(default="", description="Error code for categorization")
-    details: dict[str, Any] = Field(default_factory=dict, description="Additional error details")
+    details: dict[str, Any] = Field(
+        default_factory=dict, description="Additional error details"
+    )
 
 
 class DataResponse(BaseResponse, Generic[TResult]):
@@ -67,22 +77,10 @@ class IResultMapper(Generic[TResult, TResponse], ABC):
     """Interface for mapping command/query results to HTTP responses."""
 
     @abstractmethod
-    async def map_to_response(self, result: TResult, original_request: Request) -> TResponse:
+    async def map_to_response(
+        self, result: TResult, original_request: Request
+    ) -> TResponse:
         """Map command/query result to HTTP response."""
-        pass
-
-
-class IMediator(ABC):
-    """Interface for mediator pattern - handles commands and queries."""
-
-    @abstractmethod
-    async def send_command(self, command: ICommand[Any]) -> Any:
-        """Send a command and get result."""
-        pass
-
-    @abstractmethod
-    async def send_query(self, query: IQuery[Any]) -> Any:
-        """Send a query and get result."""
         pass
 
 
@@ -92,7 +90,9 @@ class RequestToCommandMapper(IRequestMapper, Generic[TRequest, TCommand]):
     def __init__(self, command_factory: type[TCommand]) -> None:
         self.command_factory = command_factory
 
-    async def map_to_command_or_query(self, request: TRequest, http_request: Request) -> TCommand:
+    async def map_to_command_or_query(
+        self, request: TRequest, http_request: Request
+    ) -> TCommand:
         """Map request to command using factory."""
         # Extract command data from request
         command_data = request.model_dump()
@@ -110,7 +110,9 @@ class RequestToQueryMapper(IRequestMapper, Generic[TRequest, TQuery]):
     def __init__(self, query_factory: type[TQuery]) -> None:
         self.query_factory = query_factory
 
-    async def map_to_command_or_query(self, request: TRequest, http_request: Request) -> TQuery:
+    async def map_to_command_or_query(
+        self, request: TRequest, http_request: Request
+    ) -> TQuery:
         """Map request to query using factory."""
         # Extract query data from request
         query_data = request.model_dump()
@@ -122,26 +124,28 @@ class RequestToQueryMapper(IRequestMapper, Generic[TRequest, TQuery]):
         return self.query_factory(**query_data)
 
 
-class ResultToDataResponseMapper(IResultMapper[TResult, DataResponse[TResult]], Generic[TResult]):
+class ResultToDataResponseMapper(
+    IResultMapper[TResult, DataResponse[TResult]], Generic[TResult]
+):
     """Maps command/query results to data responses."""
 
-    async def map_to_response(self, result: TResult, original_request: Request) -> DataResponse[TResult]:  # noqa: ARG002
+    async def map_to_response(
+        self, result: TResult, original_request: Request
+    ) -> DataResponse[TResult]:  # noqa: ARG002, ARG001
         """Map result to data response."""
         return DataResponse[TResult](
-            data=result,
-            message="Operation completed successfully"
+            data=result, message="Operation completed successfully"
         )
 
 
 class ResultToBaseResponseMapper(IResultMapper[Any, BaseResponse]):
     """Maps command results to base responses (for commands with no data)."""
 
-    async def map_to_response(self, result: Any, original_request: Request) -> BaseResponse:  # noqa: ARG002
+    async def map_to_response(
+        self, result: Any, original_request: Request
+    ) -> BaseResponse:  # noqa: ARG002, ARG001
         """Map result to base response."""
-        return BaseResponse(
-            success=True,
-            message="Operation completed successfully"
-        )
+        return BaseResponse(success=True, message="Operation completed successfully")
 
 
 class Endpoint(ABC, Generic[TRequest, TResponse]):
@@ -185,13 +189,13 @@ class CQRSEndpoint(Endpoint[TRequest, TResponse], Generic[TRequest, TResponse]):
         3. Map result to HTTP response
         """
         # Step 1: Request -> Command/Query
-        command_or_query = await self.request_mapper.map_to_command_or_query(data, request)
+        command_or_query = await self.request_mapper.map_to_command_or_query(
+            data, request
+        )
 
         # Step 2: Command/Query -> Result (via mediator)
-        if isinstance(command_or_query, ICommand):
-            result = await self.mediator.send_command(command_or_query)
-        else:  # IQuery
-            result = await self.mediator.send_query(command_or_query)
+        # Use the unified send method - matches .NET ISender.Send()
+        result = await self.mediator.send(command_or_query)
 
         # Step 3: Result -> Response
         response = await self.result_mapper.map_to_response(result, request)
@@ -230,7 +234,9 @@ class PaginatedRequest(BaseRequest):
     """Base class for paginated requests."""
 
     page: int = Field(default=1, ge=1, description="Page number (1-based)")
-    page_size: int = Field(default=10, ge=1, le=100, description="Number of items per page")
+    page_size: int = Field(
+        default=10, ge=1, le=100, description="Number of items per page"
+    )
 
     @property
     def offset(self) -> int:
@@ -257,10 +263,14 @@ class PaginatedResponse(DataResponse[list[TResult]], Generic[TResult]):
         return self.page > 1
 
 
-class PaginatedResultToResponseMapper(IResultMapper[Any, PaginatedResponse[TResult]], Generic[TResult]):
+class PaginatedResultToResponseMapper(
+    IResultMapper[Any, PaginatedResponse[TResult]], Generic[TResult]
+):
     """Maps paginated query results to paginated responses."""
 
-    async def map_to_response(self, result: Any, original_request: Request) -> PaginatedResponse[TResult]:  # noqa: ARG002
+    async def map_to_response(
+        self, result: Any, original_request: Request
+    ) -> PaginatedResponse[TResult]:  # noqa: ARG002, ARG001
         """Map paginated result to paginated response."""
         # Assuming result has pagination information
         total_pages = (result.total_count + result.page_size - 1) // result.page_size
@@ -271,7 +281,7 @@ class PaginatedResultToResponseMapper(IResultMapper[Any, PaginatedResponse[TResu
             page=result.page,
             page_size=result.page_size,
             total_pages=total_pages,
-            message="Paginated data retrieved successfully"
+            message="Paginated data retrieved successfully",
         )
 
 
@@ -280,31 +290,33 @@ class CQRSErrorHandler:
     """Handles errors in CQRS endpoints and maps them to appropriate responses."""
 
     @staticmethod
-    async def handle_error(error: Exception, request: Request) -> ErrorResponse:  # noqa: ARG004
+    async def handle_error(
+        error: Exception, request: Request
+    ) -> ErrorResponse:  # noqa: ARG004, ARG001
         """Map exceptions to error responses."""
         if isinstance(error, ValueError):
             return ErrorResponse(
                 message="Invalid request data",
                 error_code="VALIDATION_ERROR",
-                details={"error": str(error)}
+                details={"error": str(error)},
             )
         elif isinstance(error, PermissionError):
             return ErrorResponse(
                 message="Access denied",
                 error_code="AUTHORIZATION_ERROR",
-                details={"error": str(error)}
+                details={"error": str(error)},
             )
         elif isinstance(error, FileNotFoundError):
             return ErrorResponse(
                 message="Resource not found",
                 error_code="NOT_FOUND",
-                details={"error": str(error)}
+                details={"error": str(error)},
             )
         else:
             return ErrorResponse(
                 message="An unexpected error occurred",
                 error_code="INTERNAL_ERROR",
-                details={"error": str(error)}
+                details={"error": str(error)},
             )
 
 

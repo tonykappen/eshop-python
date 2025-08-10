@@ -264,10 +264,13 @@ class ORMMapper:
                 return value
 
         # Handle optional types (Union[Type, None])
-        if ((
-            hasattr(expected_type, "__origin__")
-            and expected_type.__origin__ == type(None)
-        ) or str(expected_type).startswith("typing.Union")) and hasattr(expected_type, "__args__"):
+        if (
+            (
+                hasattr(expected_type, "__origin__")
+                and expected_type.__origin__ == type(None)
+            )
+            or str(expected_type).startswith("typing.Union")
+        ) and hasattr(expected_type, "__args__"):
             # For Union types, try the first non-None type
             for arg_type in expected_type.__args__:
                 if arg_type != type(None):

@@ -51,7 +51,9 @@ class ProductInventoryUpdatedIntegrationEvent(CatalogIntegrationEvent):
     product_id: UUID = Field(..., description="ID of the product")
     old_quantity: int = Field(..., description="Previous quantity")
     new_quantity: int = Field(..., description="New quantity")
-    warehouse_id: UUID | None = Field(None, description="Warehouse where inventory changed")
+    warehouse_id: UUID | None = Field(
+        None, description="Warehouse where inventory changed"
+    )
 
 
 class ProductDiscontinuedIntegrationEvent(CatalogIntegrationEvent):
@@ -63,9 +65,13 @@ class ProductDiscontinuedIntegrationEvent(CatalogIntegrationEvent):
     # routing_key: "eshop.catalog.product_discontinued"
 
     product_id: UUID = Field(..., description="ID of the discontinued product")
-    discontinuation_date: str = Field(..., description="Date when product was discontinued")
+    discontinuation_date: str = Field(
+        ..., description="Date when product was discontinued"
+    )
     reason: str | None = Field(None, description="Reason for discontinuation")
-    replacement_product_id: UUID | None = Field(None, description="ID of replacement product if any")
+    replacement_product_id: UUID | None = Field(
+        None, description="ID of replacement product if any"
+    )
 
 
 # Example usage showing how to create integration events from domain events
@@ -75,13 +81,12 @@ def create_integration_event_from_domain(domain_event: Any) -> IntegrationEvent:
 
     This demonstrates the auto-capture of event names from triggering classes.
     """
-        # This will automatically capture:
+    # This will automatically capture:
     # - event_type from domain_event class name
     # - source_module from domain_event module path
     # - routing_key following the pattern
     integration_event = IntegrationEvent.from_domain_event(
-        domain_event,
-        additional_context="Generated from catalog domain event"
+        domain_event, additional_context="Generated from catalog domain event"
     )
 
     return integration_event

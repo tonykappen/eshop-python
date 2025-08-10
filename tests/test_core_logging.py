@@ -32,10 +32,10 @@ class TestLoggerConfiguration:
         """Test default logging configuration."""
         with patch("eshop.core.logging.logger.structlog.configure") as mock_configure:
             configure_logging()
-            
+
             # Verify structlog was configured
             mock_configure.assert_called_once()
-            
+
             # Verify default parameters
             call_args = mock_configure.call_args
             assert call_args is not None
@@ -49,7 +49,7 @@ class TestLoggerConfiguration:
         """Test logging configuration with custom log level."""
         with patch("eshop.core.logging.logger.structlog.configure") as mock_configure:
             configure_logging(log_level="DEBUG")
-            
+
             mock_configure.assert_called_once()
             call_args = mock_configure.call_args
             assert call_args is not None
@@ -58,7 +58,7 @@ class TestLoggerConfiguration:
         """Test logging configuration with console format."""
         with patch("eshop.core.logging.logger.structlog.configure") as mock_configure:
             configure_logging(log_format="console")
-            
+
             mock_configure.assert_called_once()
             call_args = mock_configure.call_args
             assert call_args is not None
@@ -70,10 +70,10 @@ class TestLoggerConfiguration:
                 enable_file_logging=True,
                 log_directory=temp_dir
             )
-            
+
             # Verify basic config was called
             mock_basic_config.assert_called_once()
-            
+
             # Check that log directory was created
             log_path = Path(temp_dir)
             assert log_path.exists()
@@ -83,9 +83,9 @@ class TestLoggerConfiguration:
         with patch("eshop.core.logging.logger.SEQ_AVAILABLE", False), patch("eshop.core.logging.logger.get_logger") as mock_get_logger:
             mock_logger = create_mock_logger()
             mock_get_logger.return_value = mock_logger
-            
+
             configure_logging(enable_seq=True)
-            
+
             # Should not raise any exceptions
             mock_get_logger.assert_called()
 

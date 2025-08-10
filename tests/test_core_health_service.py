@@ -481,10 +481,10 @@ class TestHealthService:
             return {"status": "healthy", "service": "keycloak"}
 
         service = HealthService()
-        setattr(service, 'check_database', mock_check_database)
-        setattr(service, 'check_redis', mock_check_redis)
-        setattr(service, 'check_rabbitmq', mock_check_rabbitmq)
-        setattr(service, 'check_keycloak', mock_check_keycloak)
+        service.check_database = mock_check_database
+        service.check_redis = mock_check_redis
+        service.check_rabbitmq = mock_check_rabbitmq
+        service.check_keycloak = mock_check_keycloak
 
         # Run health checks
         result = await service.check_all_services()

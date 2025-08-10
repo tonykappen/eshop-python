@@ -281,15 +281,13 @@ class PaginatedResultToResponseMapper(
         original_request: Request,  # noqa: ARG002
     ) -> PaginatedResponse[TResult]:
         """Map paginated result to paginated response."""
-        # Assuming result has pagination information
-        total_pages = (result.total_count + result.page_size - 1) // result.page_size
-
+        # Assuming result is a PaginatedResult with items, total, page, size, pages
         return PaginatedResponse[TResult](
-            data=result.data,
-            total_count=result.total_count,
+            data=result.items,
+            total_count=result.total,
             page=result.page,
-            page_size=result.page_size,
-            total_pages=total_pages,
+            page_size=result.size,
+            total_pages=result.pages,
             message="Paginated data retrieved successfully",
         )
 

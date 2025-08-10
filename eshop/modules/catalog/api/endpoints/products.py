@@ -21,12 +21,12 @@ from eshop.core.repr.base import (
     PaginatedRequest,
     PaginatedResponse,
 )
+from eshop.modules.catalog.application.handlers.get_products_handler import (
+    GetProductsQuery,
+)
 from eshop.modules.catalog.contracts.products.dtos import ProductDto
 from eshop.modules.catalog.contracts.products.features.get_product_by_id import (
     GetProductByIdQuery,
-)
-from eshop.modules.catalog.application.handlers.get_products_handler import (
-    GetProductsQuery,
 )
 
 router = APIRouter(prefix="/products", tags=["products"])

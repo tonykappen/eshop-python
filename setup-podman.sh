@@ -42,10 +42,15 @@ else
     # Alternative: Start services individually with Podman
     echo -e "${BLUE}🔄 Starting services individually...${NC}"
     
+    # Clean up existing containers
+    echo -e "${BLUE}🧹 Cleaning up existing containers...${NC}"
+    podman rm -f eshop-postgres eshop-redis eshop-rabbitmq eshop-keycloak 2>/dev/null || true
+    
     # Create network for services
     podman network create eshop-network 2>/dev/null || true
     
     # Start PostgreSQL
+    echo -e "${BLUE}🗄️ Starting PostgreSQL...${NC}"
     podman run -d --name eshop-postgres \
         --network eshop-network \
         -e POSTGRES_DB=eshop \
@@ -55,12 +60,14 @@ else
         postgres:15
     
     # Start Redis
+    echo -e "${BLUE}🔴 Starting Redis...${NC}"
     podman run -d --name eshop-redis \
         --network eshop-network \
         -p 6379:6379 \
         redis:7
     
     # Start RabbitMQ
+    echo -e "${BLUE}🐰 Starting RabbitMQ...${NC}"
     podman run -d --name eshop-rabbitmq \
         --network eshop-network \
         -e RABBITMQ_DEFAULT_USER=guest \
@@ -69,7 +76,8 @@ else
         -p 15672:15672 \
         rabbitmq:3-management
     
-    # Start Keycloak
+    # Start Keycloak (initial start - will be restarted after DB setup)
+    echo -e "${BLUE}🔐 Starting Keycloak (initial)...${NC}"
     podman run -d --name eshop-keycloak \
         --network eshop-network \
         -e KEYCLOAK_ADMIN=admin \
@@ -98,7 +106,7 @@ else
     # Start Keycloak after database is ready
     echo -e "${BLUE}🔐 Starting Keycloak...${NC}"
     # Remove existing container if it exists
-    podman rm eshop-keycloak 2>/dev/null || true
+    podman rm -f eshop-keycloak 2>/dev/null || true
     
     podman run -d --name eshop-keycloak \
         --network eshop-network \
@@ -116,7 +124,11 @@ fi
 
 # Wait a moment for services to be ready
 echo -e "${BLUE}⏳ Waiting for services to be ready...${NC}"
-sleep 5
+sleep 10
+
+# Additional wait specifically for Keycloak to fully initialize
+echo -e "${BLUE}⏳ Waiting for Keycloak to fully initialize (this may take 1-2 minutes)...${NC}"
+sleep 30
 
 # Check service status
 echo -e "${BLUE}📊 Service Status:${NC}"

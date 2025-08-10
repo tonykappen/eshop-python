@@ -79,7 +79,7 @@ class KeycloakService:
                 ],  # Accept both "account" and client ID
                 issuer=f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}",
             )
-            return token_info
+            return token_info  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"Token verification failed: {e}")
             raise HTTPException(
@@ -172,12 +172,12 @@ async def get_current_user(
         )
     try:
         return await keycloak_service.get_user_info(credentials.credentials)
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
 
 
 async def get_current_user_optional(

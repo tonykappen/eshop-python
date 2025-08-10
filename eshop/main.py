@@ -15,7 +15,10 @@ from eshop.core.exceptions.handler import add_exception_handlers
 from eshop.core.health.health_service import health_service
 from eshop.core.lifecycle.handlers import (
     auth_handler,
+    cache_handler,
+    database_handler,
     health_handler,
+    messaging_handler,
 )
 from eshop.core.lifecycle.manager import (
     lifecycle_manager,
@@ -140,17 +143,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 register_startup_callback(configure_application_startup)
 register_startup_callback(initialize_dependency_injection)
 register_startup_callback(initialize_mediator)
-# register_startup_callback(database_handler.startup)  # Disabled for RBAC testing
-# register_startup_callback(cache_handler.startup)     # Disabled for RBAC testing
-# register_startup_callback(messaging_handler.startup) # Disabled for RBAC testing
+register_startup_callback(database_handler.startup)
+register_startup_callback(cache_handler.startup)
+register_startup_callback(messaging_handler.startup)
 register_startup_callback(auth_handler.startup)
 register_startup_callback(health_handler.startup)
 
 # Register shutdown callbacks (executed in reverse order)
 register_shutdown_callback(cleanup_dependency_injection)
-# register_shutdown_callback(database_handler.shutdown)  # Disabled for RBAC testing
-# register_shutdown_callback(cache_handler.shutdown)     # Disabled for RBAC testing
-# register_shutdown_callback(messaging_handler.shutdown) # Disabled for RBAC testing
+register_shutdown_callback(database_handler.shutdown)
+register_shutdown_callback(cache_handler.shutdown)
+register_shutdown_callback(messaging_handler.shutdown)
 register_shutdown_callback(auth_handler.shutdown)
 register_shutdown_callback(health_handler.shutdown)
 

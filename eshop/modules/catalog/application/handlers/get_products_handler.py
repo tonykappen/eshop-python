@@ -16,27 +16,13 @@ from eshop.modules.catalog.domain.models import Product
 class GetProductsQuery(IQuery[PaginatedResult[ProductDto]]):
     """Query to get products with optional filtering and pagination."""
 
-    def __init__(
-        self,
-        page: int = 1,
-        page_size: int = 10,
-        category_id: UUID | None = None,
-        search_term: str | None = None,
-    ) -> None:
-        self.page = page
-        self.page_size = page_size
-        self.category_id = category_id
-        self.search_term = search_term
+    page: int = 1
+    page_size: int = 10
+    category_id: UUID | None = None
+    search_term: str | None = None
 
 
-class GetProductsResult:
-    """Result containing paginated products."""
-
-    def __init__(self, products: PaginatedResult[ProductDto]) -> None:
-        self.products = products
-
-
-class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
+class GetProductsHandler(IRequestHandler[GetProductsQuery, PaginatedResult[ProductDto]]):
     """Handler for GetProductsQuery - provides paginated product listing."""
 
     def __init__(self, db_context: Any) -> None:  # type: ignore
@@ -45,7 +31,7 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
 
     async def handle(
         self, query: GetProductsQuery, cancellation_token: CancellationToken
-    ) -> GetProductsResult:
+    ) -> PaginatedResult[ProductDto]:
         """
         Handle the query to get products with pagination and filtering.
 
@@ -54,15 +40,13 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
             cancellation_token: Cancellation token for async operations
 
         Returns:
-            GetProductsResult containing paginated products
+            PaginatedResult containing paginated products
         """
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
         # Get products with pagination and filtering
-        products = await self._get_products_paginated(query, cancellation_token)
-
-        return GetProductsResult(products=products)
+        return await self._get_products_paginated(query, cancellation_token)
 
     async def _get_products_paginated(
         self, query: GetProductsQuery, cancellation_token: CancellationToken
@@ -175,8 +159,8 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
         return ProductDto(
             id=product.id,
             name=product.name,
-            category=", ".join(product.category),  # Convert list to string for DTO
+            category=product.category,  # Keep as list[str] for DTO
             description=product.description,
             image_file=product.image_file,
-            price=float(product.price),  # Convert Decimal to float for DTO
+            price=product.price,  # Keep as Decimal for DTO
         )

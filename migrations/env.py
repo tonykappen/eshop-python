@@ -10,9 +10,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import all models to ensure they are registered with SQLAlchemy
 from eshop.core.database.base import Base
-from eshop.modules.basket.infrastructure.orm_models import *
 from eshop.modules.catalog.infrastructure.orm_models import *
-from eshop.modules.ordering.infrastructure.orm_models import *
+# TODO: Add basket and ordering ORM models when implemented
+# from eshop.modules.basket.infrastructure.orm_models import *
+# from eshop.modules.ordering.infrastructure.orm_models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

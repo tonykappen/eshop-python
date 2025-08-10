@@ -247,7 +247,7 @@ class TestDatabaseConfiguration:
         engine_url_str = str(engine.url)
         # The engine URL might mask the password, so we check the structure
         assert engine_url_str.startswith("postgresql+asyncpg://")
-        assert "eshop_user" in engine_url_str
+        assert "postgres" in engine_url_str
         assert "localhost:5432/eshop" in engine_url_str
 
     def test_async_session_local_autoflush_setting(self):

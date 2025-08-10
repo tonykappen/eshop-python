@@ -1,0 +1,51 @@
+==================================================================================
+                            eShop Python FastAPI - Windows Installation
+==================================================================================
+
+🚀 QUICK INSTALL GUIDE
+
+Prerequisites:
+  1. Download and install Python 3.12+ from https://python.org/downloads/
+     ✅ IMPORTANT: Check "Add Python to PATH" during installation
+  
+  2. Download and install Docker Desktop from https://docker.com/products/docker-desktop
+     ✅ Make sure Docker Desktop is running
+
+Installation Steps:
+  1. Extract the eShop project to a folder (e.g., C:\eShop)
+  2. Open Command Prompt as Administrator (Right-click → "Run as administrator")
+  3. Navigate to your project folder:
+     cd C:\eShop
+  4. Run the complete setup:
+     setup-complete-windows.bat
+
+That's it! The script will:
+  ✅ Install all Python dependencies
+  ✅ Start Docker services (Database, Cache, Message Queue, Authentication)
+  ✅ Configure authentication with test users
+  ✅ Apply database migrations
+  ✅ Perform health checks
+
+Once complete, you can:
+  • Open http://localhost:8000/docs (API Documentation)
+  • Open http://localhost:3000 (Frontend)
+  • Login with: admin/password (full access), manager/password (read/write), or user/password (read-only)
+
+Alternative Setup Options:
+  • setup-dev-windows.bat (Development environment only)
+  • setup-docker-windows.bat (Docker services only)
+  • setup-keycloak-windows.bat (Authentication only)
+  • setup-dev-windows.ps1 (PowerShell version)
+
+Troubleshooting:
+  • If Python not found: Reinstall Python with "Add to PATH" checked
+  • If Docker errors: Make sure Docker Desktop is running
+  • If ports in use: Check what's using the port with "netstat -ano | findstr :8000"
+  • For detailed troubleshooting: See README-WINDOWS.md
+
+Support:
+  • Full documentation: README-WINDOWS.md
+  • Log files: backend/logs/ directory
+  • Container logs: docker-compose logs [service-name]
+
+==================================================================================

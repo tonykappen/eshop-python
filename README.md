@@ -1,408 +1,246 @@
-# eShop Modular Monolith (Python/FastAPI)
+# eShop - Full Stack FastAPI Application
 
-A modular monolith e-commerce application migrated from .NET to Python using FastAPI, implementing Domain-Driven Design (DDD), CQRS, and other enterprise patterns.
-
-## 🎯 Current Status
-
-**✅ Milestone 1 COMPLETE**: Core infrastructure with Keycloak authentication, comprehensive health checks, and 1-1 parity with .NET project.
-
-**🚀 Ready for Development**: All services healthy, authentication working, automated deployment available.
+A modern, full-stack eShop application built with FastAPI (backend) and simple HTML/JavaScript (frontend), following the [FastAPI Full Stack Template](https://github.com/fastapi/full-stack-fastapi-template) structure.
 
 ## 🏗️ Architecture
 
-This application follows a **Modular Monolith** architecture with the following patterns:
+This project follows a **modular monolith** architecture with **Domain-Driven Design** principles:
 
-- **Domain-Driven Design (DDD)**: Aggregates, Entities, Value Objects, Domain Events
-- **CQRS**: Command Query Responsibility Segregation
-- **REPR Pattern**: Request-Endpoint-Response pattern for all API endpoints
-- **Outbox Pattern**: Reliable event publishing
-- **Cache Aside Pattern**: Redis caching with invalidation
-- **Dependency Injection**: Assembly scanning and scoped services
-- **Integration Events**: Cross-module communication via RabbitMQ
+- **Backend**: FastAPI with Python 3.12+
+- **Frontend**: Simple HTML/JavaScript interface
+- **Database**: PostgreSQL with async SQLAlchemy
+- **Authentication**: Keycloak with JWT tokens
+- **Caching**: Redis
+- **Messaging**: RabbitMQ
+- **Deployment**: Docker Compose
 
-## 🚀 Features
+## 📁 Project Structure
 
-### ✅ **Milestone 1: Core Infrastructure (COMPLETED & TESTED)**
-- **DDD Base Classes**: Entity, Aggregate, ValueObject, DomainEvent with audit fields
-- **CQRS Abstractions**: ICommand, IQuery, ICommandHandler, IQueryHandler
-- **Outbox Pattern**: Reliable event publishing with OutboxMessage
-- **Authentication**: Keycloak integration for JWT token validation
-- **Health Checks**: Comprehensive health checks for all services (DB, Redis, RabbitMQ, Keycloak)
-- **Logging**: Structured logging with structlog and SEQ support
-- **Caching**: Redis-based caching with CacheAside and CacheInvalidation patterns
-- **Messaging**: RabbitMQ integration with FastStream for integration events
-- **Database**: PostgreSQL with SQLAlchemy and Alembic support
-- **Object Mapping**: High-performance serialization with msgspec
-- **Retry Mechanisms**: Tenacity for handling transient failures
-- **Pagination**: FastAPI-pagination for standardized pagination
-- **Assembly Scanning**: Automatic service discovery and registration
-- **REPR Pattern**: Request-Endpoint-Response pattern for all API endpoints
-- **Dependency Injection**: Container setup with configuration
+```
+├── backend/                    # FastAPI backend
+│   ├── app/                   # Main application code (migrated from eshop/)
+│   │   ├── core/              # Core shared functionality
+│   │   ├── modules/           # Business domain modules
+│   │   │   ├── catalog/       # Product catalog module
+│   │   │   ├── basket/        # Shopping basket module
+│   │   │   └── ordering/      # Order management module
+│   │   └── main.py            # FastAPI app entry point
+│   ├── alembic/               # Database migrations
+│   ├── tests/                 # Backend tests
+│   ├── Dockerfile             # Backend container
+│   └── pyproject.toml         # Python dependencies
+├── frontend/                  # HTML/JavaScript frontend
+│   ├── index.html             # Login page
+│   ├── products.html          # Product catalog page
+│   ├── Dockerfile             # Frontend container (nginx)
+│   └── README.md              # Frontend documentation
+├── scripts/                   # Helper scripts
+├── docker-compose.yml         # Full stack deployment
+└── README.md                  # This file
+```
 
-### 🔄 **Upcoming Milestones**
-- **Milestone 2**: Catalog Module Migration (Product CRUD operations)
-- **Milestone 3**: Basket Module Migration (Shopping cart management)
-- **Milestone 4**: Ordering Module Migration (Order processing)
-- **Milestone 5**: Messaging, Outbox, and Integration
-- **Milestone 6**: Documentation, Handover, and Final Review
+## 🚀 Quick Start
 
-## 📋 Prerequisites
+### Prerequisites
 
-- Python 3.12+
-- Poetry (for dependency management)
-- Docker & Docker Compose
-- PostgreSQL
-- Redis
-- RabbitMQ
-- Keycloak (optional for development)
+- Docker and Docker Compose
+- (Optional) Python 3.12+ and Poetry for local development
 
-## 🛠️ Installation
+### 1. Start All Services
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd eshop
-   ```
+```bash
+# Start the full stack
+./scripts/start-dev.sh
+```
 
-2. **Install dependencies**
-   ```bash
-   poetry install
-   ```
+This will:
+- Build and start all containers
+- Set up Keycloak with test users
+- Run database migrations
+- Provide access URLs and credentials
 
-3. **Set up pre-commit hooks**
-   ```bash
-   poetry run pre-commit install
-   ```
+### 2. Access the Application
 
-4. **Set up environment variables**
-   ```bash
-   cp env.example .env
-   # Edit .env with your configuration
-   ```
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **Keycloak Admin**: http://localhost:8080 (admin/admin)
 
-5. **Start infrastructure services**
-   ```bash
-   # Option 1: Using Docker Compose
-   docker-compose up -d postgres redis rabbitmq keycloak
-   
-   # Option 2: Using Podman (recommended)
-   ./setup-podman.sh
-   ```
+## 👥 Test Users
 
-6. **Run database migrations**
-   ```bash
-   poetry run alembic upgrade head
-   ```
+| Username | Password | Role    | Permissions                |
+|----------|----------|---------|---------------------------|
+| testuser | password | user    | View products only        |
+| admin    | password | admin   | Full access (CRUD)        |
 
-7. **Start the application**
-   ```bash
-   poetry run dev
-   ```
+## 🔐 Security & RBAC
 
-## 🐳 Docker Setup
+The application implements comprehensive **Role-Based Access Control**:
 
-### Using Docker Compose
+### Roles
+- **user**: Read-only access to products
+- **manager**: Read/write access to products  
+- **admin**: Full access (inherits manager + user roles)
+
+### Features
+- JWT token authentication via Keycloak
+- Automatic token validation on all API calls
+- Role-based UI elements (admin-only buttons)
+- Secure password hashing
+- CORS configured for frontend-backend communication
+
+## 🏛️ Backend Architecture
+
+### Core Features
+- **CQRS Pattern**: Separation of commands and queries
+- **Mediator Pattern**: Centralized request handling
+- **Repository Pattern**: Data access abstraction
+- **Dependency Injection**: Clean component management
+- **Event Sourcing**: Integration event support
+
+### Modules
+- **Catalog**: Product management with CRUD operations
+- **Basket**: Shopping cart functionality (placeholder)
+- **Ordering**: Order processing (placeholder)
+
+### API Endpoints
+- `GET /api/v1/products/` - List products (requires: user role)
+- `POST /api/v1/products/` - Create product (requires: admin/manager role)
+- `GET /api/v1/products/{id}` - Get product details
+- `GET /health` - Health check endpoints
+
+## 🎨 Frontend Features
+
+### Login Page (`index.html`)
+- Keycloak authentication
+- Quick login buttons for test users
+- Responsive design
+- Error handling
+
+### Products Page (`products.html`)
+- Product grid display with pagination
+- Role-based admin controls
+- Product creation modal (admin/manager only)
+- Real-time token validation
+- Automatic logout on session expiry
+
+## 🐳 Docker Deployment
+
+### Services
+- **backend**: FastAPI application (port 8000→80)
+- **frontend**: Nginx serving static files (port 3000→80)
+- **db**: PostgreSQL database
+- **redis**: Redis cache
+- **rabbitmq**: Message broker (management UI on port 15672)
+- **keycloak**: Authentication server (port 8080)
+
+### Commands
 ```bash
 # Start all services
-docker-compose up -d
+docker-compose up --build -d
 
 # View logs
-docker-compose logs -f app
+docker-compose logs -f [service]
+
+# Check status
+docker-compose ps
 
 # Stop all services
 docker-compose down
-```
 
-### Using Podman
-```bash
-# Run the setup script
-./setup-podman.sh
+# Reset database
+docker-compose down -v
 ```
 
 ## 🧪 Testing
 
-### Current Status
-**Milestone 1** focuses on core infrastructure. Module-specific tests will be added in subsequent milestones.
-
-### Testing Tools Available
+### Backend Tests
 ```bash
-# Run all tests (currently no tests for Milestone 1)
-poetry run pytest
-
-# Run tests with coverage
-poetry run pytest --cov=eshop --cov-report=html
-
-# Run specific test file
-poetry run pytest tests/test_catalog.py
-
-# Run tests with httpx for async testing
-poetry run pytest tests/ -v
+cd backend
+poetry install
+poetry run pytest tests/
 ```
 
 ### Manual Testing
-You can test the current implementation:
+1. Start services: `./scripts/start-dev.sh`
+2. Open frontend: http://localhost:3000
+3. Login as different users
+4. Test RBAC features:
+   - Regular user: can only view products
+   - Admin user: can view and create products
 
+## 🔧 Development
+
+### Local Backend Development
 ```bash
-# Start the application
-poetry run uvicorn eshop.main:app --host 0.0.0.0 --port 8000 --reload
-
-# Test health endpoints
-curl http://localhost:8000/health
-curl http://localhost:8000/health/detailed
-curl http://localhost:8000/health/keycloak
-
-# Test authentication (requires Bearer token)
-curl http://localhost:8000/api/v1/auth/me
-
-# Test all services are healthy
-curl http://localhost:8000/health/detailed | jq .
+cd backend
+poetry install
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Testing Tools
-- **pytest**: Test framework
-- **httpx**: Async HTTP client for testing
-- **respx**: HTTP request mocking
-- **faker**: Test data generation
-
-## 🔧 Development Tools
-
-### Code Quality
+### Environment Variables
+Key environment variables (see `.env`):
 ```bash
-# Format code
-poetry run black .
-
-# Lint code
-poetry run ruff check .
-
-# Type checking
-poetry run mypy .
-
-# Security audit
-poetry run bandit -r eshop/
-
-# Sort imports
-poetry run isort .
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/eshop
+KEYCLOAK_SERVER_URL=http://localhost:8080
+KEYCLOAK_CLIENT_ID=eshop-api
+KEYCLOAK_CLIENT_SECRET=your-client-secret
 ```
 
-### Pre-commit Hooks
-The project uses pre-commit hooks for automatic code quality checks:
-- **Black**: Code formatting
-- **Ruff**: Linting and formatting
-- **MyPy**: Type checking
-- **Bandit**: Security scanning
-- **isort**: Import sorting
+### Adding New Features
+1. Create new modules in `backend/app/modules/`
+2. Follow the existing pattern: `api/`, `application/`, `domain/`, `infrastructure/`
+3. Register handlers in dependency injection
+4. Add tests in `backend/tests/`
+5. Update frontend if needed
 
-## 📦 Key Technologies
+## 📊 Monitoring & Health
 
-### Core Framework
-- **FastAPI**: Modern, fast web framework
-- **Uvicorn**: ASGI server
-- **Pydantic**: Data validation and settings
-
-### Database & ORM
-- **SQLAlchemy**: ORM and database toolkit
-- **Alembic**: Database migrations
-- **PostgreSQL**: Primary database
-
-### Messaging & Caching
-- **FastStream**: Modern async messaging framework
-- **Redis**: Caching and session storage
-- **RabbitMQ**: Message broker
-
-### Object Mapping & Serialization
-- **msgspec**: High-performance serialization and validation
-- **Pydantic**: Data validation and serialization
-
-### Retry & Resilience
-- **Tenacity**: Retry mechanisms for transient failures
-
-### Pagination
-- **fastapi-pagination**: Standardized pagination support
-
-### Dependency Injection
-- **dependency-injector**: DI container
-- **Assembly Scanning**: Automatic service discovery
+### Health Checks
+- `GET /health` - Basic health status
+- `GET /health/detailed` - Detailed service status including:
+  - Database connectivity
+  - Redis connectivity  
+  - RabbitMQ connectivity
+  - Keycloak connectivity
 
 ### Logging
-- **structlog**: Structured logging
+- Structured logging with timestamps
+- Request/response logging
+- Separate application and server logs
+- Configurable log levels
 
-### Testing
-- **pytest**: Test framework
-- **httpx**: Async HTTP client
-- **respx**: HTTP mocking
-- **faker**: Test data generation
+## 🔄 Migration Notes
 
-## 🏛️ Project Structure
+This project was migrated from a standalone structure to follow the [FastAPI Full Stack Template](https://github.com/fastapi/full-stack-fastapi-template):
 
-```
-eshop/
-├── core/                    # Shared core functionality
-│   ├── cqrs/               # CQRS base classes
-│   ├── domain/             # DDD base classes
-│   ├── di/                 # Dependency injection
-│   ├── mapping/            # Object mapping with msgspec
-│   ├── messaging/          # FastStream messaging
-│   ├── pagination/         # Pagination models
-│   ├── retry/              # Tenacity retry mechanisms
-│   └── logging/            # Structured logging
-├── modules/                # Business modules
-│   ├── catalog/            # Product catalog
-│   ├── basket/             # Shopping basket
-│   └── ordering/           # Order management
-├── config/                 # Configuration
-├── tests/                  # Test suite
-└── main.py                 # Application entry point
-```
+### Key Changes
+- Moved `eshop/` → `backend/app/`
+- Updated all import paths from `eshop.` to `app.`
+- Restructured Docker Compose for full-stack deployment
+- Added simple HTML frontend replacing complex React setup
+- Maintained all existing RBAC and authentication features
 
-## 🔐 Authentication
+### Safe Migration
+- All Python imports were systematically updated
+- Tests were preserved and import paths corrected
+- Database migrations maintained compatibility
+- Configuration files adapted for new structure
 
-The application uses Keycloak for authentication with automatic setup.
+## 📚 Additional Documentation
 
-### Quick Setup with Podman
-```bash
-# Complete setup including Keycloak
-./setup-podman.sh
-```
-
-### Manual Keycloak Setup
-1. **Start Keycloak with Docker Compose**
-   ```bash
-   docker-compose up -d keycloak
-   ```
-
-2. **Run the Keycloak setup script**
-   ```bash
-   ./setup-keycloak.sh
-   ```
-
-3. **Configure environment variables**
-   ```bash
-   cp env.example .env
-   # Update Keycloak settings in .env
-   ```
-
-### Keycloak Configuration
-- **Admin Console**: http://localhost:8080/admin/ (admin/admin)
-- **Realm**: eshop
-- **Client**: eshop-api
-- **Test User**: testuser/password
-
-### Authentication Endpoints
-- **Get Current User**: `GET /api/v1/auth/me` (requires Bearer token)
-- **Health Check**: `GET /health/keycloak`
-
-## 📊 Monitoring & Health Checks
-
-### Available Endpoints
-- **Basic Health**: http://localhost:8000/health
-- **API Health**: http://localhost:8000/api/v1/health
-- **Detailed Health**: http://localhost:8000/health/detailed
-- **Database Health**: http://localhost:8000/health/database
-- **Redis Health**: http://localhost:8000/health/redis
-- **RabbitMQ Health**: http://localhost:8000/health/rabbitmq
-- **Keycloak Health**: http://localhost:8000/health/keycloak
-- **OpenAPI Docs**: http://localhost:8000/docs
-- **Authentication Test**: http://localhost:8000/api/v1/auth/me (requires Bearer token)
-
-### Health Check Response Example
-```json
-{
-  "status": "unhealthy",
-  "timestamp": "2025-08-01T18:00:37.251138",
-  "version": "0.1.0",
-  "services": {
-    "database": {
-      "status": "unhealthy",
-      "service": "database",
-      "error": "Connection refused",
-      "host": "localhost",
-      "port": 5432
-    },
-    "redis": {
-      "status": "unhealthy", 
-      "service": "redis",
-      "error": "Connection refused",
-      "host": "localhost",
-      "port": 6379
-    }
-  }
-}
-```
-
-## 🚀 Development
-
-### Adding New Modules
-
-1. Create module structure in `modules/`
-2. Implement DDD entities and aggregates
-3. Add CQRS commands and queries
-4. Create REPR endpoints
-5. Add tests
-6. Register in main.py
-
-### Service Registration
-
-Use decorators for automatic service registration:
-
-```python
-from eshop.core.di.assembly_scanner import singleton_service
-
-@singleton_service("product_repository")
-class ProductRepository:
-    pass
-```
-
-### Object Mapping
-
-Use msgspec for high-performance serialization:
-
-```python
-from eshop.core.mapping.mapper import map_to_dto, to_json
-
-# Map entity to DTO
-product_dto = map_to_dto(product_entity, ProductDto)
-
-# Serialize to JSON
-json_data = to_json(product_dto)
-```
-
-### Retry Mechanisms
-
-Use tenacity for handling transient failures:
-
-```python
-from eshop.core.retry.retry import retry_database_operation
-
-@retry_database_operation
-async def save_product(product: Product):
-    # Database operation with automatic retry
-    pass
-```
-
-## 📦 Deployment
-
-The application is containerized and ready for deployment:
-
-```bash
-# Build image
-docker build -t eshop .
-
-# Run container
-docker run -p 8000:8000 eshop
-```
+- [Frontend README](frontend/README.md) - Detailed frontend documentation
+- [Backend API Docs](http://localhost:8000/docs) - Interactive API documentation
+- [Authentication Guide](docs/AUTHENTICATION_GUIDE.md) - Keycloak setup and RBAC details
 
 ## 🤝 Contributing
 
-1. Follow the established patterns (DDD, CQRS, REPR)
-2. Write tests for new features
+1. Follow the existing architecture patterns
+2. Add tests for new features
 3. Update documentation
-4. Ensure code quality checks pass
-5. Use pre-commit hooks
+4. Follow Python 3.12+ best practices
+5. Use proper type hints and async/await
 
 ## 📄 License
 
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For issues and questions, please refer to the project documentation or create an issue in the repository. 
+This project follows the MIT license pattern of the FastAPI Full Stack Template.

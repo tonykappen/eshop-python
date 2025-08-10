@@ -107,19 +107,19 @@ done
 # Create test users with different roles
 echo -e "${BLUE}👤 Creating test users with RBAC roles...${NC}"
 
-# Test users with their roles
+# Minimal set of 3 users with their roles
 declare -A USERS=(
     ["admin"]="admin"
     ["manager"]="manager"
     ["user"]="user"
-    ["testuser"]="user"  # Keep existing testuser for backward compatibility
 )
 
 for username in "${!USERS[@]}"; do
     role="${USERS[$username]}"
+    echo -e "${BLUE}Creating user: $username with role: $role${NC}"
     
-    # Create user
-    USER_RESPONSE=$(curl -s -X POST http://localhost:8080/admin/realms/eshop/users \
+    # Create user with proper error handling
+    USER_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST http://localhost:8080/admin/realms/eshop/users \
         -H "Authorization: Bearer $ADMIN_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -136,35 +136,58 @@ for username in "${!USERS[@]}"; do
             }]
         }")
 
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ User '$username' created${NC}"
+    HTTP_STATUS=$(echo $USER_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+    RESPONSE_BODY=$(echo $USER_RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+
+    if [ "$HTTP_STATUS" -eq 201 ]; then
+        echo -e "${GREEN}✅ User '$username' created successfully${NC}"
+    elif [ "$HTTP_STATUS" -eq 409 ]; then
+        echo -e "${YELLOW}⚠️ User '$username' already exists, continuing with role assignment${NC}"
+    else
+        echo -e "${RED}❌ Failed to create user '$username' (HTTP $HTTP_STATUS)${NC}"
+        continue
+    fi
+    
+    # Wait a moment for user creation to complete
+    sleep 2
+    
+    # Get user ID and assign role
+    echo -e "${BLUE}Getting user ID for $username...${NC}"
+    USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+    
+    if [ "$USER_ID" != "null" ] && [ -n "$USER_ID" ]; then
+        echo -e "${GREEN}✅ User ID found: $USER_ID${NC}"
         
-        # Get user ID and assign role
-        USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
-            -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+        # Get role ID
+        echo -e "${BLUE}Getting role ID for '$role'...${NC}"
+        ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/$role" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
         
-        if [ "$USER_ID" != "null" ] && [ -n "$USER_ID" ]; then
-            # Get role ID
-            ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/$role" \
-                -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+        if [ "$ROLE_ID" != "null" ] && [ -n "$ROLE_ID" ]; then
+            echo -e "${GREEN}✅ Role ID found: $ROLE_ID${NC}"
             
-            if [ "$ROLE_ID" != "null" ] && [ -n "$ROLE_ID" ]; then
-                # Assign role to user
-                curl -s -X POST "http://localhost:8080/admin/realms/eshop/users/$USER_ID/role-mappings/realm" \
-                    -H "Authorization: Bearer $ADMIN_TOKEN" \
-                    -H "Content-Type: application/json" \
-                    -d "[{\"id\":\"$ROLE_ID\",\"name\":\"$role\"}]" > /dev/null
-                
-                echo -e "${GREEN}✅ Role '$role' assigned to $username${NC}"
+            # Assign role to user
+            ROLE_ASSIGN_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST "http://localhost:8080/admin/realms/eshop/users/$USER_ID/role-mappings/realm" \
+                -H "Authorization: Bearer $ADMIN_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "[{\"id\":\"$ROLE_ID\",\"name\":\"$role\"}]")
+            
+            ROLE_HTTP_STATUS=$(echo $ROLE_ASSIGN_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+            
+            if [ "$ROLE_HTTP_STATUS" -eq 204 ]; then
+                echo -e "${GREEN}✅ Role '$role' successfully assigned to $username${NC}"
             else
-                echo -e "${RED}❌ Failed to get role ID for '$role'${NC}"
+                echo -e "${RED}❌ Failed to assign role '$role' to $username (HTTP $ROLE_HTTP_STATUS)${NC}"
             fi
         else
-            echo -e "${RED}❌ Failed to get user ID for '$username'${NC}"
+            echo -e "${RED}❌ Failed to get role ID for '$role'${NC}"
         fi
     else
-        echo -e "${YELLOW}⚠️ User '$username' might already exist${NC}"
+        echo -e "${RED}❌ Failed to get user ID for '$username'${NC}"
     fi
+    
+    echo -e "${BLUE}────────────────────────────────────────${NC}"
 done
 
 # Create composite roles for role hierarchy (optional)
@@ -200,6 +223,41 @@ if [ "$MANAGER_ROLE_ID" != "null" ] && [ "$USER_ROLE_ID" != "null" ]; then
     echo -e "${GREEN}✅ Manager role configured as composite (includes user)${NC}"
 fi
 
+# Verify user creation and role assignments
+echo -e "${BLUE}🔍 Verifying user creation and role assignments...${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
+
+for username in "${!USERS[@]}"; do
+    expected_role="${USERS[$username]}"
+    
+    # Get user info
+    USER_INFO=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
+        -H "Authorization: Bearer $ADMIN_TOKEN")
+    
+    if echo "$USER_INFO" | jq -e '.[0]' > /dev/null 2>&1; then
+        USER_ID=$(echo "$USER_INFO" | jq -r '.[0].id')
+        DISPLAY_NAME=$(echo "$USER_INFO" | jq -r '.[0].firstName + " " + [0].lastName')
+        
+        # Get user roles
+        USER_ROLES=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users/$USER_ID/role-mappings/realm" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[].name' | grep -v "default-roles-eshop" | tr '\n' ' ')
+        
+        echo -e "${GREEN}✓ $username${NC} ($DISPLAY_NAME)"
+        echo -e "  Expected role: ${YELLOW}$expected_role${NC}"
+        echo -e "  Assigned roles: ${YELLOW}$USER_ROLES${NC}"
+        
+        # Check if expected role is assigned
+        if echo "$USER_ROLES" | grep -q "$expected_role"; then
+            echo -e "  Status: ${GREEN}✅ Role correctly assigned${NC}"
+        else
+            echo -e "  Status: ${RED}❌ Expected role not found${NC}"
+        fi
+        echo ""
+    else
+        echo -e "${RED}❌ User '$username' not found${NC}"
+    fi
+done
+
 echo -e "${GREEN}🎉 Keycloak RBAC setup complete!${NC}"
 echo -e "${BLUE}📋 Access Points:${NC}"
 echo -e "  • Keycloak Admin: http://localhost:8080/admin/ (admin/admin)"
@@ -207,14 +265,22 @@ echo -e "  • Realm: eshop"
 echo -e "  • Client: eshop-api"
 echo -e ""
 echo -e "${BLUE}👥 Test Users & Roles:${NC}"
-echo -e "  • admin/password (Admin role - full access)"
-echo -e "  • manager/password (Manager role - read/write access)"
-echo -e "  • user/password (User role - read-only access)"
-echo -e "  • testuser/password (User role - read-only access)"
+echo -e "  • ${GREEN}admin/password${NC} (Admin role - full access)"
+echo -e "  • ${YELLOW}manager/password${NC} (Manager role - read/write access)"
+echo -e "  • ${BLUE}user/password${NC} (User role - read-only access)"
 echo -e ""
 echo -e "${BLUE}🔐 RBAC Permissions:${NC}"
-echo -e "  • Command endpoints (POST/PUT/DELETE): admin, manager"
-echo -e "  • Query endpoints (GET): admin, manager, user"
+echo -e "  • ${RED}Command endpoints${NC} (POST/PUT/DELETE): ${GREEN}admin${NC}, ${YELLOW}manager${NC}"
+echo -e "  • ${BLUE}Query endpoints${NC} (GET): ${GREEN}admin${NC}, ${YELLOW}manager${NC}, ${BLUE}user${NC}"
+echo -e ""
+echo -e "${BLUE}🧪 Test Authentication:${NC}"
+echo -e "  # Test user login (read-only)"
+echo -e "  curl -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token \\"
+echo -e "    -d 'username=user&password=password&grant_type=password&client_id=eshop-api&client_secret=your-client-secret'"
+echo -e ""
+echo -e "  # Test admin login (full access)"
+echo -e "  curl -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token \\"
+echo -e "    -d 'username=admin&password=password&grant_type=password&client_id=eshop-api&client_secret=your-client-secret'"
 echo -e ""
 echo -e "${BLUE}🔧 Next Steps:${NC}"
 echo -e "  1. Update your .env file with the correct client secret"

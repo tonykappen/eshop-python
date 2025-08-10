@@ -1,7 +1,10 @@
 """Shared mock utilities for tests."""
 
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
+
+import structlog
 
 
 class MockKeycloakService:
@@ -90,3 +93,81 @@ def create_mock_fastapi_keycloak(**overrides) -> MagicMock:
         setattr(mock_keycloak, key, value)
 
     return mock_keycloak
+
+
+# Logging-specific utilities
+def create_mock_logger() -> MagicMock:
+    """Create a mock structlog logger for testing."""
+    mock_logger = MagicMock(spec=structlog.stdlib.BoundLogger)
+
+    # Mock common logging methods
+    mock_logger.info = MagicMock()
+    mock_logger.warning = MagicMock()
+    mock_logger.error = MagicMock()
+    mock_logger.debug = MagicMock()
+    mock_logger.critical = MagicMock()
+
+    return mock_logger
+
+
+def create_mock_request(
+    method: str = "GET",
+    url: str = "http://localhost:8000/test",
+    path: str = "/test",
+    query_params: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+    client_ip: str = "127.0.0.1",
+    user_agent: str = "test-agent"
+) -> MagicMock:
+    """Create a mock FastAPI Request object for testing."""
+    mock_request = MagicMock()
+    mock_request.method = method
+    mock_request.url = MagicMock()
+    mock_request.url.__str__ = MagicMock(return_value=url)
+    mock_request.url.path = path
+    mock_request.query_params = query_params or {}
+    mock_request.headers = headers or {"user-agent": user_agent}
+    mock_request.client = MagicMock()
+    mock_request.client.host = client_ip
+    mock_request.body = AsyncMock(return_value=b"")
+
+    return mock_request
+
+
+def create_mock_response(
+    status_code: int = 200,
+    headers: dict[str, str] | None = None,
+    body: bytes | None = None
+) -> MagicMock:
+    """Create a mock response object for testing."""
+    mock_response = MagicMock()
+    mock_response.status_code = status_code
+    mock_response.headers = headers or {"content-type": "application/json"}
+    mock_response.body = body or b'{"status": "ok"}'
+
+    return mock_response
+
+
+class MockLoggingHandler(logging.Handler):
+    """Mock logging handler that captures log records for testing."""
+
+    def __init__(self):
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
+
+    def clear(self) -> None:
+        """Clear captured records."""
+        self.records.clear()
+
+    def get_messages(self, level: str | None = None) -> list[str]:
+        """Get log messages, optionally filtered by level."""
+        if level:
+            return [r.getMessage() for r in self.records if r.levelname == level.upper()]
+        return [r.getMessage() for r in self.records]
+
+    def get_records_with_level(self, level: str) -> list[logging.LogRecord]:
+        """Get log records with specific level."""
+        return [r for r in self.records if r.levelname == level.upper()]

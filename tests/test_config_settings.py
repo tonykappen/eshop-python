@@ -96,26 +96,32 @@ class TestSettings:
             assert settings.log_enable_request_logging is False
 
     def test_database_connection_string(self):
-        """Test database connection string generation."""
+        """Test database connection string generation and format."""
         settings = Settings()
         
         # Test with default values
         connection_string = settings.database_connection_string
         expected = "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"
         assert connection_string == expected
-
-    def test_database_connection_string_with_special_chars(self):
-        """Test database connection string with special characters in password."""
-        # This test would require modifying the settings, but settings are immutable
-        # So we'll test the property exists and works
-        settings = Settings()
-        connection_string = settings.database_connection_string
         
-        # Should be a valid connection string
+        # Test format validation
         assert isinstance(connection_string, str)
         assert connection_string.startswith("postgresql+asyncpg://")
         assert "@" in connection_string
         assert ":" in connection_string
+        
+        # Test structure validation
+        parts = connection_string.split("://")
+        assert len(parts) == 2
+        
+        protocol = parts[0]
+        connection = parts[1]
+        
+        assert protocol == "postgresql+asyncpg"
+        assert "@" in connection
+        assert ":" in connection
+
+
 
     def test_legacy_properties(self):
         """Test legacy property methods for backward compatibility."""

@@ -11,7 +11,7 @@ class TestDatabaseConfiguration:
     """Test database configuration functions."""
 
     def test_database_url_format(self):
-        """Test database URL format."""
+        """Test database URL format and structure."""
         # DATABASE_URL should be a string
         assert isinstance(DATABASE_URL, str)
         
@@ -21,12 +21,17 @@ class TestDatabaseConfiguration:
         # Should contain all required components
         assert "@" in DATABASE_URL
         assert ":" in DATABASE_URL
-
-    def test_database_url_with_special_chars(self):
-        """Test database URL with special characters in password."""
-        # DATABASE_URL should be properly formatted
-        assert isinstance(DATABASE_URL, str)
-        assert DATABASE_URL.startswith("postgresql+asyncpg://")
+        
+        # Should have proper structure: postgresql+asyncpg://user:pass@host:port/db
+        parts = DATABASE_URL.split("://")
+        assert len(parts) == 2
+        
+        protocol = parts[0]
+        connection = parts[1]
+        
+        assert protocol == "postgresql+asyncpg"
+        assert "@" in connection
+        assert ":" in connection
 
     def test_engine_creation(self):
         """Test that engine is created with correct parameters."""
@@ -94,17 +99,7 @@ class TestDatabaseConfiguration:
             except StopAsyncIteration:
                 pass
 
-    def test_database_url_consistency(self):
-        """Test that DATABASE_URL is consistent."""
-        # DATABASE_URL should be a string
-        assert isinstance(DATABASE_URL, str)
-        
-        # Should start with postgresql+asyncpg://
-        assert DATABASE_URL.startswith("postgresql+asyncpg://")
-        
-        # Should contain all required components
-        assert "@" in DATABASE_URL
-        assert ":" in DATABASE_URL
+
 
     def test_engine_echo_setting(self):
         """Test that engine is created with echo=True."""
@@ -171,18 +166,7 @@ class TestDatabaseConfiguration:
         except StopAsyncIteration:
             pass
 
-    def test_database_url_format_validation(self):
-        """Test that DATABASE_URL has correct format."""
-        # Should have the format: postgresql+asyncpg://user:pass@host:port/db
-        parts = DATABASE_URL.split("://")
-        assert len(parts) == 2
-        
-        protocol = parts[0]
-        connection = parts[1]
-        
-        assert protocol == "postgresql+asyncpg"
-        assert "@" in connection
-        assert ":" in connection
+
 
     def test_engine_disposal(self):
         """Test that engine can be disposed."""

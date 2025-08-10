@@ -171,3 +171,58 @@ class MockLoggingHandler(logging.Handler):
     def get_records_with_level(self, level: str) -> list[logging.LogRecord]:
         """Get log records with specific level."""
         return [r for r in self.records if r.levelname == level.upper()]
+
+
+# DI-specific utilities
+def create_mock_container() -> MagicMock:
+    """Create a mock dependency injection container."""
+    mock_container = MagicMock()
+
+    # Mock container methods
+    mock_container.wire = MagicMock()
+    mock_container.providers = {}
+    mock_container.config = MagicMock()
+    mock_container.config.from_dict = MagicMock()
+
+    return mock_container
+
+
+def create_mock_provider(provides: type | None = None, **kwargs) -> MagicMock:
+    """Create a mock dependency injection provider."""
+    mock_provider = MagicMock()
+    mock_provider.provides = provides
+    mock_provider.__call__ = MagicMock(return_value=kwargs.get("return_value", MagicMock()))
+
+    return mock_provider
+
+
+def create_mock_service_class(name: str = "TestService") -> type:
+    """Create a mock service class for testing."""
+    class MockService:
+        def __init__(self, name: str = name):
+            self.name = name
+
+        def do_something(self) -> str:
+            return f"{self.name} did something"
+
+    return MockService
+
+
+def create_mock_service_function(name: str = "test_function") -> Any:
+    """Create a mock service function for testing."""
+    def mock_function(*args, **kwargs) -> str:
+        return f"{name} called with {args}, {kwargs}"
+
+    return mock_function
+
+
+class MockModule:
+    """Mock module for testing assembly scanning."""
+
+    def __init__(self, name: str = "test_module"):
+        self.__name__ = name
+        self.__file__ = f"/path/to/{name}.py"
+
+    def __getattr__(self, name: str) -> Any:
+        # Return mock objects for any attribute access
+        return MagicMock()

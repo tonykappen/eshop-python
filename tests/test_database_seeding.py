@@ -78,7 +78,9 @@ class TestDataSeederManager:
         manager.register_seeder(MockSeeder)
 
         # Mock the database session to avoid greenlet issues
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session = AsyncMock()
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
@@ -101,7 +103,9 @@ class TestDataSeederManager:
         manager.register_seeder(FailingSeeder)
 
         # Mock the database session to avoid greenlet issues
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session = AsyncMock()
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
@@ -116,6 +120,7 @@ class TestSeedingFunctions:
     @pytest.mark.asyncio
     async def test_register_seeder_global(self):
         """Test global seeder registration."""
+
         # Create a mock seeder class
         class MockSeeder(IDataSeeder):
             async def seed_all_async(self) -> None:
@@ -136,7 +141,9 @@ class TestSeedingFunctions:
         mock_result.scalar.return_value = 5
         mock_session.execute.return_value = mock_result
 
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -155,7 +162,9 @@ class TestSeedingFunctions:
         mock_result.scalar.return_value = 0
         mock_session.execute.return_value = mock_result
 
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -170,7 +179,9 @@ class TestSeedingFunctions:
         mock_result.scalar.return_value = None
         mock_session.execute.return_value = mock_result
 
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -183,7 +194,9 @@ class TestSeedingFunctions:
         mock_session = AsyncMock()
         mock_session.execute.side_effect = Exception("Database error")
 
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -195,7 +208,9 @@ class TestSeedingFunctions:
         """Test successful schema creation."""
         mock_session = AsyncMock()
 
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.seeding.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             await ensure_schema_exists("test_schema")
@@ -211,11 +226,14 @@ class TestSeedingFunctions:
         mock_session = AsyncMock()
         mock_session.execute.side_effect = Exception("Schema creation failed")
 
-        with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
+        with (
+            patch(
+                "eshop.core.database.seeding.AsyncSessionLocal"
+            ) as mock_session_local,
+            pytest.raises(Exception, match="Schema creation failed"),
+        ):
             mock_session_local.return_value.__aenter__.return_value = mock_session
-
-            with pytest.raises(Exception, match="Schema creation failed"):
-                await ensure_schema_exists("test_schema")
+            await ensure_schema_exists("test_schema")
 
 
 class TestCatalogDataSeeder:
@@ -242,16 +260,22 @@ class TestCatalogDataSeeder:
         seeder = CatalogDataSeeder()
 
         # Mock check_if_data_exists to return False
-        with patch("eshop.core.database.seeding.check_if_data_exists", return_value=False):
-            with patch("eshop.core.database.seeding.ensure_schema_exists"):
-                with patch("eshop.core.database.seeding.AsyncSessionLocal") as mock_session_local:
-                    mock_session = AsyncMock()
-                    mock_session_local.return_value.__aenter__.return_value = mock_session
+        with (
+            patch(
+                "eshop.core.database.seeding.check_if_data_exists", return_value=False
+            ),
+            patch("eshop.core.database.seeding.ensure_schema_exists"),
+            patch(
+                "eshop.core.database.seeding.AsyncSessionLocal"
+            ) as mock_session_local,
+        ):
+            mock_session = AsyncMock()
+            mock_session_local.return_value.__aenter__.return_value = mock_session
 
-                    with patch.object(seeder, "_seed_products") as mock_seed:
-                        await seeder.seed_all_async()
+            with patch.object(seeder, "_seed_products") as mock_seed:
+                await seeder.seed_all_async()
 
-                        mock_seed.assert_called_once()
+                mock_seed.assert_called_once()
 
 
 class TestInitialData:

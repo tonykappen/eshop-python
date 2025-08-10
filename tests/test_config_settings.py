@@ -69,7 +69,7 @@ class TestSettings:
             "REDIS_URL": "redis://test-redis:6379",
             "RABBITMQ_URL": "amqp://test-rabbit:5672/",
             "LOG_LEVEL": "DEBUG",
-            "LOG_ENABLE_REQUEST_LOGGING": "false"
+            "LOG_ENABLE_REQUEST_LOGGING": "false",
         }
 
         with patch.dict(os.environ, test_env, clear=True):
@@ -121,15 +121,19 @@ class TestSettings:
         assert "@" in connection
         assert ":" in connection
 
-
-
     def test_legacy_properties(self):
         """Test legacy property methods for backward compatibility."""
         settings = Settings()
 
         # Test legacy database properties - they should be the same as the new ones
-        assert settings.database_url == "postgresql://eshop_user:eshop_password@localhost:5432/eshop"  # This is a field
-        assert settings.database_connection_string == "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"  # This is a property
+        assert (
+            settings.database_url
+            == "postgresql://eshop_user:eshop_password@localhost:5432/eshop"
+        )  # This is a field
+        assert (
+            settings.database_connection_string
+            == "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"
+        )  # This is a property
         assert settings.database_host == settings.database_host
         assert settings.database_port == settings.database_port
         assert settings.database_name == settings.database_name
@@ -145,7 +149,9 @@ class TestSettings:
             assert "PORT" in str(exc_info.value)
 
         # Test invalid access token expire minutes
-        with patch.dict(os.environ, {"ACCESS_TOKEN_EXPIRE_MINUTES": "invalid"}, clear=True):
+        with patch.dict(
+            os.environ, {"ACCESS_TOKEN_EXPIRE_MINUTES": "invalid"}, clear=True
+        ):
             with pytest.raises(ValidationError) as exc_info:
                 Settings()
             assert "ACCESS_TOKEN_EXPIRE_MINUTES" in str(exc_info.value)
@@ -202,6 +208,7 @@ class TestSettings:
 
         # Should be valid JSON
         import json
+
         parsed = json.loads(json_data)
         assert "name" in parsed
         assert "environment" in parsed
@@ -214,10 +221,24 @@ class TestSettings:
 
         # Should contain all expected keys
         expected_keys = [
-            "name", "version", "debug", "environment", "host", "port",
-            "secret_key", "algorithm", "access_token_expire_minutes",
-            "database_host", "database_port", "database_name", "database_user", "database_password",
-            "redis_url", "rabbitmq_url", "log_level", "log_enable_request_logging"
+            "name",
+            "version",
+            "debug",
+            "environment",
+            "host",
+            "port",
+            "secret_key",
+            "algorithm",
+            "access_token_expire_minutes",
+            "database_host",
+            "database_port",
+            "database_name",
+            "database_user",
+            "database_password",
+            "redis_url",
+            "rabbitmq_url",
+            "log_level",
+            "log_enable_request_logging",
         ]
 
         for key in expected_keys:
@@ -229,7 +250,9 @@ class TestSettings:
         with patch.dict(os.environ, {"EXTRA_FIELD": "extra_value"}, clear=True):
             settings = Settings()
             # Should not raise validation error for extra fields
-            assert hasattr(settings, "extra_field") is False  # Extra fields not added to model
+            assert (
+                hasattr(settings, "extra_field") is False
+            )  # Extra fields not added to model
 
     def test_settings_boolean_parsing(self):
         """Test boolean environment variable parsing."""

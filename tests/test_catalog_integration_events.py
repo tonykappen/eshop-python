@@ -1,6 +1,5 @@
 """Tests for catalog integration events."""
 
-from datetime import datetime
 from uuid import uuid4
 
 import pytest
@@ -23,14 +22,14 @@ class TestProductCreatedIntegrationEvent:
         """Test creating a product created integration event."""
         product_id = uuid4()
         category_id = uuid4()
-        
+
         event = ProductCreatedIntegrationEvent(
             product_id=product_id,
             product_name="Test Product",
             price=99.99,
             category_id=category_id,
         )
-        
+
         assert event.product_id == product_id
         assert event.product_name == "Test Product"
         assert event.price == 99.99
@@ -43,13 +42,13 @@ class TestProductCreatedIntegrationEvent:
     def test_product_created_event_without_category(self) -> None:
         """Test creating a product created event without category."""
         product_id = uuid4()
-        
+
         event = ProductCreatedIntegrationEvent(
             product_id=product_id,
             product_name="Test Product",
             price=99.99,
         )
-        
+
         assert event.product_id == product_id
         assert event.product_name == "Test Product"
         assert event.price == 99.99
@@ -58,7 +57,7 @@ class TestProductCreatedIntegrationEvent:
     def test_product_created_event_validation(self) -> None:
         """Test product created event validation."""
         product_id = uuid4()
-        
+
         # Should raise validation error for missing required fields
         with pytest.raises(ValidationError):
             ProductCreatedIntegrationEvent(
@@ -70,14 +69,14 @@ class TestProductCreatedIntegrationEvent:
         """Test product created event serialization."""
         product_id = uuid4()
         category_id = uuid4()
-        
+
         event = ProductCreatedIntegrationEvent(
             product_id=product_id,
             product_name="Test Product",
             price=99.99,
             category_id=category_id,
         )
-        
+
         # Test model dump
         data = event.model_dump()
         assert data["product_id"] == product_id
@@ -93,14 +92,14 @@ class TestProductPriceChangedIntegrationEvent:
     def test_price_changed_event_creation(self) -> None:
         """Test creating a price changed integration event."""
         product_id = uuid4()
-        
+
         event = ProductPriceChangedIntegrationEvent(
             product_id=product_id,
             old_price=99.99,
             new_price=89.99,
             price_change_reason="Sale discount",
         )
-        
+
         assert event.product_id == product_id
         assert event.old_price == 99.99
         assert event.new_price == 89.99
@@ -112,13 +111,13 @@ class TestProductPriceChangedIntegrationEvent:
     def test_price_changed_event_without_reason(self) -> None:
         """Test creating a price changed event without reason."""
         product_id = uuid4()
-        
+
         event = ProductPriceChangedIntegrationEvent(
             product_id=product_id,
             old_price=99.99,
             new_price=89.99,
         )
-        
+
         assert event.product_id == product_id
         assert event.old_price == 99.99
         assert event.new_price == 89.99
@@ -127,7 +126,7 @@ class TestProductPriceChangedIntegrationEvent:
     def test_price_changed_event_validation(self) -> None:
         """Test price changed event validation."""
         product_id = uuid4()
-        
+
         # Should raise validation error for missing required fields
         with pytest.raises(ValidationError):
             ProductPriceChangedIntegrationEvent(
@@ -144,32 +143,34 @@ class TestProductInventoryUpdatedIntegrationEvent:
         """Test creating an inventory updated integration event."""
         product_id = uuid4()
         warehouse_id = uuid4()
-        
+
         event = ProductInventoryUpdatedIntegrationEvent(
             product_id=product_id,
             old_quantity=100,
             new_quantity=85,
             warehouse_id=warehouse_id,
         )
-        
+
         assert event.product_id == product_id
         assert event.old_quantity == 100
         assert event.new_quantity == 85
         assert event.warehouse_id == warehouse_id
         assert event.event_type == "product_inventory_updated_integration"
         assert event.topic == "eshop.catalog.product_inventory_updated_integration"
-        assert event.routing_key == "eshop.catalog.product_inventory_updated_integration"
+        assert (
+            event.routing_key == "eshop.catalog.product_inventory_updated_integration"
+        )
 
     def test_inventory_updated_event_without_warehouse(self) -> None:
         """Test creating an inventory updated event without warehouse."""
         product_id = uuid4()
-        
+
         event = ProductInventoryUpdatedIntegrationEvent(
             product_id=product_id,
             old_quantity=100,
             new_quantity=85,
         )
-        
+
         assert event.product_id == product_id
         assert event.old_quantity == 100
         assert event.new_quantity == 85
@@ -178,7 +179,7 @@ class TestProductInventoryUpdatedIntegrationEvent:
     def test_inventory_updated_event_validation(self) -> None:
         """Test inventory updated event validation."""
         product_id = uuid4()
-        
+
         # Should raise validation error for missing required fields
         with pytest.raises(ValidationError):
             ProductInventoryUpdatedIntegrationEvent(
@@ -196,14 +197,14 @@ class TestProductDiscontinuedIntegrationEvent:
         product_id = uuid4()
         replacement_id = uuid4()
         discontinuation_date = "2024-01-15"
-        
+
         event = ProductDiscontinuedIntegrationEvent(
             product_id=product_id,
             discontinuation_date=discontinuation_date,
             reason="Out of stock permanently",
             replacement_product_id=replacement_id,
         )
-        
+
         assert event.product_id == product_id
         assert event.discontinuation_date == discontinuation_date
         assert event.reason == "Out of stock permanently"
@@ -216,12 +217,12 @@ class TestProductDiscontinuedIntegrationEvent:
         """Test creating a discontinued event without optional fields."""
         product_id = uuid4()
         discontinuation_date = "2024-01-15"
-        
+
         event = ProductDiscontinuedIntegrationEvent(
             product_id=product_id,
             discontinuation_date=discontinuation_date,
         )
-        
+
         assert event.product_id == product_id
         assert event.discontinuation_date == discontinuation_date
         assert event.reason is None
@@ -230,7 +231,7 @@ class TestProductDiscontinuedIntegrationEvent:
     def test_product_discontinued_event_validation(self) -> None:
         """Test product discontinued event validation."""
         product_id = uuid4()
-        
+
         # Should raise validation error for missing required fields
         with pytest.raises(ValidationError):
             ProductDiscontinuedIntegrationEvent(
@@ -248,7 +249,7 @@ class TestCustomRoutingEvent:
             priority_level="high",
             custom_data={"key": "value"},
         )
-        
+
         assert event.priority_level == "high"
         assert event.custom_data == {"key": "value"}
         assert event.event_type == "custom_routing"
@@ -260,7 +261,7 @@ class TestCustomRoutingEvent:
     def test_custom_routing_event_defaults(self) -> None:
         """Test custom routing event with default values."""
         event = CustomRoutingEvent()
-        
+
         assert event.priority_level == "normal"
         assert event.custom_data == {}
 
@@ -270,19 +271,20 @@ class TestIntegrationEventHelpers:
 
     def test_create_integration_event_from_domain(self) -> None:
         """Test creating integration event from domain event."""
+
         # Create a mock domain event with model_dump method
         class MockDomainEvent:
             def __init__(self):
                 self.name = "TestEvent"
-            
+
             def model_dump(self):
                 return {"name": self.name}
-        
+
         domain_event = MockDomainEvent()
-        
+
         # This should not raise an exception
         integration_event = create_integration_event_from_domain(domain_event)
-        
+
         # The function should return an IntegrationEvent
         assert integration_event is not None
 
@@ -309,7 +311,7 @@ class TestIntegrationEventHelpers:
                 discontinuation_date="2024-01-15",
             ),
         ]
-        
+
         for event in events:
             # All events should have consistent metadata structure
             assert hasattr(event, "event_type")
@@ -328,20 +330,20 @@ class TestIntegrationEventSerialization:
         """Test product created event serialization round trip."""
         product_id = uuid4()
         category_id = uuid4()
-        
+
         original_event = ProductCreatedIntegrationEvent(
             product_id=product_id,
             product_name="Test Product",
             price=99.99,
             category_id=category_id,
         )
-        
+
         # Serialize
         data = original_event.model_dump()
-        
+
         # Deserialize
         reconstructed_event = ProductCreatedIntegrationEvent(**data)
-        
+
         assert reconstructed_event.product_id == original_event.product_id
         assert reconstructed_event.product_name == original_event.product_name
         assert reconstructed_event.price == original_event.price
@@ -353,24 +355,27 @@ class TestIntegrationEventSerialization:
     def test_price_changed_event_round_trip(self) -> None:
         """Test price changed event serialization round trip."""
         product_id = uuid4()
-        
+
         original_event = ProductPriceChangedIntegrationEvent(
             product_id=product_id,
             old_price=99.99,
             new_price=89.99,
             price_change_reason="Sale discount",
         )
-        
+
         # Serialize
         data = original_event.model_dump()
-        
+
         # Deserialize
         reconstructed_event = ProductPriceChangedIntegrationEvent(**data)
-        
+
         assert reconstructed_event.product_id == original_event.product_id
         assert reconstructed_event.old_price == original_event.old_price
         assert reconstructed_event.new_price == original_event.new_price
-        assert reconstructed_event.price_change_reason == original_event.price_change_reason
+        assert (
+            reconstructed_event.price_change_reason
+            == original_event.price_change_reason
+        )
 
 
 class TestIntegrationEventValidation:
@@ -426,7 +431,7 @@ class TestIntegrationEventEdgeCases:
             product_name="Free Product",
             price=0.0,
         )
-        
+
         assert event.price == 0.0
 
     def test_zero_quantity(self) -> None:
@@ -436,7 +441,7 @@ class TestIntegrationEventEdgeCases:
             old_quantity=100,
             new_quantity=0,
         )
-        
+
         assert event.new_quantity == 0
 
     def test_same_price_change(self) -> None:
@@ -446,7 +451,7 @@ class TestIntegrationEventEdgeCases:
             old_price=99.99,
             new_price=99.99,
         )
-        
+
         assert event.old_price == event.new_price
 
     def test_same_quantity_change(self) -> None:
@@ -456,5 +461,5 @@ class TestIntegrationEventEdgeCases:
             old_quantity=100,
             new_quantity=100,
         )
-        
+
         assert event.old_quantity == event.new_quantity

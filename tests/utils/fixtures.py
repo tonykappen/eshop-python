@@ -29,7 +29,7 @@ def mock_keycloak_user() -> KeycloakUser:
         sub="test-user-id",
         preferred_username="testuser",
         email="test@example.com",
-        roles=["user"]
+        roles=["user"],
     )
 
 

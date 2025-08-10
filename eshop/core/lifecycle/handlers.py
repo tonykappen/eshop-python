@@ -6,6 +6,7 @@ from typing import Any
 from eshop.core.database.migrations import run_migrations
 from eshop.core.database.seeding import run_seeding
 from eshop.core.database.session import close_db_engine, create_db_engine
+from eshop.core.health.health_service import health_service
 from eshop.core.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -51,6 +52,7 @@ class DatabaseLifecycleHandler:
             logger.info("✅ Database connections closed successfully")
         except Exception as e:
             logger.error(f"❌ Error closing database connections: {e}")
+            self.is_connected = False
 
     async def _verify_database_connectivity(self) -> None:
         """Verify database connectivity during startup."""
@@ -221,7 +223,7 @@ class HealthCheckLifecycleHandler:
         logger.info("🩺 Initializing health check services...")
         try:
             # Initialize health service
-            from eshop.core.health.health_service import health_service
+            # from eshop.core.health.health_service import health_service
 
             self.health_service = health_service
 

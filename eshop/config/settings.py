@@ -20,10 +20,15 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = Field(default="your-secret-key-here", alias="SECRET_KEY")
     algorithm: str = Field(default="HS256", alias="ALGORITHM")
-    access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    access_token_expire_minutes: int = Field(
+        default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
 
     # Database
-    database_url: str = Field(default="postgresql://postgres:postgres@localhost:5432/eshop", alias="DATABASE_URL")
+    database_url: str = Field(
+        default="postgresql://postgres:postgres@localhost:5432/eshop",
+        alias="DATABASE_URL",
+    )
     database_host: str = Field(default="localhost", alias="DATABASE_HOST")
     database_port: int = Field(default=5432, alias="DATABASE_PORT")
     database_name: str = Field(default="eshop", alias="DATABASE_NAME")
@@ -73,7 +78,9 @@ class Settings(BaseSettings):
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
     # RabbitMQ
-    rabbitmq_url: str = Field(default="amqp://guest:guest@localhost:5672/", alias="RABBITMQ_URL")
+    rabbitmq_url: str = Field(
+        default="amqp://guest:guest@localhost:5672/", alias="RABBITMQ_URL"
+    )
     rabbitmq_host: str = Field(default="localhost", alias="RABBITMQ_HOST")
     rabbitmq_port: int = Field(default=5672, alias="RABBITMQ_PORT")
     rabbitmq_user: str = Field(default="guest", alias="RABBITMQ_USER")

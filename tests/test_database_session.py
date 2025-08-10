@@ -34,7 +34,9 @@ class TestDatabaseSession:
         """Test get_db_session as context manager."""
         mock_session = AsyncMock(spec=AsyncSession)
 
-        with patch("eshop.core.database.session.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.session.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             async for session in get_db_session():
@@ -50,7 +52,9 @@ class TestDatabaseSession:
         mock_session = AsyncMock(spec=AsyncSession)
         mock_session.execute.side_effect = Exception("Database error")
 
-        with patch("eshop.core.database.session.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.session.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             async for session in get_db_session():
@@ -63,7 +67,9 @@ class TestDatabaseSession:
     async def test_create_db_engine_success(self):
         """Test successful database engine creation."""
         with patch("eshop.core.database.session.engine") as mock_engine:
-            mock_engine.begin.return_value.__aenter__.return_value.execute.return_value = None
+            mock_engine.begin.return_value.__aenter__.return_value.execute.return_value = (
+                None
+            )
 
             await create_db_engine()
 
@@ -153,7 +159,9 @@ class TestDatabaseConnectionString:
 
         # Test connection string format
         connection_string = mock_settings.database_connection_string
-        expected = "postgresql+asyncpg://test_user:test@password#123@test_host:5432/test_db"
+        expected = (
+            "postgresql+asyncpg://test_user:test@password#123@test_host:5432/test_db"
+        )
 
         assert connection_string == expected
 
@@ -167,7 +175,9 @@ class TestDatabaseSessionLifecycle:
         mock_session = AsyncMock(spec=AsyncSession)
 
         # Test the actual get_db_session function which handles session lifecycle
-        with patch("eshop.core.database.session.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.session.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
 
@@ -191,7 +201,9 @@ class TestDatabaseSessionLifecycle:
         """Test session lifecycle with exception handling."""
         mock_session = AsyncMock(spec=AsyncSession)
 
-        with patch("eshop.core.database.session.AsyncSessionLocal") as mock_session_local:
+        with patch(
+            "eshop.core.database.session.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
 

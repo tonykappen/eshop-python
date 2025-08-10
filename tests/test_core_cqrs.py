@@ -50,9 +50,10 @@ class TestCommandHandler(ICommandHandler[TestResult]):
 
     async def handle(self, command: ICommand) -> TestResult:
         # Type cast to access attributes
-        cmd = command  # type: ignore
         return TestResult(
-            id=uuid4(), name=f"Processed {command.name}", value=command.value * 2  # type: ignore
+            id=uuid4(),
+            name=f"Processed {command.name}",
+            value=command.value * 2,  # type: ignore
         )
 
 
@@ -62,7 +63,6 @@ class TestQueryHandler(IQueryHandler[TestResult]):
 
     async def handle(self, query: IQuery) -> TestResult:
         # Type cast to access attributes
-        qry = query  # type: ignore
         return TestResult(id=uuid4(), name=f"Retrieved {query.name}", value=query.value)  # type: ignore
 
 
@@ -340,7 +340,9 @@ class TestQueryResult:
         assert result.message == "String query"
 
         # Test with integer data
-        result_int: QueryResult[int] = QueryResult[int](success=True, data=42, message="Integer query")
+        result_int: QueryResult[int] = QueryResult[int](
+            success=True, data=42, message="Integer query"
+        )
 
         assert result_int.success is True
         assert result_int.data == 42

@@ -701,7 +701,7 @@ class TestCQRSEndpointFactory:
         assert isinstance(endpoint, CommandEndpoint)
         assert isinstance(endpoint.request_mapper, RequestToCommandMapper)
         assert endpoint.request_mapper.command_factory == TestCommand
-        assert isinstance(endpoint.result_mapper, ResultToBaseResponseMapper)
+        assert isinstance(endpoint.result_mapper, ResultToDataResponseMapper)
         assert endpoint.mediator == mock_mediator
 
     def test_create_command_endpoint_custom_mapper(self) -> None:

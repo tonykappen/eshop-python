@@ -56,6 +56,7 @@ class Product(Aggregate):
 
         # Add domain event - use string reference to avoid circular import issues
         from eshop.modules.catalog.domain.events import ProductCreatedEvent
+
         product.add_domain_event(ProductCreatedEvent(product=product))
 
         return product
@@ -85,4 +86,5 @@ class Product(Aggregate):
         # If price changed, add domain event
         if old_price != price:
             from eshop.modules.catalog.domain.events import ProductPriceChangedEvent
+
             self.add_domain_event(ProductPriceChangedEvent(product=self))

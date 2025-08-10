@@ -1,7 +1,7 @@
 """Keycloak authentication integration using fastapi-keycloak."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastapi import Depends, HTTPException, status
@@ -59,13 +59,24 @@ class KeycloakService:
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
         try:
-            self._initialize_keycloak()
-            if self.keycloak is None:
-                raise Exception("Keycloak not initialized")
-
-            # Decode token using fastapi-keycloak
-            token_info = self.keycloak.decode_token(token)
-            return dict(token_info)
+            # For now, use a simple JWT decode approach
+            import jwt
+            from jwt import PyJWKClient
+            
+            # Get the public key from Keycloak
+            jwks_url = f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/certs"
+            jwks_client = PyJWKClient(jwks_url)
+            
+            # Decode the token
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            token_info = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                audience=settings.keycloak_client_id,
+                issuer=f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}"
+            )
+            return token_info
         except Exception as e:
             logger.error(f"Token verification failed: {e}")
             raise HTTPException(
@@ -161,7 +172,7 @@ async def get_current_user_optional(
         return None
 
 
-def require_role(required_role: str) -> Callable[[KeycloakUser], KeycloakUser]:
+def require_role(required_role: str) -> Callable[[KeycloakUser], Awaitable[KeycloakUser]]:
     """Dependency to require specific role."""
 
     async def role_checker(

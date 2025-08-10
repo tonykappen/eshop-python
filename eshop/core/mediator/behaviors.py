@@ -3,7 +3,7 @@
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any, Generic, TypeVar
+from typing import Any, Awaitable, Generic, TypeVar
 
 from eshop.core.logging.logger import get_logger
 
@@ -53,7 +53,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
         self.logger = get_logger(__name__)
 
     async def handle(
-        self, request: TRequest, next_handler: Callable[[], TResponse]
+        self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
     ) -> TResponse:
         """Handle validation - matches .NET ValidationBehavior.Handle()."""
         # For now, we'll use Pydantic validation
@@ -81,7 +81,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         self.logger = get_logger(__name__)
 
     async def handle(
-        self, request: TRequest, next_handler: Callable[[], TResponse]
+        self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
     ) -> TResponse:
         """Handle logging - matches .NET LoggingBehavior.Handle()."""
         request_type = type(request).__name__

@@ -203,7 +203,9 @@ class TestCreateProductHandler:
         token = CancellationToken()
 
         # Mock the _save_to_database method to raise an exception
-        handler._save_to_database = AsyncMock(side_effect=Exception("Database connection failed"))
+        handler._save_to_database = AsyncMock(
+            side_effect=Exception("Database connection failed")
+        )
 
         with pytest.raises(Exception, match="Database connection failed"):
             await handler.handle(command, token)
@@ -227,7 +229,9 @@ class TestCreateProductHandler:
         token = CancellationToken()
 
         # Mock the _save_to_database method to check cancellation
-        async def mock_save_with_cancellation(product, cancellation_token):
+        async def mock_save_with_cancellation(
+            product, cancellation_token
+        ):  # noqa: ARG001
             cancellation_token.throw_if_cancellation_requested()
             # Simulate some work
             await asyncio.sleep(0.01)
@@ -242,6 +246,7 @@ class TestCreateProductHandler:
 
         # Start cancellation task
         import asyncio
+
         asyncio.create_task(cancel_after_delay())
 
         with pytest.raises(Exception, match="Operation was cancelled"):
@@ -376,15 +381,18 @@ class TestCreateProductHandler:
 
         # Mock the sleep to raise an exception
         import asyncio
+
         original_sleep = asyncio.sleep
 
-        async def mock_sleep(delay):
+        async def mock_sleep(delay):  # noqa: ARG001
             raise Exception("Database connection failed")
 
         asyncio.sleep = mock_sleep
 
         try:
-            with pytest.raises(ProductCreationError, match="Failed to save product to database"):
+            with pytest.raises(
+                ProductCreationError, match="Failed to save product to database"
+            ):
                 await handler._save_to_database(product, token)
         finally:
             # Restore original sleep

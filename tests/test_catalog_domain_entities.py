@@ -72,7 +72,9 @@ class TestCatalogItem:
 
     def test_catalog_item_stock_quantity_validation(self):
         """Test that stock quantity cannot be negative."""
-        with pytest.raises(ValueError, match="Input should be greater than or equal to 0"):
+        with pytest.raises(
+            ValueError, match="Input should be greater than or equal to 0"
+        ):
             CatalogItem(
                 name="Test Item",
                 price=Decimal("99.99"),
@@ -323,7 +325,9 @@ class TestCatalogCategory:
 
         category.update_details("New Name")
         assert category.name == "New Name"
-        assert category.description is None  # Description is not preserved when not provided
+        assert (
+            category.description is None
+        )  # Description is not preserved when not provided
 
     def test_update_details_empty_name_raises_error(self):
         """Test that updating with empty name raises error."""
@@ -419,7 +423,9 @@ class TestCatalogBrand:
 
         brand.update_details("New Name")
         assert brand.name == "New Name"
-        assert brand.description is None  # Description is not preserved when not provided
+        assert (
+            brand.description is None
+        )  # Description is not preserved when not provided
         assert brand.logo_url is None  # Logo URL is not preserved when not provided
 
     def test_update_details_empty_name_raises_error(self):

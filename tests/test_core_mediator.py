@@ -27,26 +27,34 @@ from eshop.core.mediator.mediator import Mediator
 @pytest.mark.no_collect
 class TestCommand(ICommand[str]):
     """Test command for testing."""
+
     name: str
 
 
 @pytest.mark.no_collect
 class TestQuery(IQuery[str]):
     """Test query for testing."""
+
     id: str
 
 
 class TestCommandHandler(IRequestHandler[TestCommand, str]):
     """Test command handler."""
 
-    async def handle(self, request: TestCommand, cancellation_token: CancellationToken) -> str:
+    async def handle(
+        self,
+        request: TestCommand,
+        cancellation_token: CancellationToken,  # noqa: ARG002
+    ) -> str:
         return f"Command executed: {request.name}"
 
 
 class TestQueryHandler(IRequestHandler[TestQuery, str]):
     """Test query handler."""
 
-    async def handle(self, request: TestQuery, cancellation_token: CancellationToken) -> str:
+    async def handle(
+        self, request: TestQuery, cancellation_token: CancellationToken  # noqa: ARG002
+    ) -> str:
         return f"Query result: {request.id}"
 
 
@@ -58,7 +66,7 @@ class TestBehavior(IPipelineBehavior[TestCommand, str]):
         self.name = name
         self.called = False
 
-    async def handle(self, request: TestCommand, next_handler) -> str:
+    async def handle(self, request: TestCommand, next_handler) -> str:  # noqa: ARG002
         self.called = True
         result = await next_handler()
         return f"{self.name}: {result}"
@@ -483,7 +491,11 @@ class TestMediatorIntegration:
 
         # Create a handler that raises an exception
         class FailingHandler(IRequestHandler[TestCommand, str]):
-            async def handle(self, request: TestCommand, cancellation_token: CancellationToken) -> str:
+            async def handle(
+                self,
+                request: TestCommand,
+                cancellation_token: CancellationToken,  # noqa: ARG002
+            ) -> str:
                 raise ValueError("Handler failed")
 
         handler = FailingHandler()

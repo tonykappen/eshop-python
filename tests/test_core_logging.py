@@ -65,11 +65,11 @@ class TestLoggerConfiguration:
 
     def test_configure_logging_with_file_logging(self) -> None:
         """Test logging configuration with file logging enabled."""
-        with tempfile.TemporaryDirectory() as temp_dir, patch("eshop.core.logging.logger.logging.basicConfig") as mock_basic_config:
-            configure_logging(
-                enable_file_logging=True,
-                log_directory=temp_dir
-            )
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch("eshop.core.logging.logger.logging.basicConfig") as mock_basic_config,
+        ):
+            configure_logging(enable_file_logging=True, log_directory=temp_dir)
 
             # Verify basic config was called
             mock_basic_config.assert_called_once()
@@ -80,7 +80,10 @@ class TestLoggerConfiguration:
 
     def test_configure_logging_with_seq_disabled(self) -> None:
         """Test logging configuration when SEQ is not available."""
-        with patch("eshop.core.logging.logger.SEQ_AVAILABLE", False), patch("eshop.core.logging.logger.get_logger") as mock_get_logger:
+        with (
+            patch("eshop.core.logging.logger.SEQ_AVAILABLE", False),
+            patch("eshop.core.logging.logger.get_logger") as mock_get_logger,
+        ):
             mock_logger = create_mock_logger()
             mock_get_logger.return_value = mock_logger
 
@@ -191,17 +194,11 @@ class TestAsyncLogging:
         mock_logger = create_mock_logger()
 
         await log_async(
-            mock_logger,
-            "info",
-            "test message",
-            user_id="123",
-            action="login"
+            mock_logger, "info", "test message", user_id="123", action="login"
         )
 
         mock_logger.info.assert_called_once_with(
-            "test message",
-            user_id="123",
-            action="login"
+            "test message", user_id="123", action="login"
         )
 
 
@@ -275,7 +272,7 @@ class TestRequestLoggingMiddleware:
             log_request_body=True,
             log_response_body=True,
             exclude_paths=["/custom"],
-            exclude_health_checks=False
+            exclude_health_checks=False,
         )
 
         assert middleware.log_request_body is True
@@ -394,8 +391,7 @@ class TestRequestLoggingMiddleware:
         """Test that middleware logs response body when enabled."""
         mock_app = MagicMock()
         mock_response = create_mock_response(
-            headers={"content-type": "application/json"},
-            body=b'{"status": "ok"}'
+            headers={"content-type": "application/json"}, body=b'{"status": "ok"}'
         )
         mock_call_next = AsyncMock(return_value=mock_response)
 
@@ -469,7 +465,7 @@ class TestAddRequestLoggingMiddleware:
                 log_request_body=True,
                 log_response_body=True,
                 exclude_paths=["/custom"],
-                exclude_health_checks=False
+                exclude_health_checks=False,
             )
 
             # Should add middleware to app

@@ -81,7 +81,9 @@ class TestLifecycleManager:
 
         manager.add_startup_callback(callback)
 
-        with pytest.raises(RuntimeError, match="Startup failed in callback failing_callback"):
+        with pytest.raises(
+            RuntimeError, match="Startup failed in callback failing_callback"
+        ):
             await manager.startup()
 
     @pytest.mark.asyncio
@@ -355,7 +357,9 @@ class TestLifecycleManagerIntegration:
         manager.add_startup_callback(error_callback)
 
         # Should raise the exception
-        with pytest.raises(RuntimeError, match="Startup failed in callback error_callback"):
+        with pytest.raises(
+            RuntimeError, match="Startup failed in callback error_callback"
+        ):
             async with manager.lifespan_context(app):
                 pass
 

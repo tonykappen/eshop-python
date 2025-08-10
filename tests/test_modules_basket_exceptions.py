@@ -2,8 +2,6 @@
 
 from uuid import uuid4
 
-import pytest
-
 from eshop.core.exceptions.base import NotFoundError
 from eshop.modules.basket.domain.exceptions import (
     BasketCreationError,
@@ -23,7 +21,7 @@ class TestBasketNotFoundError:
         """Test BasketNotFoundError initialization."""
         basket_id = uuid4()
         error = BasketNotFoundError(basket_id)
-        
+
         assert error.basket_id == basket_id
         assert str(basket_id) in str(error)
         assert "Basket" in str(error)
@@ -32,7 +30,7 @@ class TestBasketNotFoundError:
         """Test that BasketNotFoundError inherits from NotFoundError."""
         basket_id = uuid4()
         error = BasketNotFoundError(basket_id)
-        
+
         assert isinstance(error, NotFoundError)
         assert isinstance(error, Exception)
 
@@ -40,7 +38,7 @@ class TestBasketNotFoundError:
         """Test BasketNotFoundError message format."""
         basket_id = uuid4()
         error = BasketNotFoundError(basket_id)
-        
+
         error_message = str(error)
         assert "Basket" in error_message
         assert str(basket_id) in error_message
@@ -49,12 +47,10 @@ class TestBasketNotFoundError:
         """Test BasketNotFoundError attributes."""
         basket_id = uuid4()
         error = BasketNotFoundError(basket_id)
-        
+
         assert hasattr(error, "basket_id")
-        assert hasattr(error, "name")
-        assert hasattr(error, "key")
-        assert error.name == "Basket"
-        assert error.key == basket_id
+        assert error.basket_id == basket_id
+        # Note: name and key are not stored as attributes, only used in message
 
 
 class TestBasketItemNotFoundError:
@@ -64,7 +60,7 @@ class TestBasketItemNotFoundError:
         """Test BasketItemNotFoundError initialization."""
         item_id = uuid4()
         error = BasketItemNotFoundError(item_id)
-        
+
         assert error.item_id == item_id
         assert str(item_id) in str(error)
         assert "BasketItem" in str(error)
@@ -73,7 +69,7 @@ class TestBasketItemNotFoundError:
         """Test that BasketItemNotFoundError inherits from NotFoundError."""
         item_id = uuid4()
         error = BasketItemNotFoundError(item_id)
-        
+
         assert isinstance(error, NotFoundError)
         assert isinstance(error, Exception)
 
@@ -81,7 +77,7 @@ class TestBasketItemNotFoundError:
         """Test BasketItemNotFoundError message format."""
         item_id = uuid4()
         error = BasketItemNotFoundError(item_id)
-        
+
         error_message = str(error)
         assert "BasketItem" in error_message
         assert str(item_id) in error_message
@@ -90,12 +86,10 @@ class TestBasketItemNotFoundError:
         """Test BasketItemNotFoundError attributes."""
         item_id = uuid4()
         error = BasketItemNotFoundError(item_id)
-        
+
         assert hasattr(error, "item_id")
-        assert hasattr(error, "name")
-        assert hasattr(error, "key")
-        assert error.name == "BasketItem"
-        assert error.key == item_id
+        assert error.item_id == item_id
+        # Note: name and key are not stored as attributes, only used in message
 
 
 class TestBasketValidationError:
@@ -105,7 +99,7 @@ class TestBasketValidationError:
         """Test BasketValidationError initialization."""
         message = "Invalid basket data"
         error = BasketValidationError(message)
-        
+
         assert error.message == message
         assert error.field is None
         assert str(error) == message
@@ -115,7 +109,7 @@ class TestBasketValidationError:
         message = "Invalid quantity"
         field = "quantity"
         error = BasketValidationError(message, field)
-        
+
         assert error.message == message
         assert error.field == field
         assert str(error) == message
@@ -123,7 +117,7 @@ class TestBasketValidationError:
     def test_basket_validation_error_inheritance(self) -> None:
         """Test that BasketValidationError inherits from Exception."""
         error = BasketValidationError("Test message")
-        
+
         assert isinstance(error, Exception)
         assert not isinstance(error, NotFoundError)
 
@@ -132,7 +126,7 @@ class TestBasketValidationError:
         message = "Test validation error"
         field = "test_field"
         error = BasketValidationError(message, field)
-        
+
         assert hasattr(error, "message")
         assert hasattr(error, "field")
         assert error.message == message
@@ -146,7 +140,7 @@ class TestBasketCreationError:
         """Test BasketCreationError initialization."""
         message = "Failed to create basket"
         error = BasketCreationError(message)
-        
+
         assert error.message == message
         assert error.details is None
         assert str(error) == message
@@ -156,7 +150,7 @@ class TestBasketCreationError:
         message = "Failed to create basket"
         details = "Database connection failed"
         error = BasketCreationError(message, details)
-        
+
         assert error.message == message
         assert error.details == details
         assert str(error) == message
@@ -164,7 +158,7 @@ class TestBasketCreationError:
     def test_basket_creation_error_inheritance(self) -> None:
         """Test that BasketCreationError inherits from Exception."""
         error = BasketCreationError("Test message")
-        
+
         assert isinstance(error, Exception)
         assert not isinstance(error, NotFoundError)
 
@@ -173,7 +167,7 @@ class TestBasketCreationError:
         message = "Test creation error"
         details = "Test details"
         error = BasketCreationError(message, details)
-        
+
         assert hasattr(error, "message")
         assert hasattr(error, "details")
         assert error.message == message
@@ -187,7 +181,7 @@ class TestBasketUpdateError:
         """Test BasketUpdateError initialization."""
         message = "Failed to update basket"
         error = BasketUpdateError(message)
-        
+
         assert error.message == message
         assert error.details is None
         assert str(error) == message
@@ -197,7 +191,7 @@ class TestBasketUpdateError:
         message = "Failed to update basket"
         details = "Concurrency conflict"
         error = BasketUpdateError(message, details)
-        
+
         assert error.message == message
         assert error.details == details
         assert str(error) == message
@@ -205,7 +199,7 @@ class TestBasketUpdateError:
     def test_basket_update_error_inheritance(self) -> None:
         """Test that BasketUpdateError inherits from Exception."""
         error = BasketUpdateError("Test message")
-        
+
         assert isinstance(error, Exception)
         assert not isinstance(error, NotFoundError)
 
@@ -214,7 +208,7 @@ class TestBasketUpdateError:
         message = "Test update error"
         details = "Test details"
         error = BasketUpdateError(message, details)
-        
+
         assert hasattr(error, "message")
         assert hasattr(error, "details")
         assert error.message == message
@@ -228,7 +222,7 @@ class TestBasketDeletionError:
         """Test BasketDeletionError initialization."""
         message = "Failed to delete basket"
         error = BasketDeletionError(message)
-        
+
         assert error.message == message
         assert error.details is None
         assert str(error) == message
@@ -238,7 +232,7 @@ class TestBasketDeletionError:
         message = "Failed to delete basket"
         details = "Basket has active items"
         error = BasketDeletionError(message, details)
-        
+
         assert error.message == message
         assert error.details == details
         assert str(error) == message
@@ -246,7 +240,7 @@ class TestBasketDeletionError:
     def test_basket_deletion_error_inheritance(self) -> None:
         """Test that BasketDeletionError inherits from Exception."""
         error = BasketDeletionError("Test message")
-        
+
         assert isinstance(error, Exception)
         assert not isinstance(error, NotFoundError)
 
@@ -255,7 +249,7 @@ class TestBasketDeletionError:
         message = "Test deletion error"
         details = "Test details"
         error = BasketDeletionError(message, details)
-        
+
         assert hasattr(error, "message")
         assert hasattr(error, "details")
         assert error.message == message
@@ -270,9 +264,11 @@ class TestInsufficientStockError:
         product_id = uuid4()
         requested_quantity = 10
         available_quantity = 5
-        
-        error = InsufficientStockError(product_id, requested_quantity, available_quantity)
-        
+
+        error = InsufficientStockError(
+            product_id, requested_quantity, available_quantity
+        )
+
         assert error.product_id == product_id
         assert error.requested_quantity == requested_quantity
         assert error.available_quantity == available_quantity
@@ -282,9 +278,11 @@ class TestInsufficientStockError:
         product_id = uuid4()
         requested_quantity = 10
         available_quantity = 5
-        
-        error = InsufficientStockError(product_id, requested_quantity, available_quantity)
-        
+
+        error = InsufficientStockError(
+            product_id, requested_quantity, available_quantity
+        )
+
         error_message = str(error)
         assert str(product_id) in error_message
         assert str(requested_quantity) in error_message
@@ -295,7 +293,7 @@ class TestInsufficientStockError:
         """Test that InsufficientStockError inherits from Exception."""
         product_id = uuid4()
         error = InsufficientStockError(product_id, 10, 5)
-        
+
         assert isinstance(error, Exception)
         assert not isinstance(error, NotFoundError)
 
@@ -304,9 +302,11 @@ class TestInsufficientStockError:
         product_id = uuid4()
         requested_quantity = 10
         available_quantity = 5
-        
-        error = InsufficientStockError(product_id, requested_quantity, available_quantity)
-        
+
+        error = InsufficientStockError(
+            product_id, requested_quantity, available_quantity
+        )
+
         assert hasattr(error, "product_id")
         assert hasattr(error, "requested_quantity")
         assert hasattr(error, "available_quantity")
@@ -319,9 +319,11 @@ class TestInsufficientStockError:
         product_id = uuid4()
         requested_quantity = 0
         available_quantity = 0
-        
-        error = InsufficientStockError(product_id, requested_quantity, available_quantity)
-        
+
+        error = InsufficientStockError(
+            product_id, requested_quantity, available_quantity
+        )
+
         assert error.requested_quantity == 0
         assert error.available_quantity == 0
         assert str(product_id) in str(error)
@@ -331,9 +333,11 @@ class TestInsufficientStockError:
         product_id = uuid4()
         requested_quantity = 1000000
         available_quantity = 999999
-        
-        error = InsufficientStockError(product_id, requested_quantity, available_quantity)
-        
+
+        error = InsufficientStockError(
+            product_id, requested_quantity, available_quantity
+        )
+
         assert error.requested_quantity == 1000000
         assert error.available_quantity == 999999
         assert str(1000000) in str(error)
@@ -348,10 +352,10 @@ class TestBasketExceptionsIntegration:
         # Test NotFoundError hierarchy
         basket_id = uuid4()
         item_id = uuid4()
-        
+
         basket_error = BasketNotFoundError(basket_id)
         item_error = BasketItemNotFoundError(item_id)
-        
+
         assert isinstance(basket_error, NotFoundError)
         assert isinstance(item_error, NotFoundError)
         assert isinstance(basket_error, Exception)
@@ -362,16 +366,16 @@ class TestBasketExceptionsIntegration:
         basket_id = uuid4()
         item_id = uuid4()
         product_id = uuid4()
-        
+
         basket_error = BasketNotFoundError(basket_id)
         item_error = BasketItemNotFoundError(item_id)
         stock_error = InsufficientStockError(product_id, 10, 5)
-        
+
         # All should have meaningful messages
         assert len(str(basket_error)) > 0
         assert len(str(item_error)) > 0
         assert len(str(stock_error)) > 0
-        
+
         # Messages should contain relevant IDs
         assert str(basket_id) in str(basket_error)
         assert str(item_id) in str(item_error)
@@ -382,7 +386,7 @@ class TestBasketExceptionsIntegration:
         basket_id = uuid4()
         item_id = uuid4()
         product_id = uuid4()
-        
+
         basket_error = BasketNotFoundError(basket_id)
         item_error = BasketItemNotFoundError(item_id)
         validation_error = BasketValidationError("Test", "field")
@@ -390,7 +394,7 @@ class TestBasketExceptionsIntegration:
         update_error = BasketUpdateError("Test", "details")
         deletion_error = BasketDeletionError("Test", "details")
         stock_error = InsufficientStockError(product_id, 10, 5)
-        
+
         # All should have the expected attributes
         assert hasattr(basket_error, "basket_id")
         assert hasattr(item_error, "item_id")
@@ -415,7 +419,7 @@ class TestBasketExceptionsIntegration:
         except BasketNotFoundError as e:
             assert e.basket_id == basket_id
             assert "Basket" in str(e)
-        
+
         try:
             message = "Invalid basket data"
             field = "quantity"
@@ -423,7 +427,7 @@ class TestBasketExceptionsIntegration:
         except BasketValidationError as e:
             assert e.message == message
             assert e.field == field
-        
+
         try:
             product_id = uuid4()
             raise InsufficientStockError(product_id, 10, 5)

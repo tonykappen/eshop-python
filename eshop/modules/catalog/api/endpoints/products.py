@@ -1,4 +1,4 @@
-"""Product endpoints demonstrating enhanced REPR pattern with CQRS."""
+"""Product endpoints demonstrating enhanced REPR pattern with CQRS and RBAC."""
 
 from typing import Any
 from uuid import UUID
@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 
+from eshop.core.auth.rbac import require_command_access, require_query_access
 from eshop.core.contracts.cqrs import ICommand, IQuery
 from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.fastapi_integration import (
@@ -105,6 +106,7 @@ def get_endpoint_factory(
 
 
 # Endpoints demonstrating the REPR pattern: Request -> Command/Query -> Result -> Response
+# with RBAC protection
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -112,11 +114,14 @@ async def get_product_by_id(
     product_id: UUID,
     request: Request,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Query access required (admin, manager, user)
+    _: Any = Depends(require_query_access()),
 ) -> ProductResponse:
     """
     Get a product by ID.
 
     Demonstrates: HTTP Request -> Query -> Result -> HTTP Response
+    RBAC: Requires query access (admin, manager, user roles)
     """
     # Create the HTTP request model
     http_request = GetProductRequest(product_id=product_id)
@@ -138,11 +143,14 @@ async def create_product(
     product_data: CreateProductRequest,
     request: Request,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Command access required (admin, manager only)
+    _: Any = Depends(require_command_access()),
 ) -> ProductResponse:
     """
     Create a new product.
 
     Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
+    RBAC: Requires command access (admin, manager roles only)
     """
     # Create command endpoint using factory
     endpoint: Any = factory.create_command_endpoint(
@@ -164,11 +172,14 @@ async def get_products(
     category_id: UUID | None = None,
     search_term: str | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Query access required (admin, manager, user)
+    _: Any = Depends(require_query_access()),
 ) -> ProductsResponse:
     """
     Get products with pagination and filtering.
 
     Demonstrates: HTTP Request -> Query -> Result -> HTTP Response (with pagination)
+    RBAC: Requires query access (admin, manager, user roles)
     """
     # Create the HTTP request model
     http_request = GetProductsRequest(

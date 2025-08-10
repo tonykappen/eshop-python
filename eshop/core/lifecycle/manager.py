@@ -169,7 +169,8 @@ class LifecycleManager:
 
     @asynccontextmanager
     async def lifespan_context(
-        self, app: FastAPI  # noqa: ARG002
+        self,
+        app: FastAPI,  # noqa: ARG002
     ) -> AsyncGenerator[None, None]:
         """Create an async context manager for FastAPI lifespan management."""
         shutdown_task: asyncio.Task[None] | None = None

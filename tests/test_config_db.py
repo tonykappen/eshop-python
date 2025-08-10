@@ -126,7 +126,9 @@ class TestDatabaseConfiguration:
     def test_engine_future_setting_for_sqlalchemy_2_0(self):
         """Test that engine is configured for SQLAlchemy 2.0."""
         # Engine should have future enabled (check if attribute exists)
-        assert hasattr(engine, "future") or True  # Some SQLAlchemy versions may not have this
+        assert (
+            hasattr(engine, "future") or True
+        )  # Some SQLAlchemy versions may not have this
 
     def test_async_session_local_expire_on_commit_setting(self):
         """Test that AsyncSessionLocal has expire_on_commit=False for performance."""

@@ -77,12 +77,18 @@ class TestCacheAsidePattern:
         return MockCacheService()
 
     @pytest.fixture
-    def cache_aside_pattern(self, mock_cache_service: MockCacheService) -> CacheAsidePattern:
+    def cache_aside_pattern(
+        self, mock_cache_service: MockCacheService
+    ) -> CacheAsidePattern:
         """Provide CacheAsidePattern instance."""
         return CacheAsidePattern(mock_cache_service)
 
     @pytest.mark.asyncio
-    async def test_get_or_set_cache_hit(self, cache_aside_pattern: CacheAsidePattern, mock_cache_service: MockCacheService) -> None:
+    async def test_get_or_set_cache_hit(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test get_or_set when value exists in cache."""
         # Setup: Value exists in cache
         test_key = "test:key"
@@ -102,7 +108,11 @@ class TestCacheAsidePattern:
         assert len(mock_cache_service.set_calls) == 0
 
     @pytest.mark.asyncio
-    async def test_get_or_set_cache_miss(self, cache_aside_pattern: CacheAsidePattern, mock_cache_service: MockCacheService) -> None:
+    async def test_get_or_set_cache_miss(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test get_or_set when value doesn't exist in cache."""
         # Setup: Value doesn't exist in cache
         test_key = "test:key"
@@ -124,7 +134,11 @@ class TestCacheAsidePattern:
         assert mock_cache_service.set_calls[0][2] is None  # No TTL
 
     @pytest.mark.asyncio
-    async def test_get_or_set_with_ttl(self, cache_aside_pattern: CacheAsidePattern, mock_cache_service: MockCacheService) -> None:
+    async def test_get_or_set_with_ttl(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test get_or_set with TTL parameter."""
         # Setup: Value doesn't exist in cache
         test_key = "test:key"
@@ -142,7 +156,11 @@ class TestCacheAsidePattern:
         assert mock_cache_service.set_calls[0][2] == test_ttl
 
     @pytest.mark.asyncio
-    async def test_get_or_set_none_value(self, cache_aside_pattern: CacheAsidePattern, mock_cache_service: MockCacheService) -> None:
+    async def test_get_or_set_none_value(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test get_or_set when fetch function returns None."""
         # Setup: Fetch function returns None
         test_key = "test:key"
@@ -159,7 +177,11 @@ class TestCacheAsidePattern:
         assert len(mock_cache_service.set_calls) == 0  # Should not cache None values
 
     @pytest.mark.asyncio
-    async def test_invalidate_and_refetch(self, cache_aside_pattern: CacheAsidePattern, mock_cache_service: MockCacheService) -> None:
+    async def test_invalidate_and_refetch(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test invalidate_and_refetch functionality."""
         # Setup: Value exists in cache
         test_key = "test:key"
@@ -190,31 +212,51 @@ class TestCacheInvalidationPattern:
         return MockCacheService()
 
     @pytest.fixture
-    def cache_invalidation_pattern(self, mock_cache_service: MockCacheService) -> CacheInvalidationPattern:
+    def cache_invalidation_pattern(
+        self, mock_cache_service: MockCacheService
+    ) -> CacheInvalidationPattern:
         """Provide CacheInvalidationPattern instance."""
         return CacheInvalidationPattern(mock_cache_service)
 
     @pytest.mark.asyncio
-    async def test_invalidate_entity(self, cache_invalidation_pattern: CacheInvalidationPattern, mock_cache_service: MockCacheService) -> None:
+    async def test_invalidate_entity(
+        self,
+        cache_invalidation_pattern: CacheInvalidationPattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test invalidate_entity functionality."""
         # Setup: Add some test data
         entity_id = uuid4()
-        mock_cache_service.cache_data[f"product:{entity_id}:details"] = {"name": "Test Product"}
+        mock_cache_service.cache_data[f"product:{entity_id}:details"] = {
+            "name": "Test Product"
+        }
         mock_cache_service.cache_data[f"product:{entity_id}:price"] = {"price": 99.99}
-        mock_cache_service.cache_data["product:other:details"] = {"name": "Other Product"}
+        mock_cache_service.cache_data["product:other:details"] = {
+            "name": "Other Product"
+        }
 
         # Execute
         await cache_invalidation_pattern.invalidate_entity("product", entity_id)
 
         # Assert
         assert len(mock_cache_service.invalidate_pattern_calls) == 1
-        assert mock_cache_service.invalidate_pattern_calls[0] == f"product:{entity_id}:*"
+        assert (
+            mock_cache_service.invalidate_pattern_calls[0] == f"product:{entity_id}:*"
+        )
         assert "product:other:details" in mock_cache_service.cache_data  # Should remain
-        assert f"product:{entity_id}:details" not in mock_cache_service.cache_data  # Should be deleted
-        assert f"product:{entity_id}:price" not in mock_cache_service.cache_data  # Should be deleted
+        assert (
+            f"product:{entity_id}:details" not in mock_cache_service.cache_data
+        )  # Should be deleted
+        assert (
+            f"product:{entity_id}:price" not in mock_cache_service.cache_data
+        )  # Should be deleted
 
     @pytest.mark.asyncio
-    async def test_invalidate_collection(self, cache_invalidation_pattern: CacheInvalidationPattern, mock_cache_service: MockCacheService) -> None:
+    async def test_invalidate_collection(
+        self,
+        cache_invalidation_pattern: CacheInvalidationPattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test invalidate_collection functionality."""
         # Setup: Add some test data
         mock_cache_service.cache_data["product:collection"] = {"products": []}
@@ -228,11 +270,19 @@ class TestCacheInvalidationPattern:
         assert len(mock_cache_service.invalidate_pattern_calls) == 1
         assert mock_cache_service.invalidate_pattern_calls[0] == "product:*"
         assert "user:collection" in mock_cache_service.cache_data  # Should remain
-        assert "product:collection" not in mock_cache_service.cache_data  # Should be deleted
-        assert "product:collection:filtered" not in mock_cache_service.cache_data  # Should be deleted
+        assert (
+            "product:collection" not in mock_cache_service.cache_data
+        )  # Should be deleted
+        assert (
+            "product:collection:filtered" not in mock_cache_service.cache_data
+        )  # Should be deleted
 
     @pytest.mark.asyncio
-    async def test_invalidate_user_data(self, cache_invalidation_pattern: CacheInvalidationPattern, mock_cache_service: MockCacheService) -> None:
+    async def test_invalidate_user_data(
+        self,
+        cache_invalidation_pattern: CacheInvalidationPattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test invalidate_user_data functionality."""
         # Setup: Add some test data
         user_id = uuid4()
@@ -247,18 +297,34 @@ class TestCacheInvalidationPattern:
         assert len(mock_cache_service.invalidate_pattern_calls) == 1
         assert mock_cache_service.invalidate_pattern_calls[0] == f"user:{user_id}:*"
         assert "user:other:profile" in mock_cache_service.cache_data  # Should remain
-        assert f"user:{user_id}:profile" not in mock_cache_service.cache_data  # Should be deleted
-        assert f"user:{user_id}:preferences" not in mock_cache_service.cache_data  # Should be deleted
+        assert (
+            f"user:{user_id}:profile" not in mock_cache_service.cache_data
+        )  # Should be deleted
+        assert (
+            f"user:{user_id}:preferences" not in mock_cache_service.cache_data
+        )  # Should be deleted
 
     @pytest.mark.asyncio
-    async def test_invalidate_related_data(self, cache_invalidation_pattern: CacheInvalidationPattern, mock_cache_service: MockCacheService) -> None:
+    async def test_invalidate_related_data(
+        self,
+        cache_invalidation_pattern: CacheInvalidationPattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
         """Test invalidate_related_data functionality."""
         # Setup: Add some test data
         entity_id = uuid4()
-        mock_cache_service.cache_data[f"product:{entity_id}:details"] = {"name": "Test Product"}
-        mock_cache_service.cache_data[f"category:*:{entity_id}:products"] = {"products": []}
-        mock_cache_service.cache_data[f"brand:*:{entity_id}:products"] = {"products": []}
-        mock_cache_service.cache_data["product:other:details"] = {"name": "Other Product"}
+        mock_cache_service.cache_data[f"product:{entity_id}:details"] = {
+            "name": "Test Product"
+        }
+        mock_cache_service.cache_data[f"category:*:{entity_id}:products"] = {
+            "products": []
+        }
+        mock_cache_service.cache_data[f"brand:*:{entity_id}:products"] = {
+            "products": []
+        }
+        mock_cache_service.cache_data["product:other:details"] = {
+            "name": "Other Product"
+        }
 
         # Execute
         await cache_invalidation_pattern.invalidate_related_data(
@@ -268,7 +334,9 @@ class TestCacheInvalidationPattern:
         # Assert
         assert len(mock_cache_service.invalidate_pattern_calls) == 3
         assert f"product:{entity_id}:*" in mock_cache_service.invalidate_pattern_calls
-        assert f"category:*:{entity_id}:*" in mock_cache_service.invalidate_pattern_calls
+        assert (
+            f"category:*:{entity_id}:*" in mock_cache_service.invalidate_pattern_calls
+        )
         assert f"brand:*:{entity_id}:*" in mock_cache_service.invalidate_pattern_calls
         assert "product:other:details" in mock_cache_service.cache_data  # Should remain
 
@@ -333,12 +401,16 @@ class TestCachePatternsIntegration:
         return MockCacheService()
 
     @pytest.fixture
-    def cache_aside_pattern(self, mock_cache_service: MockCacheService) -> CacheAsidePattern:
+    def cache_aside_pattern(
+        self, mock_cache_service: MockCacheService
+    ) -> CacheAsidePattern:
         """Provide CacheAsidePattern instance."""
         return CacheAsidePattern(mock_cache_service)
 
     @pytest.fixture
-    def cache_invalidation_pattern(self, mock_cache_service: MockCacheService) -> CacheInvalidationPattern:
+    def cache_invalidation_pattern(
+        self, mock_cache_service: MockCacheService
+    ) -> CacheInvalidationPattern:
         """Provide CacheInvalidationPattern instance."""
         return CacheInvalidationPattern(mock_cache_service)
 
@@ -347,7 +419,7 @@ class TestCachePatternsIntegration:
         self,
         cache_aside_pattern: CacheAsidePattern,
         cache_invalidation_pattern: CacheInvalidationPattern,
-        mock_cache_service: MockCacheService
+        mock_cache_service: MockCacheService,
     ) -> None:
         """Test integration between cache aside and invalidation patterns."""
         # Setup

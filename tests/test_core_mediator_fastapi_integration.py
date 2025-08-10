@@ -26,11 +26,11 @@ class TestConfigureMediator:
         # Clear any existing configuration
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
-            
+
             # Verify mediator was configured
             mediator = get_mediator()
             handler_registry = get_handler_registry()
-            
+
             assert isinstance(mediator, Mediator)
             assert isinstance(handler_registry, HandlerRegistry)
 
@@ -41,12 +41,12 @@ class TestConfigureMediator:
             configure_mediator()
             mediator1 = get_mediator()
             registry1 = get_handler_registry()
-            
+
             # Second configuration (should overwrite)
             configure_mediator()
             mediator2 = get_mediator()
             registry2 = get_handler_registry()
-            
+
             # Should be different instances
             assert mediator1 is not mediator2
             assert registry1 is not registry2
@@ -55,10 +55,10 @@ class TestConfigureMediator:
         """Test that configure_mediator creates new instances."""
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
-            
+
             mediator = get_mediator()
             handler_registry = get_handler_registry()
-            
+
             # Verify they are properly connected
             assert mediator.handler_registry is handler_registry
 
@@ -71,26 +71,34 @@ class TestGetMediator:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
             mediator = get_mediator()
-            
+
             assert isinstance(mediator, Mediator)
 
     def test_get_mediator_not_configured(self) -> None:
         """Test getting mediator when not configured."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {}):
-            with pytest.raises(RuntimeError, match="Mediator not configured"):
-                get_mediator()
+        with (
+            patch("eshop.core.mediator.fastapi_integration._services", {}),
+            pytest.raises(RuntimeError, match="Mediator not configured"),
+        ):
+            get_mediator()
 
     def test_get_mediator_none_value(self) -> None:
         """Test getting mediator when value is None."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {"mediator": None}):
-            with pytest.raises(RuntimeError, match="Mediator not configured"):
-                get_mediator()
+        with (
+            patch(
+                "eshop.core.mediator.fastapi_integration._services", {"mediator": None}
+            ),
+            pytest.raises(RuntimeError, match="Mediator not configured"),
+        ):
+            get_mediator()
 
     def test_get_mediator_empty_services(self) -> None:
         """Test getting mediator from empty services."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {}):
-            with pytest.raises(RuntimeError, match="Mediator not configured"):
-                get_mediator()
+        with (
+            patch("eshop.core.mediator.fastapi_integration._services", {}),
+            pytest.raises(RuntimeError, match="Mediator not configured"),
+        ):
+            get_mediator()
 
 
 class TestGetHandlerRegistry:
@@ -101,26 +109,35 @@ class TestGetHandlerRegistry:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
             handler_registry = get_handler_registry()
-            
+
             assert isinstance(handler_registry, HandlerRegistry)
 
     def test_get_handler_registry_not_configured(self) -> None:
         """Test getting handler registry when not configured."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {}):
-            with pytest.raises(RuntimeError, match="Handler registry not configured"):
-                get_handler_registry()
+        with (
+            patch("eshop.core.mediator.fastapi_integration._services", {}),
+            pytest.raises(RuntimeError, match="Handler registry not configured"),
+        ):
+            get_handler_registry()
 
     def test_get_handler_registry_none_value(self) -> None:
         """Test getting handler registry when value is None."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {"handler_registry": None}):
-            with pytest.raises(RuntimeError, match="Handler registry not configured"):
-                get_handler_registry()
+        with (
+            patch(
+                "eshop.core.mediator.fastapi_integration._services",
+                {"handler_registry": None},
+            ),
+            pytest.raises(RuntimeError, match="Handler registry not configured"),
+        ):
+            get_handler_registry()
 
     def test_get_handler_registry_empty_services(self) -> None:
         """Test getting handler registry from empty services."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {}):
-            with pytest.raises(RuntimeError, match="Handler registry not configured"):
-                get_handler_registry()
+        with (
+            patch("eshop.core.mediator.fastapi_integration._services", {}),
+            pytest.raises(RuntimeError, match="Handler registry not configured"),
+        ):
+            get_handler_registry()
 
 
 class TestGetMediatorDependency:
@@ -131,14 +148,16 @@ class TestGetMediatorDependency:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
             mediator = get_mediator_dependency()
-            
+
             assert isinstance(mediator, Mediator)
 
     def test_get_mediator_dependency_not_configured(self) -> None:
         """Test getting mediator dependency when not configured."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {}):
-            with pytest.raises(RuntimeError, match="Mediator not configured"):
-                get_mediator_dependency()
+        with (
+            patch("eshop.core.mediator.fastapi_integration._services", {}),
+            pytest.raises(RuntimeError, match="Mediator not configured"),
+        ):
+            get_mediator_dependency()
 
     def test_get_mediator_dependency_returns_same_instance(self) -> None:
         """Test that dependency returns the same instance."""
@@ -146,7 +165,7 @@ class TestGetMediatorDependency:
             configure_mediator()
             mediator1 = get_mediator_dependency()
             mediator2 = get_mediator_dependency()
-            
+
             assert mediator1 is mediator2
 
 
@@ -158,14 +177,16 @@ class TestGetHandlerRegistryDependency:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
             handler_registry = get_handler_registry_dependency()
-            
+
             assert isinstance(handler_registry, HandlerRegistry)
 
     def test_get_handler_registry_dependency_not_configured(self) -> None:
         """Test getting handler registry dependency when not configured."""
-        with patch("eshop.core.mediator.fastapi_integration._services", {}):
-            with pytest.raises(RuntimeError, match="Handler registry not configured"):
-                get_handler_registry_dependency()
+        with (
+            patch("eshop.core.mediator.fastapi_integration._services", {}),
+            pytest.raises(RuntimeError, match="Handler registry not configured"),
+        ):
+            get_handler_registry_dependency()
 
     def test_get_handler_registry_dependency_returns_same_instance(self) -> None:
         """Test that dependency returns the same instance."""
@@ -173,7 +194,7 @@ class TestGetHandlerRegistryDependency:
             configure_mediator()
             registry1 = get_handler_registry_dependency()
             registry2 = get_handler_registry_dependency()
-            
+
             assert registry1 is registry2
 
 
@@ -183,39 +204,45 @@ class TestGetCancellationTokenDependency:
     def test_get_cancellation_token_dependency_success(self) -> None:
         """Test successfully getting cancellation token dependency."""
         mock_request = MagicMock(spec=Request)
-        
-        with patch("eshop.core.mediator.fastapi_integration.get_cancellation_token") as mock_get_token:
+
+        with patch(
+            "eshop.core.mediator.fastapi_integration.get_cancellation_token"
+        ) as mock_get_token:
             mock_token = MagicMock(spec=CancellationToken)
             mock_get_token.return_value = mock_token
-            
+
             result = get_cancellation_token_dependency(mock_request)
-            
+
             assert result is mock_token
             mock_get_token.assert_called_once_with(mock_request)
 
     def test_get_cancellation_token_dependency_with_real_request(self) -> None:
         """Test getting cancellation token dependency with real request object."""
         mock_request = MagicMock(spec=Request)
-        
+
         # Mock the get_cancellation_token function
-        with patch("eshop.core.mediator.fastapi_integration.get_cancellation_token") as mock_get_token:
+        with patch(
+            "eshop.core.mediator.fastapi_integration.get_cancellation_token"
+        ) as mock_get_token:
             mock_token = MagicMock(spec=CancellationToken)
             mock_get_token.return_value = mock_token
-            
+
             result = get_cancellation_token_dependency(mock_request)
-            
+
             assert isinstance(result, MagicMock)
             mock_get_token.assert_called_once_with(mock_request)
 
     def test_get_cancellation_token_dependency_passes_request(self) -> None:
         """Test that the request is properly passed to get_cancellation_token."""
         mock_request = MagicMock(spec=Request)
-        
-        with patch("eshop.core.mediator.fastapi_integration.get_cancellation_token") as mock_get_token:
+
+        with patch(
+            "eshop.core.mediator.fastapi_integration.get_cancellation_token"
+        ) as mock_get_token:
             mock_get_token.return_value = MagicMock(spec=CancellationToken)
-            
+
             get_cancellation_token_dependency(mock_request)
-            
+
             # Verify the request was passed correctly
             mock_get_token.assert_called_once_with(mock_request)
 
@@ -228,11 +255,11 @@ class TestFastAPIIntegrationIntegration:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             # Configure mediator
             configure_mediator()
-            
+
             # Get dependencies
             mediator = get_mediator_dependency()
             handler_registry = get_handler_registry_dependency()
-            
+
             # Verify they work together
             assert isinstance(mediator, Mediator)
             assert isinstance(handler_registry, HandlerRegistry)
@@ -243,11 +270,11 @@ class TestFastAPIIntegrationIntegration:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             # Configure mediator
             configure_mediator()
-            
+
             # Simulate FastAPI dependency injection
             mediator_dep = get_mediator_dependency()
             registry_dep = get_handler_registry_dependency()
-            
+
             # Verify dependencies are properly configured
             assert mediator_dep is not None
             assert registry_dep is not None
@@ -256,14 +283,16 @@ class TestFastAPIIntegrationIntegration:
     def test_cancellation_token_integration(self) -> None:
         """Test cancellation token integration."""
         mock_request = MagicMock(spec=Request)
-        
-        with patch("eshop.core.mediator.fastapi_integration.get_cancellation_token") as mock_get_token:
+
+        with patch(
+            "eshop.core.mediator.fastapi_integration.get_cancellation_token"
+        ) as mock_get_token:
             mock_token = MagicMock(spec=CancellationToken)
             mock_get_token.return_value = mock_token
-            
+
             # Get cancellation token dependency
             token = get_cancellation_token_dependency(mock_request)
-            
+
             # Verify integration
             assert token is mock_token
             mock_get_token.assert_called_once_with(mock_request)
@@ -274,7 +303,7 @@ class TestFastAPIIntegrationIntegration:
             # Try to get mediator without configuration
             with pytest.raises(RuntimeError, match="Mediator not configured"):
                 get_mediator_dependency()
-            
+
             with pytest.raises(RuntimeError, match="Handler registry not configured"):
                 get_handler_registry_dependency()
 
@@ -285,12 +314,12 @@ class TestFastAPIIntegrationIntegration:
             configure_mediator()
             mediator1 = get_mediator_dependency()
             registry1 = get_handler_registry_dependency()
-            
+
             # Second configuration
             configure_mediator()
             mediator2 = get_mediator_dependency()
             registry2 = get_handler_registry_dependency()
-            
+
             # Should be different instances
             assert mediator1 is not mediator2
             assert registry1 is not registry2
@@ -300,15 +329,15 @@ class TestFastAPIIntegrationIntegration:
         # Test with different service containers
         services1 = {}
         services2 = {}
-        
+
         with patch("eshop.core.mediator.fastapi_integration._services", services1):
             configure_mediator()
             mediator1 = get_mediator_dependency()
-        
+
         with patch("eshop.core.mediator.fastapi_integration._services", services2):
             configure_mediator()
             mediator2 = get_mediator_dependency()
-        
+
         # Should be different instances
         assert mediator1 is not mediator2
 
@@ -319,13 +348,15 @@ class TestFastAPIIntegrationIntegration:
         mock_request.headers = {"user-agent": "test-agent"}
         mock_request.method = "GET"
         mock_request.url = "http://localhost:8000/test"
-        
-        with patch("eshop.core.mediator.fastapi_integration.get_cancellation_token") as mock_get_token:
+
+        with patch(
+            "eshop.core.mediator.fastapi_integration.get_cancellation_token"
+        ) as mock_get_token:
             mock_token = MagicMock(spec=CancellationToken)
             mock_get_token.return_value = mock_token
-            
+
             token = get_cancellation_token_dependency(mock_request)
-            
+
             assert token is mock_token
             mock_get_token.assert_called_once_with(mock_request)
 
@@ -334,22 +365,25 @@ class TestFastAPIIntegrationIntegration:
         with patch("eshop.core.mediator.fastapi_integration._services", {}):
             configure_mediator()
             mediator = get_mediator_dependency()
-            
+
             # Test that mediator can register and handle requests
-            from eshop.core.contracts.cqrs import Command, Result
-            
+            from eshop.core.contracts.cqrs import ICommand as Command
+            from eshop.core.cqrs.base import CommandResult as Result
+
             class TestCommand(Command[Result]):
                 pass
-            
+
             class TestResult(Result):
                 pass
-            
+
             class TestHandler:
-                async def handle(self, request: TestCommand) -> TestResult:
+                async def handle(
+                    self, request: TestCommand
+                ) -> TestResult:  # noqa: ARG002
                     return TestResult()
-            
+
             # Register handler
             mediator.register_handler(TestCommand, TestHandler())
-            
+
             # Verify handler was registered
             assert TestCommand in mediator.handler_registry.get_registered_types()

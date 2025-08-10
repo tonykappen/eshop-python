@@ -31,7 +31,7 @@ class MockKeycloakUser:
         preferred_username: str = "testuser",
         email: str = "test@example.com",
         roles: list[str] | None = None,
-        **kwargs
+        **kwargs,
     ):
         self.sub = sub
         self.preferred_username = preferred_username
@@ -62,7 +62,7 @@ def create_mock_settings(**overrides) -> MagicMock:
 def create_mock_async_client(
     status_code: int = 200,
     response_data: dict[str, Any] | None = None,
-    side_effect: Exception | None = None
+    side_effect: Exception | None = None,
 ) -> AsyncMock:
     """Create mock async HTTP client."""
     mock_client = AsyncMock()
@@ -117,7 +117,7 @@ def create_mock_request(
     query_params: dict[str, str] | None = None,
     headers: dict[str, str] | None = None,
     client_ip: str = "127.0.0.1",
-    user_agent: str = "test-agent"
+    user_agent: str = "test-agent",
 ) -> MagicMock:
     """Create a mock FastAPI Request object for testing."""
     mock_request = MagicMock()
@@ -137,7 +137,7 @@ def create_mock_request(
 def create_mock_response(
     status_code: int = 200,
     headers: dict[str, str] | None = None,
-    body: bytes | None = None
+    body: bytes | None = None,
 ) -> MagicMock:
     """Create a mock response object for testing."""
     mock_response = MagicMock()
@@ -165,7 +165,9 @@ class MockLoggingHandler(logging.Handler):
     def get_messages(self, level: str | None = None) -> list[str]:
         """Get log messages, optionally filtered by level."""
         if level:
-            return [r.getMessage() for r in self.records if r.levelname == level.upper()]
+            return [
+                r.getMessage() for r in self.records if r.levelname == level.upper()
+            ]
         return [r.getMessage() for r in self.records]
 
     def get_records_with_level(self, level: str) -> list[logging.LogRecord]:
@@ -191,13 +193,16 @@ def create_mock_provider(provides: type | None = None, **kwargs) -> MagicMock:
     """Create a mock dependency injection provider."""
     mock_provider = MagicMock()
     mock_provider.provides = provides
-    mock_provider.__call__ = MagicMock(return_value=kwargs.get("return_value", MagicMock()))
+    mock_provider.__call__ = MagicMock(
+        return_value=kwargs.get("return_value", MagicMock())
+    )
 
     return mock_provider
 
 
 def create_mock_service_class(name: str = "TestService") -> type:
     """Create a mock service class for testing."""
+
     class MockService:
         def __init__(self, name: str = name):
             self.name = name
@@ -210,6 +215,7 @@ def create_mock_service_class(name: str = "TestService") -> type:
 
 def create_mock_service_function(name: str = "test_function") -> Any:
     """Create a mock service function for testing."""
+
     def mock_function(*args, **kwargs) -> str:
         return f"{name} called with {args}, {kwargs}"
 

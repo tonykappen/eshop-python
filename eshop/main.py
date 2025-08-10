@@ -141,17 +141,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 register_startup_callback(configure_application_startup)
 register_startup_callback(initialize_dependency_injection)
 register_startup_callback(initialize_mediator)
-register_startup_callback(database_handler.startup)
-register_startup_callback(cache_handler.startup)
-register_startup_callback(messaging_handler.startup)
+# register_startup_callback(database_handler.startup)  # Disabled for RBAC testing
+# register_startup_callback(cache_handler.startup)     # Disabled for RBAC testing
+# register_startup_callback(messaging_handler.startup) # Disabled for RBAC testing
 register_startup_callback(auth_handler.startup)
 register_startup_callback(health_handler.startup)
 
 # Register shutdown callbacks (executed in reverse order)
 register_shutdown_callback(cleanup_dependency_injection)
-register_shutdown_callback(database_handler.shutdown)
-register_shutdown_callback(cache_handler.shutdown)
-register_shutdown_callback(messaging_handler.shutdown)
+# register_shutdown_callback(database_handler.shutdown)  # Disabled for RBAC testing
+# register_shutdown_callback(cache_handler.shutdown)     # Disabled for RBAC testing
+# register_shutdown_callback(messaging_handler.shutdown) # Disabled for RBAC testing
 register_shutdown_callback(auth_handler.shutdown)
 register_shutdown_callback(health_handler.shutdown)
 
@@ -192,6 +192,17 @@ if settings.log_enable_request_logging:
         log_response_body=settings.log_response_body,
         exclude_health_checks=True,
     )
+
+# Import and include module routers
+from eshop.modules.catalog.api.router import router as catalog_router
+# from eshop.modules.basket.api.router import router as basket_router
+# from eshop.modules.ordering.api.router import router as ordering_router
+
+print("🔧 Including catalog router...")
+app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
+print("✅ Catalog router included successfully - RBAC ready!")
+# app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
+# app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])
 
 
 @app.get("/")
@@ -266,17 +277,6 @@ async def get_current_user_info(
         "username": user.preferred_username or "",
         "roles": user.roles or [],
     }
-
-
-# Import and include module routers
-# Note: These will be added as modules are implemented
-# from eshop.modules.catalog.api.router import router as catalog_router
-# from eshop.modules.basket.api.router import router as basket_router
-# from eshop.modules.ordering.api.router import router as ordering_router
-
-# app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
-# app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
-# app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])
 
 
 if __name__ == "__main__":

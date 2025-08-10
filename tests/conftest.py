@@ -82,14 +82,14 @@ async def test_db_session():
         await conn.run_sync(Base.metadata.create_all)
 
     # Create session factory
-    TestingSessionLocal = async_sessionmaker(
+    testing_session_local = async_sessionmaker(
         engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
 
     # Create session
-    async with TestingSessionLocal() as session:
+    async with testing_session_local() as session:
         yield session
 
     # Cleanup
@@ -160,23 +160,15 @@ def mock_none_sql_result():
 pytest_plugins = ["pytest_asyncio"]
 
 
-def pytest_configure(config):
+def pytest_configure(config):  # noqa: ARG001
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "database: mark test as requiring database"
-    )
-    config.addinivalue_line(
-        "markers", "migration: mark test as testing migrations"
-    )
-    config.addinivalue_line(
-        "markers", "seeding: mark test as testing seeding"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as integration test"
-    )
+    config.addinivalue_line("markers", "database: mark test as requiring database")
+    config.addinivalue_line("markers", "migration: mark test as testing migrations")
+    config.addinivalue_line("markers", "seeding: mark test as testing seeding")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config, items):  # noqa: ARG001
     """Modify test collection to add markers."""
     for item in items:
         # Add database marker to tests that use database fixtures

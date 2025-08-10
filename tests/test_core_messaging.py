@@ -407,7 +407,10 @@ class TestEventBus:
         mock_handler1 = MagicMock(spec=IIntegrationEventHandler)
         mock_handler2 = MagicMock(spec=IIntegrationEventHandler)
 
-        handlers: dict[str, IIntegrationEventHandler] = {"event1": mock_handler1, "event2": mock_handler2}
+        handlers: dict[str, IIntegrationEventHandler] = {
+            "event1": mock_handler1,
+            "event2": mock_handler2,
+        }
 
         event_bus.register_module_handlers("test_module", handlers)
 

@@ -51,17 +51,20 @@ def _register_handlers_from_assembly(
     """Register all handlers from an assembly - matches .NET RegisterServicesFromAssemblies()."""
     logger = get_logger(__name__)
 
-    # Get all classes from the assembly
-    for name, obj in inspect.getmembers(assembly):
-        if inspect.isclass(obj) and _is_request_handler(obj):
-            # Extract request type from handler
-            request_type = _extract_request_type(obj)
-            if request_type:
-                handler_instance = obj()
-                handler_registry.register_handler(request_type, handler_instance)
-                logger.debug(
-                    f"Registered handler {name} for request {request_type.__name__}"
-                )
+    try:
+        # Get all classes from the assembly
+        for name, obj in inspect.getmembers(assembly):
+            if inspect.isclass(obj) and _is_request_handler(obj):
+                # Extract request type from handler
+                request_type = _extract_request_type(obj)
+                if request_type:
+                    handler_instance = obj()
+                    handler_registry.register_handler(request_type, handler_instance)
+                    logger.debug(
+                        f"Registered handler {name} for request {request_type.__name__}"
+                    )
+    except Exception as e:
+        logger.warning(f"Failed to scan assembly {assembly.__name__}: {e}")
 
 
 def _is_request_handler(cls: type[Any]) -> bool:
@@ -78,7 +81,15 @@ def _is_request_handler(cls: type[Any]) -> bool:
 
 def _extract_request_type(handler_class: type[Any]) -> type[Any] | None:
     """Extract the request type from a handler class."""
-    # Check generic parameters
+    # Check if handler class has __orig_bases__ and __args__ directly
+    if (
+        hasattr(handler_class, "__orig_bases__")
+        and hasattr(handler_class, "__args__")
+        and len(handler_class.__args__) > 0
+    ):
+        return handler_class.__args__[0]  # type: ignore
+
+    # Check generic parameters from base classes
     if hasattr(handler_class, "__orig_bases__"):
         for base in handler_class.__orig_bases__:
             if hasattr(base, "__args__") and len(base.__args__) > 0:

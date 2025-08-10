@@ -338,9 +338,7 @@ class TestEntity:
         custom_created_by = "test_user"
 
         entity = Entity(
-            id=custom_id,
-            created_at=custom_created_at,
-            created_by=custom_created_by
+            id=custom_id, created_at=custom_created_at, created_by=custom_created_by
         )
 
         assert entity.id == custom_id
@@ -412,6 +410,7 @@ class TestValueObject:
 
     def test_value_object_creation(self):
         """Test value object creation."""
+
         class TestValueObject(ValueObject):
             name: str
             value: int
@@ -423,6 +422,7 @@ class TestValueObject:
 
     def test_value_object_equality(self):
         """Test value object equality."""
+
         class TestValueObject(ValueObject):
             name: str
             value: int
@@ -439,6 +439,7 @@ class TestValueObject:
 
     def test_value_object_hash(self):
         """Test value object hashability."""
+
         class TestValueObject(ValueObject):
             name: str
             value: int
@@ -451,6 +452,7 @@ class TestValueObject:
 
     def test_value_object_immutability(self):
         """Test value object immutability."""
+
         class TestValueObject(ValueObject):
             name: str
             value: int
@@ -458,11 +460,12 @@ class TestValueObject:
         vo = TestValueObject(name="test", value=42)
 
         # Should be immutable (frozen) - should raise ValidationError
-        with pytest.raises(Exception):  # ValidationError or TypeError
+        with pytest.raises((ValueError, TypeError)):  # ValidationError or TypeError
             vo.name = "changed"
 
     def test_value_object_model_dump(self):
         """Test value object serialization."""
+
         class TestValueObject(ValueObject):
             name: str
             value: int
@@ -475,6 +478,7 @@ class TestValueObject:
 
     def test_value_object_model_copy(self):
         """Test value object copying."""
+
         class TestValueObject(ValueObject):
             name: str
             value: int

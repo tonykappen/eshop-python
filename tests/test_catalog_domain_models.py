@@ -268,7 +268,10 @@ class TestProduct:
 
         # Should have two price change events
         assert len(product.domain_events) == 2
-        assert all(isinstance(event, ProductPriceChangedEvent) for event in product.domain_events)
+        assert all(
+            isinstance(event, ProductPriceChangedEvent)
+            for event in product.domain_events
+        )
 
     def test_product_equality(self):
         """Test product equality based on ID."""

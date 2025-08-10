@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔐 Setting up Keycloak for eShop...${NC}"
+echo -e "${BLUE}🔐 Setting up Keycloak for eShop with RBAC...${NC}"
 
 # Wait for Keycloak to be ready
 echo -e "${BLUE}⏳ Waiting for Keycloak to be ready...${NC}"
@@ -81,77 +81,142 @@ else
     echo -e "${YELLOW}⚠️ Client might already exist${NC}"
 fi
 
-# Create roles
-echo -e "${BLUE}👥 Creating roles...${NC}"
-ROLES=("admin" "user" "manager")
+# Create roles with proper hierarchy
+echo -e "${BLUE}👥 Creating RBAC roles...${NC}"
+ROLES=(
+    '{"name": "user", "description": "Basic user role - can read data"}'
+    '{"name": "manager", "description": "Manager role - can read and write data"}'
+    '{"name": "admin", "description": "Admin role - full access to all operations"}'
+)
 
-for role in "${ROLES[@]}"; do
+for role_json in "${ROLES[@]}"; do
     ROLE_RESPONSE=$(curl -s -X POST http://localhost:8080/admin/realms/eshop/roles \
         -H "Authorization: Bearer $ADMIN_TOKEN" \
         -H "Content-Type: application/json" \
-        -d "{
-            \"name\": \"$role\",
-            \"description\": \"$role role for eShop\"
-        }")
+        -d "$role_json")
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Role '$role' created${NC}"
+        role_name=$(echo "$role_json" | jq -r '.name')
+        echo -e "${GREEN}✅ Role '$role_name' created${NC}"
     else
-        echo -e "${YELLOW}⚠️ Role '$role' might already exist${NC}"
+        role_name=$(echo "$role_json" | jq -r '.name')
+        echo -e "${YELLOW}⚠️ Role '$role_name' might already exist${NC}"
     fi
 done
 
-# Create test user
-echo -e "${BLUE}👤 Creating test user...${NC}"
-USER_RESPONSE=$(curl -s -X POST http://localhost:8080/admin/realms/eshop/users \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{
-        "username": "testuser",
-        "email": "test@example.com",
-        "enabled": true,
-        "emailVerified": true,
-        "credentials": [{
-            "type": "password",
-            "value": "password",
-            "temporary": false
-        }]
-    }')
+# Create test users with different roles
+echo -e "${BLUE}👤 Creating test users with RBAC roles...${NC}"
 
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Test user 'testuser' created${NC}"
+# Test users with their roles
+declare -A USERS=(
+    ["admin"]="admin"
+    ["manager"]="manager"
+    ["user"]="user"
+    ["testuser"]="user"  # Keep existing testuser for backward compatibility
+)
+
+for username in "${!USERS[@]}"; do
+    role="${USERS[$username]}"
     
-    # Get user ID and assign role
-    USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=testuser" \
-        -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
-    
-    if [ "$USER_ID" != "null" ] && [ -n "$USER_ID" ]; then
-        # Get role ID
-        ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/user" \
-            -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+    # Create user
+    USER_RESPONSE=$(curl -s -X POST http://localhost:8080/admin/realms/eshop/users \
+        -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"username\": \"$username\",
+            \"email\": \"$username@example.com\",
+            \"enabled\": true,
+            \"emailVerified\": true,
+            \"firstName\": \"$(echo $username | sed 's/./\U&/') Test\",
+            \"lastName\": \"User\",
+            \"credentials\": [{
+                \"type\": \"password\",
+                \"value\": \"password\",
+                \"temporary\": false
+            }]
+        }")
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ User '$username' created${NC}"
         
-        if [ "$ROLE_ID" != "null" ] && [ -n "$ROLE_ID" ]; then
-            # Assign role to user
-            curl -s -X POST "http://localhost:8080/admin/realms/eshop/users/$USER_ID/role-mappings/realm" \
-                -H "Authorization: Bearer $ADMIN_TOKEN" \
-                -H "Content-Type: application/json" \
-                -d "[{\"id\":\"$ROLE_ID\",\"name\":\"user\"}]" > /dev/null
+        # Get user ID and assign role
+        USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+        
+        if [ "$USER_ID" != "null" ] && [ -n "$USER_ID" ]; then
+            # Get role ID
+            ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/$role" \
+                -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
             
-            echo -e "${GREEN}✅ Role 'user' assigned to testuser${NC}"
+            if [ "$ROLE_ID" != "null" ] && [ -n "$ROLE_ID" ]; then
+                # Assign role to user
+                curl -s -X POST "http://localhost:8080/admin/realms/eshop/users/$USER_ID/role-mappings/realm" \
+                    -H "Authorization: Bearer $ADMIN_TOKEN" \
+                    -H "Content-Type: application/json" \
+                    -d "[{\"id\":\"$ROLE_ID\",\"name\":\"$role\"}]" > /dev/null
+                
+                echo -e "${GREEN}✅ Role '$role' assigned to $username${NC}"
+            else
+                echo -e "${RED}❌ Failed to get role ID for '$role'${NC}"
+            fi
+        else
+            echo -e "${RED}❌ Failed to get user ID for '$username'${NC}"
         fi
+    else
+        echo -e "${YELLOW}⚠️ User '$username' might already exist${NC}"
     fi
-else
-    echo -e "${YELLOW}⚠️ Test user might already exist${NC}"
+done
+
+# Create composite roles for role hierarchy (optional)
+echo -e "${BLUE}🔗 Setting up role hierarchy...${NC}"
+
+# Get role IDs for composite role setup
+ADMIN_ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/admin" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+
+MANAGER_ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/manager" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+
+USER_ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/user" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+
+# Make admin role composite with manager and user roles
+if [ "$ADMIN_ROLE_ID" != "null" ] && [ "$MANAGER_ROLE_ID" != "null" ] && [ "$USER_ROLE_ID" != "null" ]; then
+    curl -s -X POST "http://localhost:8080/admin/realms/eshop/roles/admin/composites" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "[{\"id\":\"$MANAGER_ROLE_ID\",\"name\":\"manager\"}, {\"id\":\"$USER_ROLE_ID\",\"name\":\"user\"}]" > /dev/null
+    
+    echo -e "${GREEN}✅ Admin role configured as composite (includes manager and user)${NC}"
 fi
 
-echo -e "${GREEN}🎉 Keycloak setup complete!${NC}"
+# Make manager role composite with user role
+if [ "$MANAGER_ROLE_ID" != "null" ] && [ "$USER_ROLE_ID" != "null" ]; then
+    curl -s -X POST "http://localhost:8080/admin/realms/eshop/roles/manager/composites" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "[{\"id\":\"$USER_ROLE_ID\",\"name\":\"user\"}]" > /dev/null
+    
+    echo -e "${GREEN}✅ Manager role configured as composite (includes user)${NC}"
+fi
+
+echo -e "${GREEN}🎉 Keycloak RBAC setup complete!${NC}"
 echo -e "${BLUE}📋 Access Points:${NC}"
 echo -e "  • Keycloak Admin: http://localhost:8080/admin/ (admin/admin)"
 echo -e "  • Realm: eshop"
 echo -e "  • Client: eshop-api"
-echo -e "  • Test User: testuser/password"
+echo -e ""
+echo -e "${BLUE}👥 Test Users & Roles:${NC}"
+echo -e "  • admin/password (Admin role - full access)"
+echo -e "  • manager/password (Manager role - read/write access)"
+echo -e "  • user/password (User role - read-only access)"
+echo -e "  • testuser/password (User role - read-only access)"
+echo -e ""
+echo -e "${BLUE}🔐 RBAC Permissions:${NC}"
+echo -e "  • Command endpoints (POST/PUT/DELETE): admin, manager"
+echo -e "  • Query endpoints (GET): admin, manager, user"
 echo -e ""
 echo -e "${BLUE}🔧 Next Steps:${NC}"
 echo -e "  1. Update your .env file with the correct client secret"
-echo -e "  2. Test authentication with the health check endpoint"
-echo -e "  3. Use the test user credentials for API testing" 
+echo -e "  2. Test authentication with different user roles"
+echo -e "  3. Verify RBAC is working on command vs query endpoints" 

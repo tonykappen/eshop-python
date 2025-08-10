@@ -1,16 +1,12 @@
 """Tests for the main FastAPI application entry point."""
 
-import asyncio
-from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from eshop.config.settings import settings
 from eshop.core.auth.keycloak import KeycloakUser
-from eshop.core.lifecycle.manager import lifecycle_manager
 
 
 class TestMainApplication:
@@ -51,7 +47,7 @@ class TestMainApplication:
             preferred_username="testuser",
             email="test@example.com",
             name="Test User",
-            roles=["user"]
+            roles=["user"],
         )
 
     @patch("eshop.main.settings")
@@ -62,7 +58,7 @@ class TestMainApplication:
         self,
         mock_configure_logging: MagicMock,
         mock_get_logger: MagicMock,
-        mock_settings: MagicMock,
+        mock_settings: MagicMock,  # noqa: ARG002
     ) -> None:
         """Test application startup configuration."""
         from eshop.main import configure_application_startup
@@ -88,7 +84,7 @@ class TestMainApplication:
         mock_scan_assemblies: MagicMock,
         mock_create_container: MagicMock,
         mock_get_logger: MagicMock,
-        mock_settings: MagicMock,
+        mock_settings: MagicMock,  # noqa: ARG002
     ) -> None:
         """Test dependency injection initialization."""
         from eshop.main import initialize_dependency_injection
@@ -134,14 +130,15 @@ class TestMainApplication:
         mock_get_logger: MagicMock,
     ) -> None:
         """Test dependency injection cleanup."""
-        from eshop.main import cleanup_dependency_injection, _app_container
+        from eshop.main import cleanup_dependency_injection
 
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
 
         # Test with container set
-        _app_container = MagicMock()
-        await cleanup_dependency_injection()
+        container_mock = MagicMock()
+        with patch("eshop.main._app_container", container_mock):
+            await cleanup_dependency_injection()
 
         mock_get_logger.assert_called_once_with("main")
         mock_logger.info.assert_called()
@@ -188,7 +185,7 @@ class TestMainApplication:
         # Configure mock settings
         mock_settings.name = "eShop Test"
         mock_settings.version = "1.0.0"
-        
+
         from eshop.main import app
 
         client = TestClient(app)
@@ -205,7 +202,7 @@ class TestMainApplication:
         """Test basic health check endpoint."""
         # Configure mock settings
         mock_settings.version = "1.0.0"
-        
+
         from eshop.main import app
 
         client = TestClient(app)
@@ -222,7 +219,7 @@ class TestMainApplication:
         """Test API health check endpoint."""
         # Configure mock settings
         mock_settings.version = "1.0.0"
-        
+
         from eshop.main import app
 
         client = TestClient(app)
@@ -247,10 +244,12 @@ class TestMainApplication:
         from eshop.main import app
 
         # Mock the async method properly
-        mock_health_service.check_all_services = AsyncMock(return_value={
-            "status": "healthy",
-            "services": {"database": "ok", "redis": "ok"}
-        })
+        mock_health_service.check_all_services = AsyncMock(
+            return_value={
+                "status": "healthy",
+                "services": {"database": "ok", "redis": "ok"},
+            }
+        )
 
         client = TestClient(app)
         response = client.get("/health/detailed")
@@ -270,10 +269,9 @@ class TestMainApplication:
         from eshop.main import app
 
         # Mock the async method properly
-        mock_health_service.check_database = AsyncMock(return_value={
-            "status": "healthy",
-            "database": "postgresql"
-        })
+        mock_health_service.check_database = AsyncMock(
+            return_value={"status": "healthy", "database": "postgresql"}
+        )
 
         client = TestClient(app)
         response = client.get("/health/database")
@@ -293,10 +291,9 @@ class TestMainApplication:
         from eshop.main import app
 
         # Mock the async method properly
-        mock_health_service.check_redis = AsyncMock(return_value={
-            "status": "healthy",
-            "redis": "connected"
-        })
+        mock_health_service.check_redis = AsyncMock(
+            return_value={"status": "healthy", "redis": "connected"}
+        )
 
         client = TestClient(app)
         response = client.get("/health/redis")
@@ -316,10 +313,9 @@ class TestMainApplication:
         from eshop.main import app
 
         # Mock the async method properly
-        mock_health_service.check_rabbitmq = AsyncMock(return_value={
-            "status": "healthy",
-            "rabbitmq": "connected"
-        })
+        mock_health_service.check_rabbitmq = AsyncMock(
+            return_value={"status": "healthy", "rabbitmq": "connected"}
+        )
 
         client = TestClient(app)
         response = client.get("/health/rabbitmq")
@@ -339,10 +335,9 @@ class TestMainApplication:
         from eshop.main import app
 
         # Mock the async method properly
-        mock_health_service.check_keycloak = AsyncMock(return_value={
-            "status": "healthy",
-            "keycloak": "connected"
-        })
+        mock_health_service.check_keycloak = AsyncMock(
+            return_value={"status": "healthy", "keycloak": "connected"}
+        )
 
         client = TestClient(app)
         response = client.get("/health/keycloak")
@@ -359,7 +354,7 @@ class TestMainApplication:
         # Test that the endpoint exists and has the correct structure
         routes = [route.path for route in app.routes]
         assert "/api/v1/auth/me" in routes
-        
+
         # Test that the endpoint is properly configured
         for route in app.routes:
             if route.path == "/api/v1/auth/me":
@@ -379,14 +374,14 @@ class TestMainApplication:
         mock_settings.port = 8000
         mock_settings.debug = False
         mock_settings.log_level = "INFO"
-        
+
         # Mock uvicorn module
         mock_uvicorn = MagicMock()
         mock_import.return_value = mock_uvicorn
 
         # Test that the main block exists and can be executed
         from eshop.main import app
-        
+
         # The main block should be present but we can't easily test it without
         # actually running the module as main
         assert app is not None
@@ -423,7 +418,7 @@ class TestMainApplication:
         from eshop.main import app
 
         client = TestClient(app)
-        
+
         # Test all health endpoints
         health_endpoints = [
             "/health",
@@ -432,12 +427,15 @@ class TestMainApplication:
             "/health/database",
             "/health/redis",
             "/health/rabbitmq",
-            "/health/keycloak"
+            "/health/keycloak",
         ]
 
         for endpoint in health_endpoints:
             response = client.get(endpoint)
-            assert response.status_code in [200, 500], f"Endpoint {endpoint} should be accessible"
+            assert response.status_code in [
+                200,
+                500,
+            ], f"Endpoint {endpoint} should be accessible"
 
     def test_root_endpoint_response_structure(self) -> None:
         """Test root endpoint response structure."""
@@ -484,11 +482,11 @@ class TestMainIntegration:
         """Test that all expected endpoints are registered."""
         from eshop.main import app
 
-        client = TestClient(app)
-        
+        TestClient(app)
+
         # Get all registered routes
         routes = [route.path for route in app.routes]
-        
+
         expected_routes = [
             "/",
             "/health",
@@ -500,9 +498,9 @@ class TestMainIntegration:
             "/health/keycloak",
             "/api/v1/auth/me",
             "/docs",
-            "/openapi.json"
+            "/openapi.json",
         ]
-        
+
         for route in expected_routes:
             assert route in routes, f"Route {route} should be registered"
 
@@ -512,7 +510,7 @@ class TestMainIntegration:
 
         client = TestClient(app)
         response = client.get("/openapi.json")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "openapi" in data
@@ -525,7 +523,7 @@ class TestMainIntegration:
 
         client = TestClient(app)
         response = client.get("/docs")
-        
+
         assert response.status_code == 200
         assert "text/html" in response.headers.get("content-type", "")
 
@@ -546,14 +544,14 @@ class TestMainIntegration:
 
         # CORS middleware should be present
         middleware_classes = [str(middleware.cls) for middleware in app.user_middleware]
-        
+
         # Find CORS middleware position
         cors_index = None
         for i, middleware in enumerate(middleware_classes):
             if "CORSMiddleware" in middleware:
                 cors_index = i
                 break
-        
+
         assert cors_index is not None, "CORS middleware should be present"
         # Note: CORS middleware might not be first due to other middleware being added first
         assert cors_index >= 0, "CORS middleware should be present"
@@ -571,7 +569,7 @@ class TestMainIntegration:
 
         # Test that the global container reference exists
         # Note: The actual value depends on the test environment
-        assert hasattr(_app_container, '__class__')
+        assert hasattr(_app_container, "__class__")
 
     def test_application_state_management(self) -> None:
         """Test that application state is properly managed."""
@@ -579,7 +577,7 @@ class TestMainIntegration:
 
         # Test that app state can be accessed
         assert hasattr(app.state, "__dict__")
-        
+
         # Test that we can set and get state
         app.state.test_value = "test"
         assert app.state.test_value == "test"
@@ -597,12 +595,10 @@ class TestMainIntegration:
         from eshop.main import app
 
         # Test that request logging middleware is present when enabled
-        middleware_found = False
         for middleware in app.user_middleware:
             if "RequestLoggingMiddleware" in str(middleware.cls):
-                middleware_found = True
                 break
-        
+
         # Note: This might not be present if settings.log_enable_request_logging is False
         # The test just verifies the structure is correct
         assert True  # Placeholder for actual assertion based on settings
@@ -612,12 +608,10 @@ class TestMainIntegration:
         from eshop.main import app
 
         # Test that auth middleware is present
-        middleware_found = False
         for middleware in app.user_middleware:
             if "AuthMiddleware" in str(middleware.cls):
-                middleware_found = True
                 break
-        
+
         # Note: This might not be present depending on the implementation
         # The test just verifies the structure is correct
         assert True  # Placeholder for actual assertion based on implementation
@@ -628,7 +622,7 @@ class TestMainIntegration:
 
         # Test that pagination routes are available
         routes = [route.path for route in app.routes]
-        
+
         # FastAPI pagination adds some utility endpoints
         # The exact endpoints depend on the fastapi-pagination version
         assert len(routes) > 0, "Should have registered routes"
@@ -639,7 +633,7 @@ class TestMainIntegration:
 
         # Test that Keycloak routes are registered
         routes = [route.path for route in app.routes]
-        
+
         # Look for auth-related routes
         auth_routes = [route for route in routes if "auth" in route]
         assert len(auth_routes) > 0, "Should have auth routes registered"
@@ -650,7 +644,7 @@ class TestMainIntegration:
 
         # Test that health endpoints are registered
         routes = [route.path for route in app.routes]
-        
+
         health_routes = [route for route in routes if "health" in route]
         assert len(health_routes) >= 7, "Should have multiple health endpoints"
 
@@ -660,7 +654,7 @@ class TestMainIntegration:
 
         # Test that lifespan is configured
         assert app.router.lifespan_context is not None
-        
+
         # Test that the lifespan function is callable
         assert callable(app.router.lifespan_context)
 
@@ -670,7 +664,7 @@ class TestMainIntegration:
 
         # Test that the app can be instantiated without DI errors
         assert app is not None
-        
+
         # Test that app state can be used for DI container
         assert hasattr(app.state, "__dict__")
 
@@ -680,7 +674,7 @@ class TestMainIntegration:
 
         # Test that the app can be instantiated without mediator errors
         assert app is not None
-        
+
         # The mediator configuration is done during startup
         # This test just verifies the app structure is correct
         assert True
@@ -691,7 +685,7 @@ class TestMainIntegration:
 
         # Test that exception handlers are registered
         assert hasattr(app, "exception_handlers")
-        
+
         # Test that we can access the exception handlers
         handlers = app.exception_handlers
         assert isinstance(handlers, dict)
@@ -702,7 +696,7 @@ class TestMainIntegration:
 
         # Test that the app can be instantiated without logging errors
         assert app is not None
-        
+
         # The logging configuration is done during startup
         # This test just verifies the app structure is correct
         assert True
@@ -717,7 +711,7 @@ class TestMainIntegration:
             if "CORSMiddleware" in str(middleware.cls):
                 cors_middleware_found = True
                 break
-        
+
         assert cors_middleware_found, "CORS middleware should be configured"
 
     def test_application_completeness(self) -> None:
@@ -736,19 +730,20 @@ class TestMainIntegration:
         """Test that the application can be imported without errors."""
         # This test verifies that importing the main module doesn't cause errors
         import eshop.main
-        
+
         # The import should succeed without raising exceptions
         assert hasattr(eshop.main, "app")
         assert isinstance(eshop.main.app, FastAPI)
 
     def test_application_instantiation(self) -> None:
         """Test that the application can be instantiated without errors."""
-        from eshop.main import app
-
         # Test that the app can be used to create a test client
         from fastapi.testclient import TestClient
+
+        from eshop.main import app
+
         client = TestClient(app)
-        
+
         # Test that the client can make a basic request
         response = client.get("/")
         assert response.status_code == 200
@@ -761,7 +756,7 @@ class TestMainIntegration:
         assert app.title is not None
         assert app.version is not None
         assert app.description is not None
-        
+
         # Test that the description contains expected content
         description = app.description
         assert "Modular Monolith" in description
@@ -775,7 +770,7 @@ class TestMainIntegration:
         # Test that routes are registered
         routes = [route.path for route in app.routes]
         assert len(routes) > 0
-        
+
         # Test that essential routes are present
         essential_routes = ["/", "/health", "/docs", "/openapi.json"]
         for route in essential_routes:
@@ -787,14 +782,14 @@ class TestMainIntegration:
 
         # Test that middleware is registered
         assert len(app.user_middleware) > 0
-        
+
         # Test that CORS middleware is present
         cors_middleware_found = False
         for middleware in app.user_middleware:
             if "CORSMiddleware" in str(middleware.cls):
                 cors_middleware_found = True
                 break
-        
+
         assert cors_middleware_found, "CORS middleware should be present"
 
     def test_application_lifespan(self) -> None:
@@ -803,7 +798,7 @@ class TestMainIntegration:
 
         # Test that lifespan is configured
         assert app.router.lifespan_context is not None
-        
+
         # Test that lifespan is callable
         assert callable(app.router.lifespan_context)
 
@@ -815,13 +810,13 @@ class TestMainIntegration:
         assert hasattr(app, "exception_handlers")
         assert isinstance(app.exception_handlers, dict)
 
-    def test_application_state_management(self) -> None:
+    def test_application_state_management_configuration(self) -> None:
         """Test that application state management is properly configured."""
         from eshop.main import app
 
         # Test that app state can be accessed
         assert hasattr(app.state, "__dict__")
-        
+
         # Test that we can set and get state
         app.state.test_value = "test"
         assert app.state.test_value == "test"
@@ -837,17 +832,18 @@ class TestMainIntegration:
         assert len(app.routes) > 0
         assert len(app.user_middleware) > 0
         assert hasattr(app, "exception_handlers")
-        
+
         # Test that the app can be used with a test client
         from fastapi.testclient import TestClient
+
         client = TestClient(app)
-        
+
         # Test that basic endpoints work
         response = client.get("/")
         assert response.status_code == 200
-        
+
         response = client.get("/health")
         assert response.status_code == 200
-        
+
         response = client.get("/docs")
         assert response.status_code == 200

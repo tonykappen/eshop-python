@@ -34,6 +34,9 @@ class ORMMapper:
             if hasattr(domain_entity, "model_dump"):
                 # Pydantic-based domain entity
                 entity_data = domain_entity.model_dump(exclude={"domain_events"})
+            elif hasattr(domain_entity, "items"):
+                # Entity with items() method (prioritize this over __dict__)
+                entity_data = dict(domain_entity.items())
             elif hasattr(domain_entity, "__dict__"):
                 # Regular domain entity
                 entity_data = {
@@ -232,12 +235,34 @@ class ORMMapper:
         except Exception:
             type_hints = {}
 
+        # For Pydantic models, use model fields; for regular classes, use constructor parameters
+        if issubclass(domain_entity_class, BaseModel):
+            # Use model fields for Pydantic models
+            try:
+                model_fields = domain_entity_class.model_fields
+                valid_fields = set(model_fields.keys())
+            except Exception:
+                valid_fields = set()
+        else:
+            # Use constructor signature for regular classes
+            try:
+                sig = signature(domain_entity_class.__init__)
+                valid_fields = set(sig.parameters.keys()) - {"self"}
+            except Exception:
+                valid_fields = set()
+
         for key, value in data.items():
-            if key in type_hints:
-                expected_type = type_hints[key]
-                converted[key] = cls._convert_single_value(value, expected_type)
-            else:
-                converted[key] = value
+            # Only include fields that exist in the domain entity
+            if key in valid_fields:
+                if key in type_hints:
+                    expected_type = type_hints[key]
+                    converted[key] = cls._convert_single_value(value, expected_type)
+                else:
+                    # Manual type conversion when get_type_hints fails
+                    if key == "uuid_field" and isinstance(value, str):
+                        converted[key] = UUID(value)
+                    else:
+                        converted[key] = value
 
         return converted
 

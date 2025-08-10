@@ -106,7 +106,9 @@ class TestCustomExceptionHandler:
     def test_map_internal_server_error(self):
         """Test mapping InternalServerError."""
         error = InternalServerError("Server error", "Database failed")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 500
         assert title == "InternalServerError"
@@ -116,7 +118,9 @@ class TestCustomExceptionHandler:
     def test_map_bad_request_error(self):
         """Test mapping BadRequestError."""
         error = BadRequestError("Bad request", "Invalid data")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 400
         assert title == "BadRequestError"
@@ -126,7 +130,9 @@ class TestCustomExceptionHandler:
     def test_map_not_found_error(self):
         """Test mapping NotFoundError."""
         error = NotFoundError("Not found")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 404
         assert title == "NotFoundError"
@@ -136,7 +142,9 @@ class TestCustomExceptionHandler:
         """Test mapping ValidationError."""
         errors = {"field": "error"}
         error = CustomValidationError("Validation failed", errors)
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 400
         assert title == "ValidationError"
@@ -146,7 +154,9 @@ class TestCustomExceptionHandler:
     def test_map_unauthorized_error(self):
         """Test mapping UnauthorizedError."""
         error = UnauthorizedError("Unauthorized")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 401
         assert title == "UnauthorizedError"
@@ -155,7 +165,9 @@ class TestCustomExceptionHandler:
     def test_map_forbidden_error(self):
         """Test mapping ForbiddenError."""
         error = ForbiddenError("Forbidden")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 403
         assert title == "ForbiddenError"
@@ -164,7 +176,9 @@ class TestCustomExceptionHandler:
     def test_map_conflict_error(self):
         """Test mapping ConflictError."""
         error = ConflictError("Conflict")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 409
         assert title == "ConflictError"
@@ -173,7 +187,9 @@ class TestCustomExceptionHandler:
     def test_map_database_error(self):
         """Test mapping DatabaseError."""
         error = DatabaseError("Database error")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 500
         assert title == "DatabaseError"
@@ -182,7 +198,9 @@ class TestCustomExceptionHandler:
     def test_map_connection_error(self):
         """Test mapping ConnectionError."""
         error = ConnectionError("Connection failed")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 503
         assert title == "ConnectionError"
@@ -191,7 +209,9 @@ class TestCustomExceptionHandler:
     def test_map_configuration_error(self):
         """Test mapping ConfigurationError."""
         error = ConfigurationError("Config error")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 500
         assert title == "ConfigurationError"
@@ -199,6 +219,7 @@ class TestCustomExceptionHandler:
 
     def test_map_pydantic_validation_error(self):
         """Test mapping Pydantic ValidationError."""
+
         class TestModel(BaseModel):
             name: str
             age: int
@@ -206,7 +227,9 @@ class TestCustomExceptionHandler:
         try:
             TestModel(name="", age="invalid")
         except ValidationError as e:
-            status_code, title, detail, extensions = CustomExceptionHandler._map_exception(e)
+            status_code, title, detail, extensions = (
+                CustomExceptionHandler._map_exception(e)
+            )
 
             assert status_code == 400
             assert title == "ValidationError"
@@ -215,7 +238,9 @@ class TestCustomExceptionHandler:
     def test_map_generic_exception(self):
         """Test mapping generic exception."""
         error = Exception("Generic error")
-        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(error)
+        status_code, title, detail, extensions = CustomExceptionHandler._map_exception(
+            error
+        )
 
         assert status_code == 500
         assert title == "Exception"
@@ -229,6 +254,7 @@ class TestDomainExceptions:
     def test_product_not_found_error(self):
         """Test ProductNotFoundError."""
         from uuid import uuid4
+
         product_id = uuid4()
         error = ProductNotFoundError(product_id)
 
@@ -257,6 +283,7 @@ class TestExceptionHandlerIntegration:
 
         # Add exception handlers
         from eshop.core.exceptions.handler import add_exception_handlers
+
         add_exception_handlers(app)
 
         client = TestClient(app)

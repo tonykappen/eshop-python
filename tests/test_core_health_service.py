@@ -262,7 +262,6 @@ class TestHealthService:
                 return_value={"status": "healthy", "service": "keycloak"},
             ),
         ):
-
             service = HealthService()
             result = await service.check_all_services()
 
@@ -314,7 +313,6 @@ class TestHealthService:
                 return_value={"status": "healthy", "service": "keycloak"},
             ),
         ):
-
             service = HealthService()
             result = await service.check_all_services()
 
@@ -363,7 +361,6 @@ class TestHealthService:
                 return_value={"status": "healthy", "service": "keycloak"},
             ),
         ):
-
             service = HealthService()
             result = await service.check_all_services()
 
@@ -408,7 +405,6 @@ class TestHealthService:
                 return_value={"status": "healthy", "service": "keycloak"},
             ),
         ):
-
             service = HealthService()
             result = await service.check_all_services()
 

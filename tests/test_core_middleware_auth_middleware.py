@@ -8,6 +8,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.testclient import TestClient
 
 from eshop.core.auth.keycloak import KeycloakUser, get_current_user_optional, require_role, security, get_current_user
+
+# Alias get_current_user as get_current_user_required for tests
+get_current_user_required = get_current_user
 from eshop.core.middleware.auth_middleware import (
     add_auth_middleware,
     get_current_user_optional_from_request,
@@ -34,9 +37,7 @@ class TestGetCurrentUserOptional:
     @pytest.mark.asyncio
     async def test_get_current_user_optional_no_credentials(self) -> None:
         """Test get_current_user_optional with no credentials."""
-        mock_request = MagicMock()
-
-        result = await get_current_user_optional(mock_request, None)
+        result = await get_current_user_optional(credentials=None)
 
         assert result is None
 
@@ -55,11 +56,11 @@ class TestGetCurrentUserOptional:
         )
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.get_user_info = AsyncMock(return_value=mock_user)
 
-            result = await get_current_user_optional(mock_request, mock_credentials)
+            result = await get_current_user_optional(credentials=mock_credentials)
 
             assert result == mock_user
             mock_service.get_user_info.assert_called_once_with("valid-token")
@@ -72,13 +73,13 @@ class TestGetCurrentUserOptional:
         mock_credentials.credentials = "invalid-token"
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.get_user_info = AsyncMock(
                 side_effect=Exception("Invalid token")
             )
 
-            result = await get_current_user_optional(mock_request, mock_credentials)
+            result = await get_current_user_optional(credentials=mock_credentials)
 
             assert result is None
             mock_service.get_user_info.assert_called_once_with("invalid-token")
@@ -170,11 +171,11 @@ class TestGetCurrentUserRequired:
         )
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.get_user_info = AsyncMock(return_value=mock_user)
 
-            result = await get_current_user_required(mock_credentials)
+            result = await get_current_user_required(credentials=mock_credentials)
 
             assert result == mock_user
             mock_service.get_user_info.assert_called_once_with("valid-token")
@@ -186,14 +187,14 @@ class TestGetCurrentUserRequired:
         mock_credentials.credentials = "invalid-token"
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.get_user_info = AsyncMock(
                 side_effect=Exception("Invalid token")
             )
 
             with pytest.raises(HTTPException) as exc_info:
-                await get_current_user_required(mock_credentials)
+                await get_current_user_required(credentials=mock_credentials)
 
             assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
             assert exc_info.value.detail == "Invalid authentication credentials"
@@ -215,7 +216,7 @@ class TestRequireRole:
         )
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.check_role = AsyncMock(return_value=True)
 

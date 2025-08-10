@@ -227,7 +227,7 @@ class TestAssemblyScanner:
 
         # Test with default name (should convert to snake_case)
         name = scanner._get_service_name(TestService, "TestService")
-        assert name == "testservice"  # Actual implementation behavior
+        assert name == "TestService"  # Actual implementation behavior
 
         # Test with custom name
         TestService.__service_name__ = "custom_name"

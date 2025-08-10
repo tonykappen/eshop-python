@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import Depends, HTTPException, status
 from pydantic import BaseModel
 
-from eshop.core.auth.keycloak import KeycloakUser, get_current_user
+from eshop.core.auth.keycloak import KeycloakUser, get_current_user_optional
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def require_command_access(
     """
 
     async def command_access_checker(
-        current_user: KeycloakUser = Depends(get_current_user),
+        current_user: KeycloakUser | None = Depends(get_current_user_optional),
     ) -> KeycloakUser:
         """Check if user has command access."""
         if not current_user:
@@ -84,7 +84,7 @@ def require_query_access(
     """
 
     async def query_access_checker(
-        current_user: KeycloakUser = Depends(get_current_user),
+        current_user: KeycloakUser | None = Depends(get_current_user_optional),
     ) -> KeycloakUser:
         """Check if user has query access."""
         if not current_user:
@@ -127,7 +127,7 @@ def require_specific_role(required_role: str) -> Callable[[KeycloakUser], Any]:
     """
 
     async def specific_role_checker(
-        current_user: KeycloakUser = Depends(get_current_user),
+        current_user: KeycloakUser | None = Depends(get_current_user_optional),
     ) -> KeycloakUser:
         """Check if user has the specific required role."""
         if not current_user:
@@ -165,7 +165,7 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
     """
 
     async def any_role_checker(
-        current_user: KeycloakUser = Depends(get_current_user),
+        current_user: KeycloakUser | None = Depends(get_current_user_optional),
     ) -> KeycloakUser:
         """Check if user has any of the required roles."""
         if not current_user:
@@ -174,9 +174,7 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
                 detail="Authentication required",
             )
 
-        has_required_role = any(
-            role in current_user.roles for role in required_roles
-        )
+        has_required_role = any(role in current_user.roles for role in required_roles)
 
         if not has_required_role:
             logger.warning(
@@ -220,11 +218,11 @@ def rbac_protect(
 ) -> Callable[[Callable], Callable]:
     """
     Decorator to protect functions with RBAC.
-    
+
     Args:
         access_checker: The RBAC dependency function to use
     """
-    
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -232,9 +230,9 @@ def rbac_protect(
             # inject the dependency properly in FastAPI context
             # For now, this serves as documentation of intent
             return await func(*args, **kwargs)
-        
+
         return wrapper
-    
+
     return decorator
 
 
@@ -263,17 +261,23 @@ class RBACContext:
 
 
 # Utility functions for RBAC checks
-def check_command_access(user: KeycloakUser, rbac_config: RBACConfig = default_rbac_config) -> bool:
+def check_command_access(
+    user: KeycloakUser, rbac_config: RBACConfig = default_rbac_config
+) -> bool:
     """Check if user has command access."""
     return any(role in user.roles for role in rbac_config.command_roles)
 
 
-def check_query_access(user: KeycloakUser, rbac_config: RBACConfig = default_rbac_config) -> bool:
+def check_query_access(
+    user: KeycloakUser, rbac_config: RBACConfig = default_rbac_config
+) -> bool:
     """Check if user has query access."""
     return any(role in user.roles for role in rbac_config.query_roles)
 
 
-def get_user_permissions(user: KeycloakUser, rbac_config: RBACConfig = default_rbac_config) -> dict[str, bool]:
+def get_user_permissions(
+    user: KeycloakUser, rbac_config: RBACConfig = default_rbac_config
+) -> dict[str, bool]:
     """Get user permissions based on their roles."""
     return {
         "can_execute_commands": check_command_access(user, rbac_config),

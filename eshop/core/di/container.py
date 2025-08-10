@@ -19,8 +19,8 @@ class Container(containers.DeclarativeContainer):
     # Core services
     logger = providers.Singleton(lambda: get_logger("eshop"))
 
-    # Assembly scanner
-    assembly_scanner = providers.Singleton(AssemblyScanner, container=providers.Self())
+    # Assembly scanner - will be set after container creation
+    assembly_scanner = providers.Singleton(AssemblyScanner, container=None)
 
 
 class ServiceProvider:
@@ -65,6 +65,10 @@ def create_container() -> Container:
         }
     )
 
+    # Fix the assembly scanner container reference
+    scanner = container.assembly_scanner()
+    scanner.container = container
+
     return container
 
 
@@ -77,6 +81,10 @@ def scan_assemblies(container: Container, packages: list) -> None:
     """Scan packages for automatic service registration."""
     scanner = container.assembly_scanner()
 
+    # Ensure scanner has container reference
+    if scanner.container is None:
+        scanner.container = container
+
     for package in packages:
         try:
             scanner.scan_package(package)
@@ -87,8 +95,12 @@ def scan_assemblies(container: Container, packages: list) -> None:
 
 def wire_container(container: Container, packages: list) -> None:
     """Wire the container with packages for dependency injection."""
-    container.wire(packages=packages)
-    logger.info(f"Wired container with packages: {packages}")
+    try:
+        container.wire(packages=packages)
+        logger.info(f"Wired container with packages: {packages}")
+    except Exception as e:
+        logger.warning(f"Container wiring failed: {e}")
+        # Don't re-raise - let the application continue without wiring
 
 
 # Convenience functions

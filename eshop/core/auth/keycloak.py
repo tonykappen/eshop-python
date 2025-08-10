@@ -62,19 +62,22 @@ class KeycloakService:
             # For now, use a simple JWT decode approach
             import jwt
             from jwt import PyJWKClient
-            
+
             # Get the public key from Keycloak
             jwks_url = f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/certs"
             jwks_client = PyJWKClient(jwks_url)
-            
+
             # Decode the token
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             token_info = jwt.decode(
                 token,
                 signing_key.key,
                 algorithms=["RS256"],
-                audience=settings.keycloak_client_id,
-                issuer=f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}"
+                audience=[
+                    "account",
+                    settings.keycloak_client_id,
+                ],  # Accept both "account" and client ID
+                issuer=f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}",
             )
             return token_info
         except Exception as e:
@@ -152,9 +155,21 @@ keycloak_service = KeycloakService()
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> KeycloakUser:
     """Get current authenticated user."""
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return await keycloak_service.get_user_info(credentials.credentials)
 
 
@@ -164,6 +179,8 @@ async def get_current_user_optional(
     """Get current user if authenticated, otherwise return None."""
     if not credentials:
         return None
+    if not credentials.credentials:
+        return None
 
     try:
         return await keycloak_service.get_user_info(credentials.credentials)
@@ -172,11 +189,15 @@ async def get_current_user_optional(
         return None
 
 
-def require_role(required_role: str) -> Callable[[KeycloakUser], Awaitable[KeycloakUser]]:
+def require_role(
+    required_role: str,
+) -> Callable[[KeycloakUser], Awaitable[KeycloakUser]]:
     """Dependency to require specific role."""
 
     async def role_checker(
-        current_user: KeycloakUser = Depends(get_current_user),
+        current_user: KeycloakUser = Depends(
+            get_current_user
+        ),  # Use the required version
     ) -> KeycloakUser:
         has_role = await keycloak_service.check_role(current_user, required_role)
         if not has_role:

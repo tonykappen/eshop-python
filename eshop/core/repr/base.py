@@ -349,19 +349,19 @@ class CQRSEndpointFactory:
             result_mapper = ResultToDataResponseMapper[Any]()
 
         endpoint = CommandEndpoint(command_factory, result_mapper, self.mediator)
-        
+
         # If auth dependency is provided, wrap the handle method
         if auth_dependency is not None:
             original_handle = endpoint.handle
-            
+
             async def protected_handle(request: Request, data: Any) -> Any:
                 # This is a simplified approach - in practice, you'd need to
                 # properly inject the auth dependency into the FastAPI context
                 # For now, we'll rely on the endpoint decorators to handle auth
                 return await original_handle(request, data)
-            
+
             endpoint.handle = protected_handle
-        
+
         return endpoint
 
     def create_query_endpoint(
@@ -375,17 +375,17 @@ class CQRSEndpointFactory:
             result_mapper = ResultToDataResponseMapper[Any]()
 
         endpoint = QueryEndpoint(query_factory, result_mapper, self.mediator)
-        
+
         # If auth dependency is provided, wrap the handle method
         if auth_dependency is not None:
             original_handle = endpoint.handle
-            
+
             async def protected_handle(request: Request, data: Any) -> Any:
                 # This is a simplified approach - in practice, you'd need to
                 # properly inject the auth dependency into the FastAPI context
                 # For now, we'll rely on the endpoint decorators to handle auth
                 return await original_handle(request, data)
-            
+
             endpoint.handle = protected_handle
-        
+
         return endpoint

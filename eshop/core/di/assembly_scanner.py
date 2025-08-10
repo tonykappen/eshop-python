@@ -240,8 +240,8 @@ class AssemblyScanner:
         if hasattr(obj, "__service_name__"):
             return str(obj.__service_name__)  # Explicitly cast to str
 
-        # Use class/function name as service name
-        return name.lower()
+        # Use class/function name as service name (preserve original case)
+        return name
 
     def _register_service(
         self, service_name: str, service_class: type, module_name: str

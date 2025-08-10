@@ -2,8 +2,8 @@
 
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
-from typing import Any, Awaitable, Generic, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, Generic, TypeVar
 
 from eshop.core.logging.logger import get_logger
 

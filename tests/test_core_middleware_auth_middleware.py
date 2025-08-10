@@ -7,14 +7,10 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.testclient import TestClient
 
-from eshop.core.auth.keycloak import KeycloakUser
+from eshop.core.auth.keycloak import KeycloakUser, get_current_user_optional, require_role, security, get_current_user
 from eshop.core.middleware.auth_middleware import (
     add_auth_middleware,
-    get_current_user_optional,
     get_current_user_optional_from_request,
-    get_current_user_required,
-    require_role,
-    security,
 )
 
 

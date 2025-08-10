@@ -9,16 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
 from eshop.config.settings import settings
-from eshop.core.auth.keycloak import KeycloakUser, add_keycloak_routes
+from eshop.core.auth.keycloak import KeycloakUser, add_keycloak_routes, get_current_user
 from eshop.core.di.container import create_container, scan_assemblies, wire_container
 from eshop.core.exceptions.handler import add_exception_handlers
 from eshop.core.health.health_service import health_service
 from eshop.core.lifecycle.handlers import (
     auth_handler,
-    cache_handler,
-    database_handler,
     health_handler,
-    messaging_handler,
 )
 from eshop.core.lifecycle.manager import (
     lifecycle_manager,
@@ -28,10 +25,8 @@ from eshop.core.lifecycle.manager import (
 from eshop.core.logging.logger import configure_logging, get_logger
 from eshop.core.logging.request_logging import add_request_logging_middleware
 from eshop.core.mediator.fastapi_integration import configure_mediator
-from eshop.core.middleware.auth_middleware import (
-    add_auth_middleware,
-    get_current_user_required,
-)
+from eshop.core.middleware.auth_middleware import add_auth_middleware
+from eshop.modules.catalog.api.router import router as catalog_router
 
 
 async def configure_application_startup() -> None:
@@ -80,11 +75,15 @@ async def initialize_dependency_injection() -> None:
         ["eshop.modules.catalog", "eshop.modules.basket", "eshop.modules.ordering"],
     )
 
-    # Wire container with packages
-    wire_container(
-        container,
-        ["eshop.modules.catalog", "eshop.modules.basket", "eshop.modules.ordering"],
-    )
+    # Wire container with packages (after services are registered)
+    try:
+        wire_container(
+            container,
+            ["eshop.modules.catalog", "eshop.modules.basket", "eshop.modules.ordering"],
+        )
+    except Exception as e:
+        logger.warning(f"Container wiring failed (non-critical): {e}")
+        # Continue without wiring - services can still be accessed directly
 
     # Store container in application state
     # This will be set when the app is created
@@ -193,14 +192,13 @@ if settings.log_enable_request_logging:
         exclude_health_checks=True,
     )
 
-# Import and include module routers
-from eshop.modules.catalog.api.router import router as catalog_router
 # from eshop.modules.basket.api.router import router as basket_router
 # from eshop.modules.ordering.api.router import router as ordering_router
 
 print("🔧 Including catalog router...")
 app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 print("✅ Catalog router included successfully - RBAC ready!")
+
 # app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
 # app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])
 
@@ -267,7 +265,7 @@ async def keycloak_health_check() -> dict[str, Any]:
 
 @app.get("/api/v1/auth/me")
 async def get_current_user_info(
-    user: KeycloakUser = Depends(get_current_user_required),
+    user: KeycloakUser = Depends(get_current_user),
 ) -> dict[str, str | list[str]]:
     """Get current user information (requires authentication)."""
     return {

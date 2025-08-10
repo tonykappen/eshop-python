@@ -71,22 +71,21 @@ test_endpoint() {
 }
 
 # Test users and their expected permissions
-declare -A USERS=(
-    ["admin"]="password"
-    ["manager"]="password"
-    ["user"]="password"
-)
+USERS="admin manager user"
+PASSWORDS="password password password"
 
 echo -e "${BLUE}🔑 Getting tokens for test users...${NC}"
 
 # Get tokens for all users
-declare -A TOKENS
-for username in "${!USERS[@]}"; do
-    password="${USERS[$username]}"
+TOKENS=""
+USERNAMES=""
+for username in $USERS; do
+    password="password"
     token=$(get_token "$username" "$password")
     
     if [ "$token" != "null" ] && [ -n "$token" ]; then
-        TOKENS["$username"]="$token"
+        TOKENS="$TOKENS $token"
+        USERNAMES="$USERNAMES $username"
         echo -e "${GREEN}✅ Token obtained for $username${NC}"
     else
         echo -e "${RED}❌ Failed to get token for $username${NC}"
@@ -103,17 +102,22 @@ passed_tests=0
 # Test Query Endpoints (should work for all authenticated users)
 echo -e "${BLUE}📖 Testing Query Endpoints (GET)...${NC}"
 
-for username in "${!TOKENS[@]}"; do
-    token="${TOKENS[$username]}"
+# Convert to arrays for easier iteration
+read -ra USER_ARRAY <<< "$USERNAMES"
+read -ra TOKEN_ARRAY <<< "$TOKENS"
+
+for i in "${!USER_ARRAY[@]}"; do
+    username="${USER_ARRAY[$i]}"
+    token="${TOKEN_ARRAY[$i]}"
     
-    # Test GET /api/v1/products/ (query endpoint)
-    if test_endpoint "GET" "/api/v1/products/" "$token" "200" "Query access for $username"; then
+    # Test GET /api/v1/catalog/products/ (query endpoint)
+    if test_endpoint "GET" "/api/v1/catalog/products/" "$token" "200" "Query access for $username"; then
         ((passed_tests++))
     fi
     ((total_tests++))
     
-    # Test GET /api/v1/products/{id} (query endpoint)
-    if test_endpoint "GET" "/api/v1/products/00000000-0000-0000-0000-000000000001" "$token" "404" "Query access for $username (not found)"; then
+    # Test GET /api/v1/catalog/products/{id} (query endpoint)
+    if test_endpoint "GET" "/api/v1/catalog/products/00000000-0000-0000-0000-000000000001" "$token" "404" "Query access for $username (not found)"; then
         ((passed_tests++))
     fi
     ((total_tests++))
@@ -122,18 +126,19 @@ done
 # Test Command Endpoints (should only work for admin and manager)
 echo -e "${BLUE}✏️ Testing Command Endpoints (POST)...${NC}"
 
-for username in "${!TOKENS[@]}"; do
-    token="${TOKENS[$username]}"
+for i in "${!USER_ARRAY[@]}"; do
+    username="${USER_ARRAY[$i]}"
+    token="${TOKEN_ARRAY[$i]}"
     
-    # Test POST /api/v1/products/ (command endpoint)
+    # Test POST /api/v1/catalog/products/ (command endpoint)
     if [ "$username" = "admin" ] || [ "$username" = "manager" ]; then
         # Admin and manager should have access (200 or 422 for validation errors)
-        if test_endpoint "POST" "/api/v1/products/" "$token" "422" "Command access for $username (validation expected)"; then
+        if test_endpoint "POST" "/api/v1/catalog/products/" "$token" "422" "Command access for $username (validation expected)"; then
             ((passed_tests++))
         fi
     else
         # User should be denied (403)
-        if test_endpoint "POST" "/api/v1/products/" "$token" "403" "Command access denied for $username"; then
+        if test_endpoint "POST" "/api/v1/catalog/products/" "$token" "403" "Command access denied for $username"; then
             ((passed_tests++))
         fi
     fi
@@ -144,13 +149,13 @@ done
 echo -e "${BLUE}🚫 Testing Unauthenticated Access...${NC}"
 
 # Test query endpoint without token
-if test_endpoint "GET" "/api/v1/products/" "" "401" "Unauthenticated query access"; then
+if test_endpoint "GET" "/api/v1/catalog/products/" "" "401" "Unauthenticated query access"; then
     ((passed_tests++))
 fi
 ((total_tests++))
 
 # Test command endpoint without token
-if test_endpoint "POST" "/api/v1/products/" "" "401" "Unauthenticated command access"; then
+if test_endpoint "POST" "/api/v1/catalog/products/" "" "401" "Unauthenticated command access"; then
     ((passed_tests++))
 fi
 ((total_tests++))
@@ -158,12 +163,12 @@ fi
 # Test invalid token
 echo -e "${BLUE}🔒 Testing Invalid Token...${NC}"
 
-if test_endpoint "GET" "/api/v1/products/" "invalid-token" "401" "Invalid token query access"; then
+if test_endpoint "GET" "/api/v1/catalog/products/" "invalid-token" "401" "Invalid token query access"; then
     ((passed_tests++))
 fi
 ((total_tests++))
 
-if test_endpoint "POST" "/api/v1/products/" "invalid-token" "401" "Invalid token command access"; then
+if test_endpoint "POST" "/api/v1/catalog/products/" "invalid-token" "401" "Invalid token command access"; then
     ((passed_tests++))
 fi
 ((total_tests++))

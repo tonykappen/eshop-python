@@ -6,10 +6,7 @@ from uuid import UUID
 from pydantic import Field, field_validator
 
 from eshop.core.domain.entity import Aggregate
-from eshop.modules.catalog.domain.events import (
-    ProductCreatedEvent,
-    ProductPriceChangedEvent,
-)
+
 
 
 class Product(Aggregate):
@@ -58,7 +55,8 @@ class Product(Aggregate):
             price=price,
         )
 
-        # Add domain event
+        # Add domain event - use string reference to avoid circular import issues
+        from eshop.modules.catalog.domain.events import ProductCreatedEvent
         product.add_domain_event(ProductCreatedEvent(product=product))
 
         return product
@@ -82,6 +80,10 @@ class Product(Aggregate):
         self.image_file = image_file
         self.price = price
 
+        # Increment version for any update
+        self.increment_version()
+
         # If price changed, add domain event
         if old_price != price:
+            from eshop.modules.catalog.domain.events import ProductPriceChangedEvent
             self.add_domain_event(ProductPriceChangedEvent(product=self))

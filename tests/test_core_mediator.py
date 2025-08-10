@@ -25,11 +25,13 @@ from eshop.core.mediator.handler_registry import HandlerRegistry, IRequestHandle
 from eshop.core.mediator.mediator import IMediator, Mediator
 
 
+@pytest.mark.no_collect
 class TestCommand(ICommand[str]):
     """Test command for testing."""
     name: str
 
 
+@pytest.mark.no_collect
 class TestQuery(IQuery[str]):
     """Test query for testing."""
     id: str
@@ -49,6 +51,7 @@ class TestQueryHandler(IRequestHandler[TestQuery, str]):
         return f"Query result: {request.id}"
 
 
+@pytest.mark.no_collect
 class TestBehavior(IPipelineBehavior[TestCommand, str]):
     """Test pipeline behavior."""
     

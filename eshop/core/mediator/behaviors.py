@@ -70,7 +70,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
                     f"Validation failed: {validation_error}"
                 ) from validation_error
 
-        result = next_handler()
+        result = await next_handler()
         return result
 
 
@@ -97,7 +97,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         start_time = time.time()
 
         try:
-            response = next_handler()
+            response = await next_handler()
 
             elapsed_time = time.time() - start_time
 

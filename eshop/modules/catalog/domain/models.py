@@ -8,7 +8,6 @@ from pydantic import Field, field_validator
 from eshop.core.domain.entity import Aggregate
 
 
-
 class Product(Aggregate):
     """Product aggregate following .NET Product class structure."""
 

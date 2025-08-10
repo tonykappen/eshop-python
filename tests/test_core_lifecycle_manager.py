@@ -2,8 +2,7 @@
 
 import asyncio
 import signal
-import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import FastAPI
@@ -234,7 +233,7 @@ class TestLifecycleManager:
         if manager._shutdown_event:
             # Test that the method can be called
             task = asyncio.create_task(manager._wait_for_shutdown_signal())
-            
+
             # Cancel the task to avoid hanging
             task.cancel()
             with pytest.raises(asyncio.CancelledError):
@@ -265,7 +264,7 @@ class TestGlobalLifecycleManager:
         original_timeout = lifecycle_manager.shutdown_timeout
         set_shutdown_timeout(45.0)
         assert lifecycle_manager.shutdown_timeout == 45.0
-        
+
         # Restore original timeout
         set_shutdown_timeout(original_timeout)
 
@@ -309,7 +308,7 @@ class TestLifecycleManagerIntegration:
 
         # Verify startup order (FIFO)
         assert startup_order == ["startup1", "startup2"]
-        
+
         # Verify shutdown order (LIFO)
         assert shutdown_order == ["shutdown2", "shutdown1"]
 
@@ -317,10 +316,10 @@ class TestLifecycleManagerIntegration:
     async def test_lifecycle_manager_with_fastapi_app(self):
         """Test lifecycle manager integration with FastAPI app."""
         manager = LifecycleManager()
-        
+
         # Create a simple FastAPI app
         app = FastAPI()
-        
+
         # Add some test callbacks
         startup_called = False
         shutdown_called = False

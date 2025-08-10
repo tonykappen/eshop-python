@@ -1,9 +1,9 @@
 """Comprehensive tests for the CQRS contracts."""
 
+from enum import Enum
+
 import pytest
 from pydantic import BaseModel, ValidationError
-from typing import Optional
-from enum import Enum
 
 from eshop.core.contracts.cqrs import (
     ICommand,
@@ -21,8 +21,8 @@ class TestICommand:
     def test_icommand_inheritance_and_configuration(self):
         """Test that ICommand inherits from BaseModel with correct configuration."""
         assert issubclass(ICommand, BaseModel)
-        assert hasattr(ICommand, 'Config')
-        assert hasattr(ICommand.Config, 'arbitrary_types_allowed')
+        assert hasattr(ICommand, "Config")
+        assert hasattr(ICommand.Config, "arbitrary_types_allowed")
         assert ICommand.Config.arbitrary_types_allowed is True
 
     def test_icommand_generic_type_behavior(self):
@@ -30,12 +30,12 @@ class TestICommand:
         class TestCommand(ICommand[str]):
             name: str
             value: int
-        
+
         command = TestCommand(name="test", value=42)
         assert command.name == "test"
         assert command.value == 42
         assert isinstance(command, ICommand)
-        
+
         # Test that it can be serialized
         command_dict = command.model_dump()
         assert command_dict["name"] == "test"
@@ -46,12 +46,12 @@ class TestICommand:
         class TestCommand(ICommand[str]):
             name: str
             age: int
-        
+
         # Valid command should work
         command = TestCommand(name="test", age=25)
         assert command.name == "test"
         assert command.age == 25
-        
+
         # Invalid command should raise validation error
         with pytest.raises(ValidationError):
             TestCommand(name="test", age="invalid")
@@ -61,14 +61,14 @@ class TestICommand:
         class TestCommand(ICommand[str]):
             name: str
             data: dict
-        
+
         command = TestCommand(name="test", data={"key": "value"})
-        
+
         # Test model_dump
         command_dict = command.model_dump()
         assert command_dict["name"] == "test"
         assert command_dict["data"] == {"key": "value"}
-        
+
         # Test model_dump_json
         command_json = command.model_dump_json()
         assert '"name":"test"' in command_json
@@ -87,13 +87,13 @@ class TestICommandNoResponse:
         class TestCommand(ICommandNoResponse):
             name: str
             action: str
-        
+
         command = TestCommand(name="test", action="delete")
         assert command.name == "test"
         assert command.action == "delete"
         assert isinstance(command, ICommandNoResponse)
         assert isinstance(command, ICommand)
-        
+
         # Test serialization
         command_dict = command.model_dump()
         assert command_dict["name"] == "test"
@@ -106,8 +106,8 @@ class TestIQuery:
     def test_iquery_inheritance_and_configuration(self):
         """Test that IQuery inherits from BaseModel with correct configuration."""
         assert issubclass(IQuery, BaseModel)
-        assert hasattr(IQuery, 'Config')
-        assert hasattr(IQuery.Config, 'arbitrary_types_allowed')
+        assert hasattr(IQuery, "Config")
+        assert hasattr(IQuery.Config, "arbitrary_types_allowed")
         assert IQuery.Config.arbitrary_types_allowed is True
 
     def test_iquery_generic_type_behavior(self):
@@ -115,12 +115,12 @@ class TestIQuery:
         class TestQuery(IQuery[dict]):
             id: str
             include_details: bool
-        
+
         query = TestQuery(id="123", include_details=True)
         assert query.id == "123"
         assert query.include_details is True
         assert isinstance(query, IQuery)
-        
+
         # Test serialization
         query_dict = query.model_dump()
         assert query_dict["id"] == "123"
@@ -131,12 +131,12 @@ class TestIQuery:
         class TestQuery(IQuery[list]):
             limit: int
             offset: int
-        
+
         # Valid query should work
         query = TestQuery(limit=10, offset=0)
         assert query.limit == 10
         assert query.offset == 0
-        
+
         # Invalid query should raise validation error
         with pytest.raises(ValidationError):
             TestQuery(limit="invalid", offset=0)
@@ -184,7 +184,7 @@ class TestICommandHandler:
         command = TestCommand(name="test", operation="create")
         result = await handler.handle(command)
         assert result == "Created: test"
-        
+
         # Test different operation
         command.operation = "update"
         result = await handler.handle(command)
@@ -232,11 +232,11 @@ class TestICommandHandlerNoResponse:
 
         handler = TestCommandHandler()
         command = TestCommand(name="test", action="delete")
-        
+
         # Should return None
         result = await handler.handle(command)
         assert result is None
-        
+
         # Should have processed the command
         assert len(handler.processed_commands) == 1
         assert handler.processed_commands[0] == "delete: test"
@@ -287,12 +287,12 @@ class TestIQueryHandler:
         handler = TestQueryHandler()
         query = TestQuery(id="123", include_details=True)
         result = await handler.handle(query)
-        
+
         assert result["id"] == "123"
         assert result["name"] == "Test User"
         assert result["email"] == "test@example.com"
         assert result["created_at"] == "2023-01-01"
-        
+
         # Test without details
         query.include_details = False
         result = await handler.handle(query)
@@ -317,17 +317,17 @@ class TestCQRSIntegration:
                 # Simulate user creation logic
                 if command.age < 18:
                     raise ValueError("User must be 18 or older")
-                
+
                 user_id = f"user_{len(command.name)}_{command.age}"
                 return f"Created user {user_id} with email {command.email}"
 
         handler = CreateUserHandler()
         command = CreateUserCommand(name="John Doe", email="john@example.com", age=25)
         result = await handler.handle(command)
-        
+
         assert "Created user user_8_25" in result
         assert "john@example.com" in result
-        
+
         # Test validation in handler
         command.age = 16
         with pytest.raises(ValueError, match="User must be 18 or older"):
@@ -348,7 +348,7 @@ class TestCQRSIntegration:
                     "name": "John Doe",
                     "email": "john@example.com"
                 }
-                
+
                 if query.include_profile:
                     base_user.update({
                         "profile": {
@@ -357,18 +357,18 @@ class TestCQRSIntegration:
                             "skills": ["Python", "FastAPI", "SQLAlchemy"]
                         }
                     })
-                
+
                 return base_user
 
         handler = GetUserHandler()
         query = GetUserQuery(user_id="123", include_profile=True)
         result = await handler.handle(query)
-        
+
         assert result["id"] == "123"
         assert result["name"] == "John Doe"
         assert "profile" in result
         assert result["profile"]["skills"] == ["Python", "FastAPI", "SQLAlchemy"]
-        
+
         # Test without profile
         query.include_profile = False
         result = await handler.handle(query)
@@ -396,10 +396,10 @@ class TestCQRSIntegration:
 
         handler = DeleteUserHandler()
         command = DeleteUserCommand(user_id="123", reason="Account closure")
-        
+
         result = await handler.handle(command)
         assert result is None
-        
+
         assert len(handler.deleted_users) == 1
         assert handler.deleted_users[0]["id"] == "123"
         assert handler.deleted_users[0]["reason"] == "Account closure"
@@ -416,7 +416,7 @@ class TestCQRSIntegration:
         command = TestCommand(value=42)
         assert command.value == 42
         assert isinstance(command.value, int)
-        
+
         # Test query type safety
         query = TestQuery(flag=True)
         assert query.flag is True
@@ -432,7 +432,7 @@ class TestCQRSIntegration:
         command = TestCommand(name="test", age=25)
         assert command.name == "test"
         assert command.age == 25
-        
+
         # Invalid command should raise validation error
         with pytest.raises(ValidationError):
             TestCommand(name="test", age="invalid")
@@ -444,12 +444,12 @@ class TestCQRSIntegration:
             data: dict
 
         command = TestCommand(name="test", data={"key": "value", "number": 42})
-        
+
         # Test model_dump
         command_dict = command.model_dump()
         assert command_dict["name"] == "test"
         assert command_dict["data"] == {"key": "value", "number": 42}
-        
+
         # Test model_dump_json
         command_json = command.model_dump_json()
         assert '"name":"test"' in command_json
@@ -464,11 +464,11 @@ class TestCQRSIntegration:
 
         command = TestCommand(name="test", data={"key": "value"})
         command_copy = command.model_copy()
-        
+
         # Should be equal but different objects
         assert command == command_copy
         assert command is not command_copy
-        
+
         # Modifying copy should not affect original
         command_copy.name = "modified"
         assert command.name == "test"
@@ -493,12 +493,12 @@ class TestCQRSComplexTypes:
             name="John Doe",
             address=Address(street="123 Main St", city="New York", country="USA")
         )
-        
+
         assert command.name == "John Doe"
         assert command.address.street == "123 Main St"
         assert command.address.city == "New York"
         assert command.address.country == "USA"
-        
+
         # Test serialization with nested model
         command_dict = command.model_dump()
         assert command_dict["name"] == "John Doe"
@@ -508,13 +508,13 @@ class TestCQRSComplexTypes:
         """Test CQRS with optional fields behavior."""
         class OptionalCommand(ICommand[str]):
             required_field: str
-            optional_field: Optional[str] = None
+            optional_field: str | None = None
 
         # Test with optional field
         command = OptionalCommand(required_field="required")
         assert command.required_field == "required"
         assert command.optional_field is None
-        
+
         # Test with optional field provided
         command = OptionalCommand(required_field="required", optional_field="optional")
         assert command.required_field == "required"
@@ -527,10 +527,10 @@ class TestCQRSComplexTypes:
             numbers: list[int]
 
         command = ListCommand(items=["item1", "item2"], numbers=[1, 2, 3])
-        
+
         assert command.items == ["item1", "item2"]
         assert command.numbers == [1, 2, 3]
-        
+
         # Test serialization
         command_dict = command.model_dump()
         assert command_dict["items"] == ["item1", "item2"]
@@ -548,7 +548,7 @@ class TestCQRSComplexTypes:
         command = StatusCommand(status=Status.ACTIVE)
         assert command.status == Status.ACTIVE
         assert command.status.value == "active"
-        
+
         # Test serialization
         command_dict = command.model_dump()
         assert command_dict["status"] == Status.ACTIVE

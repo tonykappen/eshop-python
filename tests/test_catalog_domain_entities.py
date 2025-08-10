@@ -1,13 +1,14 @@
 """Comprehensive tests for Catalog domain entities."""
 
-import pytest
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from eshop.modules.catalog.domain.entities import (
-    CatalogItem,
-    CatalogCategory,
     CatalogBrand,
+    CatalogCategory,
+    CatalogItem,
 )
 
 
@@ -21,7 +22,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=10,
         )
-        
+
         assert item.name == "Test Item"
         assert item.price == Decimal("99.99")
         assert item.stock_quantity == 10
@@ -34,7 +35,7 @@ class TestCatalogItem:
         """Test catalog item creation with all optional fields."""
         category_id = uuid4()
         brand_id = uuid4()
-        
+
         item = CatalogItem(
             name="Complete Item",
             description="A complete test item",
@@ -44,7 +45,7 @@ class TestCatalogItem:
             category_id=category_id,
             brand_id=brand_id,
         )
-        
+
         assert item.name == "Complete Item"
         assert item.description == "A complete test item"
         assert item.price == Decimal("149.99")
@@ -85,7 +86,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         item.update_stock(10)
         assert item.stock_quantity == 10
 
@@ -96,7 +97,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         item.update_stock(0)
         assert item.stock_quantity == 0
 
@@ -107,7 +108,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         with pytest.raises(ValueError, match="Stock quantity cannot be negative"):
             item.update_stock(-1)
 
@@ -118,7 +119,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=10,
         )
-        
+
         item.reduce_stock(3)
         assert item.stock_quantity == 7
 
@@ -129,7 +130,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         with pytest.raises(ValueError, match="Insufficient stock"):
             item.reduce_stock(10)
 
@@ -140,7 +141,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         with pytest.raises(ValueError, match="Quantity to reduce must be positive"):
             item.reduce_stock(0)
 
@@ -151,7 +152,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         with pytest.raises(ValueError, match="Quantity to reduce must be positive"):
             item.reduce_stock(-1)
 
@@ -162,7 +163,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         item.increase_stock(3)
         assert item.stock_quantity == 8
 
@@ -173,7 +174,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         with pytest.raises(ValueError, match="Quantity to increase must be positive"):
             item.increase_stock(0)
 
@@ -184,7 +185,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             stock_quantity=5,
         )
-        
+
         with pytest.raises(ValueError, match="Quantity to increase must be positive"):
             item.increase_stock(-1)
 
@@ -195,7 +196,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             is_available=True,
         )
-        
+
         item.mark_unavailable()
         assert item.is_available is False
 
@@ -206,7 +207,7 @@ class TestCatalogItem:
             price=Decimal("99.99"),
             is_available=False,
         )
-        
+
         item.mark_available()
         assert item.is_available is True
 
@@ -216,7 +217,7 @@ class TestCatalogItem:
             name="Test Item",
             price=Decimal("99.99"),
         )
-        
+
         item.update_price(Decimal("149.99"))
         assert item.price == Decimal("149.99")
 
@@ -226,7 +227,7 @@ class TestCatalogItem:
             name="Test Item",
             price=Decimal("99.99"),
         )
-        
+
         with pytest.raises(ValueError, match="Price must be positive"):
             item.update_price(Decimal("0"))
 
@@ -236,7 +237,7 @@ class TestCatalogItem:
             name="Test Item",
             price=Decimal("99.99"),
         )
-        
+
         with pytest.raises(ValueError, match="Price must be positive"):
             item.update_price(Decimal("-10"))
 
@@ -250,10 +251,10 @@ class TestCatalogItem:
             name="Test Item 2",
             price=Decimal("149.99"),
         )
-        
+
         # Different items should not be equal
         assert item1 != item2
-        
+
         # Same item should be equal to itself
         assert item1 == item1
 
@@ -261,7 +262,7 @@ class TestCatalogItem:
         """Test catalog item serialization."""
         category_id = uuid4()
         brand_id = uuid4()
-        
+
         item = CatalogItem(
             name="Test Item",
             description="Test description",
@@ -271,7 +272,7 @@ class TestCatalogItem:
             category_id=category_id,
             brand_id=brand_id,
         )
-        
+
         item_dict = item.model_dump()
         assert item_dict["name"] == "Test Item"
         assert item_dict["description"] == "Test description"
@@ -291,14 +292,14 @@ class TestCatalogCategory:
             name="Electronics",
             description="Electronic devices and accessories",
         )
-        
+
         assert category.name == "Electronics"
         assert category.description == "Electronic devices and accessories"
 
     def test_catalog_category_creation_without_description(self):
         """Test catalog category creation without description."""
         category = CatalogCategory(name="Books")
-        
+
         assert category.name == "Books"
         assert category.description is None
 
@@ -308,7 +309,7 @@ class TestCatalogCategory:
             name="Old Name",
             description="Old description",
         )
-        
+
         category.update_details("New Name", "New description")
         assert category.name == "New Name"
         assert category.description == "New description"
@@ -319,7 +320,7 @@ class TestCatalogCategory:
             name="Old Name",
             description="Old description",
         )
-        
+
         category.update_details("New Name")
         assert category.name == "New Name"
         assert category.description is None  # Description is not preserved when not provided
@@ -327,21 +328,21 @@ class TestCatalogCategory:
     def test_update_details_empty_name_raises_error(self):
         """Test that updating with empty name raises error."""
         category = CatalogCategory(name="Valid Name")
-        
+
         with pytest.raises(ValueError, match="Category name cannot be empty"):
             category.update_details("")
 
     def test_update_details_whitespace_name_raises_error(self):
         """Test that updating with whitespace-only name raises error."""
         category = CatalogCategory(name="Valid Name")
-        
+
         with pytest.raises(ValueError, match="Category name cannot be empty"):
             category.update_details("   ")
 
     def test_update_details_trims_whitespace(self):
         """Test that name is trimmed of whitespace."""
         category = CatalogCategory(name="Old Name")
-        
+
         category.update_details("  New Name  ")
         assert category.name == "New Name"
 
@@ -349,10 +350,10 @@ class TestCatalogCategory:
         """Test catalog category equality based on ID."""
         category1 = CatalogCategory(name="Category 1")
         category2 = CatalogCategory(name="Category 2")
-        
+
         # Different categories should not be equal
         assert category1 != category2
-        
+
         # Same category should be equal to itself
         assert category1 == category1
 
@@ -362,7 +363,7 @@ class TestCatalogCategory:
             name="Test Category",
             description="Test description",
         )
-        
+
         category_dict = category.model_dump()
         assert category_dict["name"] == "Test Category"
         assert category_dict["description"] == "Test description"
@@ -378,7 +379,7 @@ class TestCatalogBrand:
             description="Technology company",
             logo_url="https://example.com/apple-logo.png",
         )
-        
+
         assert brand.name == "Apple"
         assert brand.description == "Technology company"
         assert brand.logo_url == "https://example.com/apple-logo.png"
@@ -386,7 +387,7 @@ class TestCatalogBrand:
     def test_catalog_brand_creation_minimal(self):
         """Test catalog brand creation with minimal fields."""
         brand = CatalogBrand(name="Samsung")
-        
+
         assert brand.name == "Samsung"
         assert brand.description is None
         assert brand.logo_url is None
@@ -398,7 +399,7 @@ class TestCatalogBrand:
             description="Old description",
             logo_url="https://old-logo.png",
         )
-        
+
         brand.update_details(
             "New Name",
             "New description",
@@ -415,7 +416,7 @@ class TestCatalogBrand:
             description="Old description",
             logo_url="https://old-logo.png",
         )
-        
+
         brand.update_details("New Name")
         assert brand.name == "New Name"
         assert brand.description is None  # Description is not preserved when not provided
@@ -424,21 +425,21 @@ class TestCatalogBrand:
     def test_update_details_empty_name_raises_error(self):
         """Test that updating with empty name raises error."""
         brand = CatalogBrand(name="Valid Name")
-        
+
         with pytest.raises(ValueError, match="Brand name cannot be empty"):
             brand.update_details("")
 
     def test_update_details_whitespace_name_raises_error(self):
         """Test that updating with whitespace-only name raises error."""
         brand = CatalogBrand(name="Valid Name")
-        
+
         with pytest.raises(ValueError, match="Brand name cannot be empty"):
             brand.update_details("   ")
 
     def test_update_details_trims_whitespace(self):
         """Test that name is trimmed of whitespace."""
         brand = CatalogBrand(name="Old Name")
-        
+
         brand.update_details("  New Name  ")
         assert brand.name == "New Name"
 
@@ -446,10 +447,10 @@ class TestCatalogBrand:
         """Test catalog brand equality based on ID."""
         brand1 = CatalogBrand(name="Brand 1")
         brand2 = CatalogBrand(name="Brand 2")
-        
+
         # Different brands should not be equal
         assert brand1 != brand2
-        
+
         # Same brand should be equal to itself
         assert brand1 == brand1
 
@@ -460,7 +461,7 @@ class TestCatalogBrand:
             description="Test description",
             logo_url="https://test-logo.png",
         )
-        
+
         brand_dict = brand.model_dump()
         assert brand_dict["name"] == "Test Brand"
         assert brand_dict["description"] == "Test description"

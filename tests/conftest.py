@@ -1,14 +1,11 @@
 """Pytest configuration and fixtures for database tests."""
 
-import pytest
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy import text
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from eshop.core.database.base import Base
-from eshop.core.database.session import AsyncSessionLocal
-
 
 # Remove the custom event_loop fixture to avoid pytest-asyncio warning
 # pytest-asyncio will handle event loop management automatically
@@ -18,13 +15,13 @@ from eshop.core.database.session import AsyncSessionLocal
 async def mock_db_session():
     """Create a mock database session for testing."""
     mock_session = AsyncMock(spec=AsyncSession)
-    
+
     # Mock common session methods
     mock_session.execute = AsyncMock()
     mock_session.commit = AsyncMock()
     mock_session.rollback = AsyncMock()
     mock_session.close = AsyncMock()
-    
+
     return mock_session
 
 
@@ -32,11 +29,11 @@ async def mock_db_session():
 async def mock_db_engine():
     """Create a mock database engine for testing."""
     mock_engine = AsyncMock()
-    
+
     # Mock engine methods
     mock_engine.begin = AsyncMock()
     mock_engine.dispose = AsyncMock()
-    
+
     return mock_engine
 
 
@@ -79,22 +76,22 @@ async def test_db_session():
         "sqlite+aiosqlite:///:memory:",
         echo=False,
     )
-    
+
     # Create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     # Create session factory
     TestingSessionLocal = async_sessionmaker(
         engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-    
+
     # Create session
     async with TestingSessionLocal() as session:
         yield session
-    
+
     # Cleanup
     await engine.dispose()
 
@@ -185,15 +182,15 @@ def pytest_collection_modifyitems(config, items):
         # Add database marker to tests that use database fixtures
         if "db_session" in item.fixturenames or "test_db_session" in item.fixturenames:
             item.add_marker(pytest.mark.database)
-        
+
         # Add migration marker to migration tests
         if "migration" in item.name.lower():
             item.add_marker(pytest.mark.migration)
-        
+
         # Add seeding marker to seeding tests
         if "seed" in item.name.lower():
             item.add_marker(pytest.mark.seeding)
-        
+
         # Add integration marker to integration tests
         if "integration" in item.name.lower():
             item.add_marker(pytest.mark.integration)

@@ -1,11 +1,15 @@
 """Comprehensive tests for Catalog domain models."""
 
-import pytest
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
+from eshop.modules.catalog.domain.events import (
+    ProductCreatedEvent,
+    ProductPriceChangedEvent,
+)
 from eshop.modules.catalog.domain.models import Product
-from eshop.modules.catalog.domain.events import ProductCreatedEvent, ProductPriceChangedEvent
 
 
 class TestProduct:
@@ -22,7 +26,7 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         assert product.id == product_id
         assert product.name == "Test Product"
         assert product.category == ["Electronics"]
@@ -41,7 +45,7 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         assert product.category == ["Electronics", "Smartphones"]
 
     def test_product_creation_with_empty_category(self):
@@ -55,13 +59,13 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         assert product.category == []
 
     def test_product_name_validation_empty(self):
         """Test that empty product name raises validation error."""
         product_id = uuid4()
-        
+
         with pytest.raises(ValueError, match="Product name cannot be empty"):
             Product.create(
                 product_id=product_id,
@@ -75,7 +79,7 @@ class TestProduct:
     def test_product_name_validation_whitespace(self):
         """Test that whitespace-only product name raises validation error."""
         product_id = uuid4()
-        
+
         with pytest.raises(ValueError, match="Product name cannot be empty"):
             Product.create(
                 product_id=product_id,
@@ -97,13 +101,13 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         assert product.name == "Test Product"
 
     def test_product_price_validation_zero(self):
         """Test that zero price raises validation error."""
         product_id = uuid4()
-        
+
         with pytest.raises(ValueError, match="Input should be greater than 0"):
             Product.create(
                 product_id=product_id,
@@ -117,7 +121,7 @@ class TestProduct:
     def test_product_price_validation_negative(self):
         """Test that negative price raises validation error."""
         product_id = uuid4()
-        
+
         with pytest.raises(ValueError, match="Input should be greater than 0"):
             Product.create(
                 product_id=product_id,
@@ -139,7 +143,7 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         assert len(product.domain_events) == 1
         event = product.domain_events[0]
         assert isinstance(event, ProductCreatedEvent)
@@ -156,10 +160,10 @@ class TestProduct:
             image_file="old.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Clear domain events from creation
         product.clear_domain_events()
-        
+
         product.update(
             name="New Name",
             category=["New Category"],
@@ -167,7 +171,7 @@ class TestProduct:
             image_file="new.jpg",
             price=Decimal("149.99"),
         )
-        
+
         assert product.name == "New Name"
         assert product.category == ["New Category"]
         assert product.description == "New description"
@@ -185,10 +189,10 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Clear domain events from creation
         product.clear_domain_events()
-        
+
         product.update(
             name="Updated Name",
             category=["Electronics"],
@@ -196,7 +200,7 @@ class TestProduct:
             image_file="updated.jpg",
             price=Decimal("99.99"),  # Same price
         )
-        
+
         # Should not have any domain events since price didn't change
         assert len(product.domain_events) == 0
 
@@ -211,10 +215,10 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Clear domain events from creation
         product.clear_domain_events()
-        
+
         product.update(
             name="Updated Name",
             category=["Electronics"],
@@ -222,7 +226,7 @@ class TestProduct:
             image_file="updated.jpg",
             price=Decimal("149.99"),  # Different price
         )
-        
+
         # Should have a price change event
         assert len(product.domain_events) == 1
         event = product.domain_events[0]
@@ -240,10 +244,10 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Clear domain events from creation
         product.clear_domain_events()
-        
+
         # First price change
         product.update(
             name="Updated Name",
@@ -252,7 +256,7 @@ class TestProduct:
             image_file="updated.jpg",
             price=Decimal("149.99"),
         )
-        
+
         # Second price change
         product.update(
             name="Updated Name",
@@ -261,7 +265,7 @@ class TestProduct:
             image_file="updated.jpg",
             price=Decimal("199.99"),
         )
-        
+
         # Should have two price change events
         assert len(product.domain_events) == 2
         assert all(isinstance(event, ProductPriceChangedEvent) for event in product.domain_events)
@@ -270,7 +274,7 @@ class TestProduct:
         """Test product equality based on ID."""
         product_id1 = uuid4()
         product_id2 = uuid4()
-        
+
         product1 = Product.create(
             product_id=product_id1,
             name="Product 1",
@@ -279,7 +283,7 @@ class TestProduct:
             image_file="product1.jpg",
             price=Decimal("99.99"),
         )
-        
+
         product2 = Product.create(
             product_id=product_id2,
             name="Product 2",
@@ -288,10 +292,10 @@ class TestProduct:
             image_file="product2.jpg",
             price=Decimal("149.99"),
         )
-        
+
         # Different products should not be equal
         assert product1 != product2
-        
+
         # Same product should be equal to itself
         assert product1 == product1
 
@@ -306,7 +310,7 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         product_dict = product.model_dump()
         assert product_dict["id"] == product_id
         assert product_dict["name"] == "Test Product"
@@ -326,13 +330,13 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         product_copy = product.model_copy()
-        
+
         # Should be equal but different objects
         assert product == product_copy
         assert product is not product_copy
-        
+
         # Should have same values
         assert product_copy.name == "Test Product"
         assert product_copy.category == ["Electronics"]
@@ -351,12 +355,12 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Test domain events functionality
         assert hasattr(product, "add_domain_event")
         assert hasattr(product, "clear_domain_events")
         assert hasattr(product, "domain_events_copy")
-        
+
         # Test that it's an aggregate (has version)
         assert hasattr(product, "version")
         assert product.version == 1
@@ -372,10 +376,10 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Initial version should be 1
         assert product.version == 1
-        
+
         # Update should increment version
         product.update(
             name="Updated Name",
@@ -384,7 +388,7 @@ class TestProduct:
             image_file="updated.jpg",
             price=Decimal("149.99"),
         )
-        
+
         assert product.version == 2
 
     def test_product_domain_events_immutability(self):
@@ -398,10 +402,10 @@ class TestProduct:
             image_file="test.jpg",
             price=Decimal("99.99"),
         )
-        
+
         # Should have one event from creation
         assert len(product.domain_events) == 1
-        
+
         # Getting domain_events_copy should return a copy
         events_copy = product.domain_events_copy
         assert events_copy is not product.domain_events

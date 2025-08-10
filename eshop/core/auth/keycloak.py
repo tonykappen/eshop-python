@@ -164,10 +164,10 @@ async def get_current_user_optional(
 def require_role(required_role: str) -> Callable[[KeycloakUser], KeycloakUser]:
     """Dependency to require specific role."""
 
-    def role_checker(
+    async def role_checker(
         current_user: KeycloakUser = Depends(get_current_user),
     ) -> KeycloakUser:
-        has_role = keycloak_service.check_role(current_user, required_role)
+        has_role = await keycloak_service.check_role(current_user, required_role)
         if not has_role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

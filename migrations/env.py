@@ -2,15 +2,16 @@
 
 import asyncio
 from logging.config import fileConfig
+
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from alembic import context
 
 # Import all models to ensure they are registered with SQLAlchemy
 from eshop.core.database.base import Base
-from eshop.modules.catalog.infrastructure.orm_models import *
 from eshop.modules.basket.infrastructure.orm_models import *
+from eshop.modules.catalog.infrastructure.orm_models import *
 from eshop.modules.ordering.infrastructure.orm_models import *
 
 # this is the Alembic Config object, which provides

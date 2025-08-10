@@ -16,35 +16,35 @@ class TestSettings:
         """Test default settings values."""
         with patch.dict(os.environ, {}, clear=True):
             settings = Settings()
-            
+
             # Test application defaults
             assert settings.name == "eShop Modular Monolith"
             assert settings.version == "0.1.0"
             assert settings.debug is True  # Default is True in current implementation
             assert settings.environment == "development"
-            
+
             # Test server defaults
             assert settings.host == "0.0.0.0"
             assert settings.port == 8000
-            
+
             # Test security defaults
             assert settings.secret_key == "your-secret-key-here-change-in-production"
             assert settings.algorithm == "HS256"
             assert settings.access_token_expire_minutes == 30
-            
+
             # Test database defaults
             assert settings.database_host == "localhost"
             assert settings.database_port == 5432
             assert settings.database_name == "eshop"
             assert settings.database_user == "eshop_user"
             assert settings.database_password == "eshop_password"
-            
+
             # Test cache defaults
             assert settings.redis_url == "redis://localhost:6379"
-            
+
             # Test messaging defaults
             assert settings.rabbitmq_url == "amqp://guest:guest@localhost:5672/"
-            
+
             # Test logging defaults
             assert settings.log_level == "INFO"
             assert settings.log_enable_request_logging is True
@@ -71,10 +71,10 @@ class TestSettings:
             "LOG_LEVEL": "DEBUG",
             "LOG_ENABLE_REQUEST_LOGGING": "false"
         }
-        
+
         with patch.dict(os.environ, test_env, clear=True):
             settings = Settings()
-            
+
             # Test overridden values
             assert settings.name == "Test eShop"
             assert settings.version == "1.0.0"
@@ -98,25 +98,25 @@ class TestSettings:
     def test_database_connection_string(self):
         """Test database connection string generation and format."""
         settings = Settings()
-        
+
         # Test with default values
         connection_string = settings.database_connection_string
         expected = "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"
         assert connection_string == expected
-        
+
         # Test format validation
         assert isinstance(connection_string, str)
         assert connection_string.startswith("postgresql+asyncpg://")
         assert "@" in connection_string
         assert ":" in connection_string
-        
+
         # Test structure validation
         parts = connection_string.split("://")
         assert len(parts) == 2
-        
+
         protocol = parts[0]
         connection = parts[1]
-        
+
         assert protocol == "postgresql+asyncpg"
         assert "@" in connection
         assert ":" in connection
@@ -126,7 +126,7 @@ class TestSettings:
     def test_legacy_properties(self):
         """Test legacy property methods for backward compatibility."""
         settings = Settings()
-        
+
         # Test legacy database properties - they should be the same as the new ones
         assert settings.database_url == "postgresql://eshop_user:eshop_password@localhost:5432/eshop"  # This is a field
         assert settings.database_connection_string == "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"  # This is a property
@@ -143,7 +143,7 @@ class TestSettings:
             with pytest.raises(ValidationError) as exc_info:
                 Settings()
             assert "PORT" in str(exc_info.value)
-        
+
         # Test invalid access token expire minutes
         with patch.dict(os.environ, {"ACCESS_TOKEN_EXPIRE_MINUTES": "invalid"}, clear=True):
             with pytest.raises(ValidationError) as exc_info:
@@ -172,7 +172,7 @@ class TestSettings:
         """Test settings string representation."""
         settings = Settings()
         repr_str = repr(settings)
-        
+
         # Should contain class name and key attributes
         assert "Settings" in repr_str
         assert "name=" in repr_str
@@ -182,7 +182,7 @@ class TestSettings:
         """Test settings equality comparison."""
         settings1 = Settings()
         settings2 = Settings()
-        
+
         # Same default values should be equal
         assert settings1 == settings2
 
@@ -190,7 +190,7 @@ class TestSettings:
         """Test settings copying."""
         settings = Settings()
         settings_copy = settings.model_copy()
-        
+
         # Should be equal but different objects
         assert settings == settings_copy
         assert settings is not settings_copy
@@ -199,7 +199,7 @@ class TestSettings:
         """Test settings JSON serialization."""
         settings = Settings()
         json_data = settings.model_dump_json()
-        
+
         # Should be valid JSON
         import json
         parsed = json.loads(json_data)
@@ -211,7 +211,7 @@ class TestSettings:
         """Test settings dictionary conversion."""
         settings = Settings()
         settings_dict = settings.model_dump()
-        
+
         # Should contain all expected keys
         expected_keys = [
             "name", "version", "debug", "environment", "host", "port",
@@ -219,7 +219,7 @@ class TestSettings:
             "database_host", "database_port", "database_name", "database_user", "database_password",
             "redis_url", "rabbitmq_url", "log_level", "log_enable_request_logging"
         ]
-        
+
         for key in expected_keys:
             assert key in settings_dict
 
@@ -237,16 +237,16 @@ class TestSettings:
         with patch.dict(os.environ, {"DEBUG": "true"}, clear=True):
             settings = Settings()
             assert settings.debug is True
-        
+
         with patch.dict(os.environ, {"DEBUG": "1"}, clear=True):
             settings = Settings()
             assert settings.debug is True
-        
+
         # Test false values
         with patch.dict(os.environ, {"DEBUG": "false"}, clear=True):
             settings = Settings()
             assert settings.debug is False
-        
+
         with patch.dict(os.environ, {"DEBUG": "0"}, clear=True):
             settings = Settings()
             assert settings.debug is False
@@ -256,7 +256,7 @@ class TestSettings:
         with patch.dict(os.environ, {"PORT": "9000"}, clear=True):
             settings = Settings()
             assert settings.port == 9000
-        
+
         with patch.dict(os.environ, {"ACCESS_TOKEN_EXPIRE_MINUTES": "60"}, clear=True):
             settings = Settings()
             assert settings.access_token_expire_minutes == 60
@@ -276,7 +276,7 @@ class TestSettings:
     def test_settings_nested_validation(self):
         """Test nested validation in settings."""
         settings = Settings()
-        
+
         # Database connection string should be valid
         assert settings.database_connection_string is not None
         assert len(settings.database_connection_string) > 0
@@ -284,7 +284,7 @@ class TestSettings:
     def test_settings_immutability(self):
         """Test that settings are immutable after creation."""
         settings = Settings()
-        
+
         # Pydantic models are not immutable by default, so this test should pass
         # without raising TypeError
         assert settings is not None

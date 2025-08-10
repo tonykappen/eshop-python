@@ -52,7 +52,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
 
     async def handle(
         self, request: TRequest, next_handler: Callable[[], TResponse]
-    ) -> TResponse:  # type: ignore
+    ) -> TResponse:
         """Handle validation - matches .NET ValidationBehavior.Handle()."""
         # For now, we'll use Pydantic validation
         # In a full implementation, this would use FluentValidation equivalent
@@ -68,7 +68,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
                     f"Validation failed: {validation_error}"
                 ) from validation_error
 
-        result = await next_handler()
+        result = next_handler()
         return result
 
 
@@ -80,7 +80,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
 
     async def handle(
         self, request: TRequest, next_handler: Callable[[], TResponse]
-    ) -> TResponse:  # type: ignore
+    ) -> TResponse:
         """Handle logging - matches .NET LoggingBehavior.Handle()."""
         request_type = type(request).__name__
         response_type = self._get_response_type(request)
@@ -95,7 +95,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         start_time = time.time()
 
         try:
-            response = await next_handler()
+            response = next_handler()
 
             elapsed_time = time.time() - start_time
 
@@ -115,12 +115,12 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
             self.logger.error("[ERROR] Failed to handle %s: %s", request_type, str(e))
             raise
 
-    def _get_response_type(self, request: TRequest) -> str:  # type: ignore
+    def _get_response_type(self, request: TRequest) -> str:
         """Get the expected response type for the request."""
         # Try to extract response type from generic parameters
         if hasattr(request, "__orig_bases__"):
             for base in request.__orig_bases__:
                 if hasattr(base, "__args__") and len(base.__args__) > 1:
-                    return base.__args__[1].__name__
+                    return str(base.__args__[1].__name__)
 
         return "Unknown"

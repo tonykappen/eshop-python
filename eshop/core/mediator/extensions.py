@@ -76,13 +76,13 @@ def _is_request_handler(cls: type[Any]) -> bool:
     return False
 
 
-def _extract_request_type(handler_class: type[Any]) -> type[Any] | None:  # type: ignore
+def _extract_request_type(handler_class: type[Any]) -> type[Any] | None:
     """Extract the request type from a handler class."""
     # Check generic parameters
     if hasattr(handler_class, "__orig_bases__"):
         for base in handler_class.__orig_bases__:
             if hasattr(base, "__args__") and len(base.__args__) > 0:
-                return base.__args__[0]
+                return base.__args__[0]  # type: ignore
 
     # Check method signature
     if hasattr(handler_class, "handle"):
@@ -94,7 +94,7 @@ def _extract_request_type(handler_class: type[Any]) -> type[Any] | None:  # type
                     param_name == "request"
                     and param.annotation != inspect.Parameter.empty
                 ):
-                    return param.annotation
+                    return param.annotation  # type: ignore
 
     return None
 

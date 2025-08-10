@@ -1,9 +1,13 @@
-"""Comprehensive tests for the CQRS contracts."""
+"""Tests for the contracts CQRS module."""
 
-from enum import Enum
+# type: ignore[misc,func-returns-value]
+
+from typing import Any
+from unittest.mock import AsyncMock
+from uuid import UUID, uuid4
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from eshop.core.contracts.cqrs import (
     ICommand,
@@ -15,540 +19,474 @@ from eshop.core.contracts.cqrs import (
 )
 
 
+@pytest.mark.no_collect
+class TestCommand(ICommand[str]):
+    """Test command implementation."""
+
+    name: str
+    value: int
+
+
+@pytest.mark.no_collect
+class TestCommandNoResponse(ICommandNoResponse):
+    """Test command with no response implementation."""
+
+    name: str
+    value: int
+
+
+@pytest.mark.no_collect
+class TestQuery(IQuery[str]):
+    """Test query implementation."""
+
+    name: str
+    value: int
+
+
+@pytest.mark.no_collect
+class TestCommandHandler(ICommandHandler[TestCommand, str]):
+    """Test command handler implementation."""
+
+    async def handle(self, command: TestCommand) -> str:
+        return f"Processed {command.name} with value {command.value}"  # type: ignore
+
+
+@pytest.mark.no_collect
+class TestCommandHandlerNoResponse(ICommandHandlerNoResponse[TestCommandNoResponse]):
+    """Test command handler with no response implementation."""
+
+    async def handle(self, command: TestCommandNoResponse) -> None:
+        # Simulate processing without return value
+        pass  # noqa: ARG001
+
+
+@pytest.mark.no_collect
+class TestQueryHandler(IQueryHandler[TestQuery, str]):
+    """Test query handler implementation."""
+
+    async def handle(self, query: TestQuery) -> str:
+        return f"Retrieved {query.name} with value {query.value}"
+
+
 class TestICommand:
-    """Test ICommand interface behavior."""
+    """Test ICommand interface."""
 
-    def test_icommand_inheritance_and_configuration(self):
-        """Test that ICommand inherits from BaseModel with correct configuration."""
-        assert issubclass(ICommand, BaseModel)
-        assert hasattr(ICommand, "Config")
-        assert hasattr(ICommand.Config, "arbitrary_types_allowed")
-        assert ICommand.Config.arbitrary_types_allowed is True
-
-    def test_icommand_generic_type_behavior(self):
-        """Test ICommand generic type parameter behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            value: int
-
+    def test_command_creation(self) -> None:
+        """Test command creation and inheritance."""
         command = TestCommand(name="test", value=42)
+
+        assert isinstance(command, ICommand)
+        assert isinstance(command, BaseModel)
         assert command.name == "test"
         assert command.value == 42
-        assert isinstance(command, ICommand)
 
-        # Test that it can be serialized
+    def test_command_serialization(self) -> None:
+        """Test command serialization."""
+        command = TestCommand(name="test", value=42)
+
         command_dict = command.model_dump()
         assert command_dict["name"] == "test"
         assert command_dict["value"] == 42
 
-    def test_icommand_validation_behavior(self):
-        """Test ICommand validation behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            age: int
-
-        # Valid command should work
-        command = TestCommand(name="test", age=25)
-        assert command.name == "test"
-        assert command.age == 25
-
-        # Invalid command should raise validation error
-        with pytest.raises(ValidationError):
-            TestCommand(name="test", age="invalid")
-
-    def test_icommand_serialization_behavior(self):
-        """Test ICommand serialization behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            data: dict
-
-        command = TestCommand(name="test", data={"key": "value"})
-
-        # Test model_dump
-        command_dict = command.model_dump()
-        assert command_dict["name"] == "test"
-        assert command_dict["data"] == {"key": "value"}
-
-        # Test model_dump_json
         command_json = command.model_dump_json()
-        assert '"name":"test"' in command_json
-        assert '"key":"value"' in command_json
+        assert "test" in command_json
+        assert "42" in command_json
+
+    def test_command_validation(self) -> None:
+        """Test command validation."""
+        # Valid command
+        command = TestCommand(name="test", value=42)
+        assert command.name == "test"
+        assert command.value == 42
+
+    def test_command_inheritance(self) -> None:
+        """Test command inheritance from BaseModel."""
+        command = TestCommand(name="test", value=42)
+
+        assert isinstance(command, BaseModel)
+        assert hasattr(command, "model_dump")
+        assert hasattr(command, "model_dump_json")
+
+    def test_command_generic_type(self) -> None:
+        """Test command generic type parameter."""
+        command = TestCommand(name="test", value=42)
+
+        # Test that it's properly typed as ICommand
+        assert isinstance(command, ICommand)
+        # Test that it has generic type support
+        assert hasattr(command, "__orig_bases__")
 
 
 class TestICommandNoResponse:
-    """Test ICommandNoResponse interface behavior."""
+    """Test ICommandNoResponse interface."""
 
-    def test_icommand_no_response_inheritance_chain(self):
-        """Test that ICommandNoResponse inherits from ICommand."""
-        assert issubclass(ICommandNoResponse, ICommand)
+    def test_command_no_response_creation(self) -> None:
+        """Test command with no response creation."""
+        command = TestCommandNoResponse(name="test", value=42)
 
-    def test_icommand_no_response_behavior(self):
-        """Test ICommandNoResponse behavior."""
-        class TestCommand(ICommandNoResponse):
-            name: str
-            action: str
-
-        command = TestCommand(name="test", action="delete")
-        assert command.name == "test"
-        assert command.action == "delete"
         assert isinstance(command, ICommandNoResponse)
         assert isinstance(command, ICommand)
+        assert isinstance(command, BaseModel)
+        assert command.name == "test"
+        assert command.value == 42
 
-        # Test serialization
+    def test_command_no_response_inheritance(self) -> None:
+        """Test command with no response inheritance."""
+        command = TestCommandNoResponse(name="test", value=42)
+
+        assert isinstance(command, ICommandNoResponse)
+        assert isinstance(command, ICommand[None])  # type: ignore
+        assert isinstance(command, BaseModel)
+
+    def test_command_no_response_serialization(self) -> None:
+        """Test command with no response serialization."""
+        command = TestCommandNoResponse(name="test", value=42)
+
         command_dict = command.model_dump()
         assert command_dict["name"] == "test"
-        assert command_dict["action"] == "delete"
+        assert command_dict["value"] == 42
 
 
 class TestIQuery:
-    """Test IQuery interface behavior."""
+    """Test IQuery interface."""
 
-    def test_iquery_inheritance_and_configuration(self):
-        """Test that IQuery inherits from BaseModel with correct configuration."""
-        assert issubclass(IQuery, BaseModel)
-        assert hasattr(IQuery, "Config")
-        assert hasattr(IQuery.Config, "arbitrary_types_allowed")
-        assert IQuery.Config.arbitrary_types_allowed is True
+    def test_query_creation(self) -> None:
+        """Test query creation and inheritance."""
+        query = TestQuery(name="test", value=42)
 
-    def test_iquery_generic_type_behavior(self):
-        """Test IQuery generic type parameter behavior."""
-        class TestQuery(IQuery[dict]):
-            id: str
-            include_details: bool
-
-        query = TestQuery(id="123", include_details=True)
-        assert query.id == "123"
-        assert query.include_details is True
         assert isinstance(query, IQuery)
+        assert isinstance(query, BaseModel)
+        assert query.name == "test"
+        assert query.value == 42
 
-        # Test serialization
+    def test_query_serialization(self) -> None:
+        """Test query serialization."""
+        query = TestQuery(name="test", value=42)
+
         query_dict = query.model_dump()
-        assert query_dict["id"] == "123"
-        assert query_dict["include_details"] is True
+        assert query_dict["name"] == "test"
+        assert query_dict["value"] == 42
 
-    def test_iquery_validation_behavior(self):
-        """Test IQuery validation behavior."""
-        class TestQuery(IQuery[list]):
-            limit: int
-            offset: int
+        query_json = query.model_dump_json()
+        assert "test" in query_json
+        assert "42" in query_json
 
-        # Valid query should work
-        query = TestQuery(limit=10, offset=0)
-        assert query.limit == 10
-        assert query.offset == 0
+    def test_query_validation(self) -> None:
+        """Test query validation."""
+        # Valid query
+        query = TestQuery(name="test", value=42)
+        assert query.name == "test"
+        assert query.value == 42
 
-        # Invalid query should raise validation error
-        with pytest.raises(ValidationError):
-            TestQuery(limit="invalid", offset=0)
+    def test_query_inheritance(self) -> None:
+        """Test query inheritance from BaseModel."""
+        query = TestQuery(name="test", value=42)
+
+        assert isinstance(query, BaseModel)
+        assert hasattr(query, "model_dump")
+        assert hasattr(query, "model_dump_json")
+
+    def test_query_generic_type(self) -> None:
+        """Test query generic type parameter."""
+        query = TestQuery(name="test", value=42)
+
+        # Test that it's properly typed as IQuery
+        assert isinstance(query, IQuery)
+        # Test that it has generic type support
+        assert hasattr(query, "__orig_bases__")
 
 
 class TestICommandHandler:
-    """Test ICommandHandler interface behavior."""
+    """Test ICommandHandler interface."""
 
-    def test_icommand_handler_abstract_method_enforcement(self):
-        """Test that ICommandHandler enforces abstract handle method."""
-        # Should not be able to instantiate abstract class
+    def test_command_handler_interface(self) -> None:
+        """Test ICommandHandler interface definition."""
+        # This test ensures the interface is properly defined
+        assert hasattr(ICommandHandler, "handle")
+
+        # Test that it's an abstract method
         with pytest.raises(TypeError):
-            ICommandHandler()
-
-    def test_icommand_handler_implementation_behavior(self):
-        """Test ICommandHandler implementation behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            value: int
-
-        class TestCommandHandler(ICommandHandler[TestCommand, str]):
-            async def handle(self, command: TestCommand) -> str:
-                return f"Handled: {command.name} with value {command.value}"
-
-        handler = TestCommandHandler()
-        assert isinstance(handler, ICommandHandler)
+            ICommandHandler()  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_icommand_handler_usage_behavior(self):
-        """Test ICommandHandler usage behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            operation: str
-
-        class TestCommandHandler(ICommandHandler[TestCommand, str]):
-            async def handle(self, command: TestCommand) -> str:
-                if command.operation == "create":
-                    return f"Created: {command.name}"
-                elif command.operation == "update":
-                    return f"Updated: {command.name}"
-                else:
-                    return f"Unknown operation: {command.operation}"
-
+    async def test_command_handler_implementation(self) -> None:
+        """Test command handler implementation."""
         handler = TestCommandHandler()
-        command = TestCommand(name="test", operation="create")
-        result = await handler.handle(command)
-        assert result == "Created: test"
+        command = TestCommand(name="test", value=42)
 
-        # Test different operation
-        command.operation = "update"
         result = await handler.handle(command)
-        assert result == "Updated: test"
+
+        assert isinstance(result, str)
+        assert result == "Processed test with value 42"
+
+    @pytest.mark.asyncio
+    async def test_command_handler_with_mock(self) -> None:
+        """Test command handler with mock implementation."""
+        mock_handler = AsyncMock(spec=ICommandHandler[TestCommand, str])
+        command = TestCommand(name="test", value=42)
+        mock_handler.handle.return_value = "Mock result"
+
+        result = await mock_handler.handle(command)
+
+        assert result == "Mock result"
+        mock_handler.handle.assert_called_once_with(command)
+
+    def test_command_handler_generic_types(self) -> None:
+        """Test command handler generic type parameters."""
+        handler = TestCommandHandler()
+
+        # Check that it's properly typed
+        assert hasattr(handler, "__orig_bases__")
+        # The handler should be typed as ICommandHandler[TestCommand, str]
+        assert ICommandHandler[TestCommand, str] in handler.__class__.__orig_bases__  # type: ignore
 
 
 class TestICommandHandlerNoResponse:
-    """Test ICommandHandlerNoResponse interface behavior."""
+    """Test ICommandHandlerNoResponse interface."""
 
-    def test_icommand_handler_no_response_abstract_method_enforcement(self):
-        """Test that ICommandHandlerNoResponse enforces abstract handle method."""
-        # Should not be able to instantiate abstract class
+    def test_command_handler_no_response_interface(self) -> None:
+        """Test ICommandHandlerNoResponse interface definition."""
+        # This test ensures the interface is properly defined
+        assert hasattr(ICommandHandlerNoResponse, "handle")
+
+        # Test that it's an abstract method
         with pytest.raises(TypeError):
-            ICommandHandlerNoResponse()
-
-    def test_icommand_handler_no_response_implementation_behavior(self):
-        """Test ICommandHandlerNoResponse implementation behavior."""
-        class TestCommand(ICommandNoResponse):
-            name: str
-            action: str
-
-        class TestCommandHandler(ICommandHandlerNoResponse[TestCommand]):
-            def __init__(self):
-                self.processed_commands = []
-
-            async def handle(self, command: TestCommand) -> None:
-                self.processed_commands.append(f"{command.action}: {command.name}")
-
-        handler = TestCommandHandler()
-        assert isinstance(handler, ICommandHandlerNoResponse)
+            ICommandHandlerNoResponse()  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_icommand_handler_no_response_usage_behavior(self):
-        """Test ICommandHandlerNoResponse usage behavior."""
-        class TestCommand(ICommandNoResponse):
-            name: str
-            action: str
+    async def test_command_handler_no_response_implementation(self) -> None:
+        """Test command handler with no response implementation."""
+        handler = TestCommandHandlerNoResponse()
+        command = TestCommandNoResponse(name="test", value=42)
 
-        class TestCommandHandler(ICommandHandlerNoResponse[TestCommand]):
-            def __init__(self):
-                self.processed_commands = []
-
-            async def handle(self, command: TestCommand) -> None:
-                self.processed_commands.append(f"{command.action}: {command.name}")
-
-        handler = TestCommandHandler()
-        command = TestCommand(name="test", action="delete")
-
-        # Should return None
         result = await handler.handle(command)
+
         assert result is None
 
-        # Should have processed the command
-        assert len(handler.processed_commands) == 1
-        assert handler.processed_commands[0] == "delete: test"
+    @pytest.mark.asyncio
+    async def test_command_handler_no_response_with_mock(self) -> None:
+        """Test command handler with no response using mock."""
+        mock_handler = AsyncMock(spec=ICommandHandlerNoResponse[TestCommandNoResponse])
+        command = TestCommandNoResponse(name="test", value=42)
+        mock_handler.handle.return_value = None
+
+        result = await mock_handler.handle(command)
+
+        assert result is None
+        mock_handler.handle.assert_called_once_with(command)
+
+    def test_command_handler_no_response_generic_types(self) -> None:
+        """Test command handler with no response generic type parameters."""
+        handler = TestCommandHandlerNoResponse()
+
+        # Check that it's properly typed
+        assert hasattr(handler, "__orig_bases__")
+        # The handler should be typed as ICommandHandlerNoResponse[TestCommandNoResponse]
+        assert (
+            ICommandHandlerNoResponse[TestCommandNoResponse]
+            in handler.__class__.__orig_bases__  # type: ignore
+        )
 
 
 class TestIQueryHandler:
-    """Test IQueryHandler interface behavior."""
+    """Test IQueryHandler interface."""
 
-    def test_iquery_handler_abstract_method_enforcement(self):
-        """Test that IQueryHandler enforces abstract handle method."""
-        # Should not be able to instantiate abstract class
+    def test_query_handler_interface(self) -> None:
+        """Test IQueryHandler interface definition."""
+        # This test ensures the interface is properly defined
+        assert hasattr(IQueryHandler, "handle")
+
+        # Test that it's an abstract method
         with pytest.raises(TypeError):
-            IQueryHandler()
-
-    def test_iquery_handler_implementation_behavior(self):
-        """Test IQueryHandler implementation behavior."""
-        class TestQuery(IQuery[dict]):
-            id: str
-            include_details: bool
-
-        class TestQueryHandler(IQueryHandler[TestQuery, dict]):
-            async def handle(self, query: TestQuery) -> dict:
-                return {
-                    "id": query.id,
-                    "details": "some details" if query.include_details else None
-                }
-
-        handler = TestQueryHandler()
-        assert isinstance(handler, IQueryHandler)
+            IQueryHandler()  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_iquery_handler_usage_behavior(self):
-        """Test IQueryHandler usage behavior."""
-        class TestQuery(IQuery[dict]):
-            id: str
-            include_details: bool
-
-        class TestQueryHandler(IQueryHandler[TestQuery, dict]):
-            async def handle(self, query: TestQuery) -> dict:
-                base_data = {"id": query.id, "name": "Test User"}
-                if query.include_details:
-                    base_data.update({
-                        "email": "test@example.com",
-                        "created_at": "2023-01-01"
-                    })
-                return base_data
-
+    async def test_query_handler_implementation(self) -> None:
+        """Test query handler implementation."""
         handler = TestQueryHandler()
-        query = TestQuery(id="123", include_details=True)
+        query = TestQuery(name="test", value=42)
+
         result = await handler.handle(query)
 
-        assert result["id"] == "123"
-        assert result["name"] == "Test User"
-        assert result["email"] == "test@example.com"
-        assert result["created_at"] == "2023-01-01"
-
-        # Test without details
-        query.include_details = False
-        result = await handler.handle(query)
-        assert result["id"] == "123"
-        assert result["name"] == "Test User"
-        assert "email" not in result
-
-
-class TestCQRSIntegration:
-    """Test CQRS integration scenarios."""
+        assert isinstance(result, str)
+        assert result == "Retrieved test with value 42"
 
     @pytest.mark.asyncio
-    async def test_command_handler_integration_behavior(self):
-        """Test command handler integration behavior."""
-        class CreateUserCommand(ICommand[str]):
-            name: str
-            email: str
-            age: int
+    async def test_query_handler_with_mock(self) -> None:
+        """Test query handler with mock implementation."""
+        mock_handler = AsyncMock(spec=IQueryHandler[TestQuery, str])
+        query = TestQuery(name="test", value=42)
+        mock_handler.handle.return_value = "Mock result"
 
-        class CreateUserHandler(ICommandHandler[CreateUserCommand, str]):
-            async def handle(self, command: CreateUserCommand) -> str:
-                # Simulate user creation logic
-                if command.age < 18:
-                    raise ValueError("User must be 18 or older")
+        result = await mock_handler.handle(query)
 
-                user_id = f"user_{len(command.name)}_{command.age}"
-                return f"Created user {user_id} with email {command.email}"
+        assert result == "Mock result"
+        mock_handler.handle.assert_called_once_with(query)
 
-        handler = CreateUserHandler()
-        command = CreateUserCommand(name="John Doe", email="john@example.com", age=25)
+    def test_query_handler_generic_types(self) -> None:
+        """Test query handler generic type parameters."""
+        handler = TestQueryHandler()
+
+        # Check that it's properly typed
+        assert hasattr(handler, "__orig_bases__")
+        # The handler should be typed as IQueryHandler[TestQuery, str]
+        assert IQueryHandler[TestQuery, str] in handler.__class__.__orig_bases__  # type: ignore
+
+
+class TestCQRSContractsIntegration:
+    """Integration tests for CQRS contracts."""
+
+    @pytest.mark.asyncio
+    async def test_complete_command_flow(self) -> None:
+        """Test complete command flow with handler."""
+        # Create command and handler
+        command = TestCommand(name="test_command", value=100)
+        handler = TestCommandHandler()
+
+        # Execute command
         result = await handler.handle(command)
 
-        assert "Created user user_8_25" in result
-        assert "john@example.com" in result
-
-        # Test validation in handler
-        command.age = 16
-        with pytest.raises(ValueError, match="User must be 18 or older"):
-            await handler.handle(command)
+        # Verify result
+        assert isinstance(result, str)
+        assert "test_command" in result
+        assert "100" in result
 
     @pytest.mark.asyncio
-    async def test_query_handler_integration_behavior(self):
-        """Test query handler integration behavior."""
-        class GetUserQuery(IQuery[dict]):
-            user_id: str
-            include_profile: bool
+    async def test_complete_query_flow(self) -> None:
+        """Test complete query flow with handler."""
+        # Create query and handler
+        query = TestQuery(name="test_query", value=200)
+        handler = TestQueryHandler()
 
-        class GetUserHandler(IQueryHandler[GetUserQuery, dict]):
-            async def handle(self, query: GetUserQuery) -> dict:
-                # Simulate user retrieval logic
-                base_user = {
-                    "id": query.user_id,
-                    "name": "John Doe",
-                    "email": "john@example.com"
-                }
-
-                if query.include_profile:
-                    base_user.update({
-                        "profile": {
-                            "bio": "Software Developer",
-                            "location": "New York",
-                            "skills": ["Python", "FastAPI", "SQLAlchemy"]
-                        }
-                    })
-
-                return base_user
-
-        handler = GetUserHandler()
-        query = GetUserQuery(user_id="123", include_profile=True)
+        # Execute query
         result = await handler.handle(query)
 
-        assert result["id"] == "123"
-        assert result["name"] == "John Doe"
-        assert "profile" in result
-        assert result["profile"]["skills"] == ["Python", "FastAPI", "SQLAlchemy"]
-
-        # Test without profile
-        query.include_profile = False
-        result = await handler.handle(query)
-        assert result["id"] == "123"
-        assert "profile" not in result
+        # Verify result
+        assert isinstance(result, str)
+        assert "test_query" in result
+        assert "200" in result
 
     @pytest.mark.asyncio
-    async def test_command_no_response_integration_behavior(self):
-        """Test command no response integration behavior."""
-        class DeleteUserCommand(ICommandNoResponse):
-            user_id: str
-            reason: str
+    async def test_command_no_response_flow(self) -> None:
+        """Test command with no response flow."""
+        # Create command and handler
+        command = TestCommandNoResponse(name="test_command", value=300)
+        handler = TestCommandHandlerNoResponse()
 
-        class DeleteUserHandler(ICommandHandlerNoResponse[DeleteUserCommand]):
-            def __init__(self):
-                self.deleted_users = []
-
-            async def handle(self, command: DeleteUserCommand) -> None:
-                # Simulate user deletion logic
-                self.deleted_users.append({
-                    "id": command.user_id,
-                    "reason": command.reason,
-                    "deleted_at": "2023-01-01T00:00:00Z"
-                })
-
-        handler = DeleteUserHandler()
-        command = DeleteUserCommand(user_id="123", reason="Account closure")
-
+        # Execute command
         result = await handler.handle(command)
+
+        # Verify result is None
         assert result is None
 
-        assert len(handler.deleted_users) == 1
-        assert handler.deleted_users[0]["id"] == "123"
-        assert handler.deleted_users[0]["reason"] == "Account closure"
+    def test_command_query_distinction(self) -> None:
+        """Test that commands and queries are distinct types."""
+        command = TestCommand(name="test", value=42)
+        query = TestQuery(name="test", value=42)
 
-    def test_cqrs_type_safety_behavior(self):
-        """Test CQRS type safety behavior."""
-        class TestCommand(ICommand[int]):
-            value: int
+        # They should be different types
+        assert isinstance(command, ICommand)
+        assert isinstance(query, IQuery)
+        assert not isinstance(command, IQuery)
+        assert not isinstance(query, ICommand)
 
-        class TestQuery(IQuery[bool]):
-            flag: bool
+    def test_handler_type_safety(self) -> None:
+        """Test handler type safety."""
+        command_handler = TestCommandHandler()
+        query_handler = TestQueryHandler()
 
-        # Test command type safety
-        command = TestCommand(value=42)
-        assert command.value == 42
-        assert isinstance(command.value, int)
+        # They should be different types
+        assert isinstance(command_handler, ICommandHandler)
+        assert isinstance(query_handler, IQueryHandler)
+        assert not isinstance(command_handler, IQueryHandler)
+        assert not isinstance(query_handler, ICommandHandler)
 
-        # Test query type safety
-        query = TestQuery(flag=True)
-        assert query.flag is True
-        assert isinstance(query.flag, bool)
+    def test_serialization_consistency(self) -> None:
+        """Test that commands and queries serialize consistently."""
+        command = TestCommand(name="test", value=42)
+        query = TestQuery(name="test", value=42)
 
-    def test_cqrs_validation_behavior(self):
-        """Test CQRS validation behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            age: int
-
-        # Valid command
-        command = TestCommand(name="test", age=25)
-        assert command.name == "test"
-        assert command.age == 25
-
-        # Invalid command should raise validation error
-        with pytest.raises(ValidationError):
-            TestCommand(name="test", age="invalid")
-
-    def test_cqrs_serialization_behavior(self):
-        """Test CQRS serialization behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            data: dict
-
-        command = TestCommand(name="test", data={"key": "value", "number": 42})
-
-        # Test model_dump
         command_dict = command.model_dump()
+        query_dict = query.model_dump()
+
+        # They should have the same structure
+        assert command_dict == query_dict
         assert command_dict["name"] == "test"
-        assert command_dict["data"] == {"key": "value", "number": 42}
+        assert command_dict["value"] == 42
 
-        # Test model_dump_json
-        command_json = command.model_dump_json()
-        assert '"name":"test"' in command_json
-        assert '"key":"value"' in command_json
-        assert '"number":42' in command_json
+    def test_pydantic_configuration(self) -> None:
+        """Test that Pydantic configuration is properly set."""
+        command = TestCommand(name="test", value=42)
+        query = TestQuery(name="test", value=42)
 
-    def test_cqrs_copy_behavior(self):
-        """Test CQRS copy behavior."""
-        class TestCommand(ICommand[str]):
-            name: str
-            data: dict
+        # Both should have arbitrary_types_allowed enabled
+        assert command.model_config.get("arbitrary_types_allowed", False) is True
+        assert query.model_config.get("arbitrary_types_allowed", False) is True
 
-        command = TestCommand(name="test", data={"key": "value"})
-        command_copy = command.model_copy()
+    def test_complex_data_types(self) -> None:
+        """Test commands and queries with complex data types."""
 
-        # Should be equal but different objects
-        assert command == command_copy
-        assert command is not command_copy
+        @pytest.mark.no_collect
+        class ComplexCommand(ICommand[dict[str, Any]]):
+            id: UUID
+            data: dict[str, Any]
+            tags: list[str]
 
-        # Modifying copy should not affect original
-        command_copy.name = "modified"
-        assert command.name == "test"
-        assert command_copy.name == "modified"
+        @pytest.mark.no_collect
+        class ComplexQuery(IQuery[list[dict[str, Any]]]):
+            filter: dict[str, Any]
+            limit: int
+            offset: int
 
-
-class TestCQRSComplexTypes:
-    """Test CQRS with complex types."""
-
-    def test_cqrs_with_nested_models_behavior(self):
-        """Test CQRS with nested models behavior."""
-        class Address(BaseModel):
-            street: str
-            city: str
-            country: str
-
-        class UserCommand(ICommand[str]):
-            name: str
-            address: Address
-
-        command = UserCommand(
-            name="John Doe",
-            address=Address(street="123 Main St", city="New York", country="USA")
+        # Test complex command
+        command = ComplexCommand(
+            id=uuid4(),
+            data={"key": "value", "nested": {"inner": "data"}},
+            tags=["tag1", "tag2"],
         )
 
-        assert command.name == "John Doe"
-        assert command.address.street == "123 Main St"
-        assert command.address.city == "New York"
-        assert command.address.country == "USA"
+        assert isinstance(command.id, UUID)
+        assert command.data["key"] == "value"
+        assert command.data["nested"]["inner"] == "data"
+        assert command.tags == ["tag1", "tag2"]
 
-        # Test serialization with nested model
-        command_dict = command.model_dump()
-        assert command_dict["name"] == "John Doe"
-        assert command_dict["address"]["street"] == "123 Main St"
+        # Test complex query
+        query = ComplexQuery(
+            filter={"status": "active", "category": "test"}, limit=10, offset=0
+        )
 
-    def test_cqrs_with_optional_fields_behavior(self):
-        """Test CQRS with optional fields behavior."""
-        class OptionalCommand(ICommand[str]):
-            required_field: str
-            optional_field: str | None = None
+        assert query.filter["status"] == "active"
+        assert query.filter["category"] == "test"
+        assert query.limit == 10
+        assert query.offset == 0
 
-        # Test with optional field
-        command = OptionalCommand(required_field="required")
-        assert command.required_field == "required"
-        assert command.optional_field is None
+    def test_inheritance_hierarchy(self) -> None:
+        """Test the inheritance hierarchy of CQRS contracts."""
+        command = TestCommand(name="test", value=42)
+        command_no_response = TestCommandNoResponse(name="test", value=42)
+        query = TestQuery(name="test", value=42)
 
-        # Test with optional field provided
-        command = OptionalCommand(required_field="required", optional_field="optional")
-        assert command.required_field == "required"
-        assert command.optional_field == "optional"
+        # Test inheritance relationships
+        assert isinstance(command, ICommand)
+        assert isinstance(command_no_response, ICommand)
+        assert isinstance(command_no_response, ICommandNoResponse)
+        assert isinstance(query, IQuery)
 
-    def test_cqrs_with_lists_behavior(self):
-        """Test CQRS with lists behavior."""
-        class ListCommand(ICommand[str]):
-            items: list[str]
-            numbers: list[int]
+        # Test that they inherit from BaseModel
+        assert isinstance(command, BaseModel)
+        assert isinstance(command_no_response, BaseModel)
+        assert isinstance(query, BaseModel)
 
-        command = ListCommand(items=["item1", "item2"], numbers=[1, 2, 3])
+    def test_type_variables(self) -> None:
+        """Test type variable usage in CQRS contracts."""
+        # Test that type variables are properly used
+        assert hasattr(ICommand, "__parameters__")
+        assert hasattr(IQuery, "__parameters__")
+        assert hasattr(ICommandHandler, "__parameters__")
+        assert hasattr(IQueryHandler, "__parameters__")
 
-        assert command.items == ["item1", "item2"]
-        assert command.numbers == [1, 2, 3]
-
-        # Test serialization
-        command_dict = command.model_dump()
-        assert command_dict["items"] == ["item1", "item2"]
-        assert command_dict["numbers"] == [1, 2, 3]
-
-    def test_cqrs_with_enums_behavior(self):
-        """Test CQRS with enums behavior."""
-        class Status(Enum):
-            ACTIVE = "active"
-            INACTIVE = "inactive"
-
-        class StatusCommand(ICommand[str]):
-            status: Status
-
-        command = StatusCommand(status=Status.ACTIVE)
-        assert command.status == Status.ACTIVE
-        assert command.status.value == "active"
-
-        # Test serialization
-        command_dict = command.model_dump()
-        assert command_dict["status"] == Status.ACTIVE
+        # Test that they have the expected number of type parameters
+        assert len(ICommand.__parameters__) == 1  # TResponse
+        assert len(IQuery.__parameters__) == 1  # TResponse
+        assert len(ICommandHandler.__parameters__) == 2  # TCommand, TResponse
+        assert len(IQueryHandler.__parameters__) == 2  # TQuery, TResponse

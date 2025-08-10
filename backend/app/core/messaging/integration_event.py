@@ -24,7 +24,7 @@ class IntegrationEvent(BaseModel):
 
     # Class-level configuration
     _auto_topic: ClassVar[bool] = True
-    _topic_prefix: ClassVar[str] = "eshop"
+    _topic_prefix: ClassVar[str] = "app"
     _routing_pattern: ClassVar[str] = "{prefix}.{module}.{event_type}"
 
     def __init__(self, **data: Any) -> None:

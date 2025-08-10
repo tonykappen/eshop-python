@@ -2,7 +2,7 @@
 """Test script to verify router inclusion."""
 
 from fastapi import FastAPI
-from eshop.modules.catalog.api.router import router as catalog_router
+from app.modules.catalog.api.router import router as catalog_router
 
 # Create a minimal FastAPI app
 app = FastAPI()

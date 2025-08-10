@@ -13,7 +13,7 @@ echo -e "${BLUE}🧪 Testing RBAC Implementation...${NC}"
 if ! curl -s http://localhost:8000/health > /dev/null; then
     echo -e "${RED}❌ FastAPI app is not running at http://localhost:8000${NC}"
     echo -e "${YELLOW}Please start the application first:${NC}"
-    echo -e "  poetry run uvicorn eshop.main:app --host 0.0.0.0 --port 8000"
+    echo -e "  cd backend && poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     exit 1
 fi
 

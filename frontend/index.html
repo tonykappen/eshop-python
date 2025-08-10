@@ -91,8 +91,12 @@
         <div class="user-options">
             <h3>Quick Login Options:</h3>
             <div class="user-option">
-                <button onclick="fillCredentials('testuser', 'password')">Login as User (Read-only)</button>
+                <button onclick="fillCredentials('user', 'password')">Login as User (Read-only)</button>
                 <small>Can view products only</small>
+            </div>
+            <div class="user-option">
+                <button onclick="fillCredentials('manager', 'password')">Login as Manager (Edit access)</button>
+                <small>Can create and edit products</small>
             </div>
             <div class="user-option">
                 <button onclick="fillCredentials('admin', 'password')">Login as Admin (Full access)</button>
@@ -119,8 +123,8 @@
             const errorDiv = document.getElementById('error');
             
             try {
-                // Get Keycloak token
-                const tokenResponse = await fetch(`http://localhost:8080/realms/eshop/protocol/openid-connect/token`, {
+                // Get Keycloak token via backend proxy
+                const tokenResponse = await fetch(`${API_BASE}/api/v1/auth-proxy/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -148,7 +152,12 @@
                 window.location.href = 'products.html';
                 
             } catch (error) {
-                errorDiv.textContent = 'Login failed: ' + error.message;
+                console.error('Login error:', error);
+                if (error.message.includes('fetch')) {
+                    errorDiv.textContent = 'Login failed: Cannot connect to authentication server. Please ensure Keycloak is running.';
+                } else {
+                    errorDiv.textContent = 'Login failed: ' + error.message;
+                }
                 errorDiv.style.display = 'block';
             }
         });

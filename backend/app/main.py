@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
+from app.api.auth_proxy import router as auth_proxy_router
 from app.config.settings import settings
 from app.core.auth.keycloak import KeycloakUser, add_keycloak_routes, get_current_user
 from app.core.di.container import create_container, scan_assemblies, wire_container
@@ -201,6 +202,10 @@ if settings.log_enable_request_logging:
 print("🔧 Including catalog router...")
 app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 print("✅ Catalog router included successfully - RBAC ready!")
+
+print("🔧 Including auth proxy router...")
+app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
+print("✅ Auth proxy router included successfully!")
 
 # app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
 # app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])

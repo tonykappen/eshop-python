@@ -1,1 +1,0 @@
-"""Cache patterns and implementations."""

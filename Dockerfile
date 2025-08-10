@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 8000
 
 # Run migrations and start app
-CMD ["poetry", "run", "uvicorn", "eshop.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 

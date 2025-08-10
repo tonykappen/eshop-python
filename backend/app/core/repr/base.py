@@ -346,7 +346,9 @@ class CQRSEndpointFactory:
         if result_mapper is None:
             result_mapper = ResultToDataResponseMapper[Any]()
 
-        endpoint: CommandEndpoint[Any, Any] = CommandEndpoint(command_factory, result_mapper, self.mediator)
+        endpoint: CommandEndpoint[Any, Any] = CommandEndpoint(
+            command_factory, result_mapper, self.mediator
+        )
 
         # If auth dependency is provided, wrap the handle method
         if auth_dependency is not None:
@@ -372,7 +374,9 @@ class CQRSEndpointFactory:
         if result_mapper is None:
             result_mapper = ResultToDataResponseMapper[Any]()
 
-        endpoint: QueryEndpoint[Any, Any] = QueryEndpoint(query_factory, result_mapper, self.mediator)
+        endpoint: QueryEndpoint[Any, Any] = QueryEndpoint(
+            query_factory, result_mapper, self.mediator
+        )
 
         # If auth dependency is provided, wrap the handle method
         if auth_dependency is not None:

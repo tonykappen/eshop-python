@@ -1,1 +1,0 @@
-"""Ordering infrastructure layer - repositories and data access."""

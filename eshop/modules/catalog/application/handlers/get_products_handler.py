@@ -1,9 +1,11 @@
 """GetProductsHandler for listing products with pagination and filtering."""
 
 import asyncio
-from typing import Any, List
+from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
+from eshop.core.contracts.cqrs import IQuery
 from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.handler_registry import IRequestHandler
 from eshop.core.pagination.models import PaginatedResult
@@ -11,7 +13,7 @@ from eshop.modules.catalog.contracts.products.dtos import ProductDto
 from eshop.modules.catalog.domain.models import Product
 
 
-class GetProductsQuery:
+class GetProductsQuery(IQuery[PaginatedResult[ProductDto]]):
     """Query to get products with optional filtering and pagination."""
 
     def __init__(
@@ -97,14 +99,16 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
         # Convert to DTOs
         product_dtos = [self._map_to_dto(product) for product in page_products]
 
+        total_pages = (total_count + query.page_size - 1) // query.page_size
         return PaginatedResult(
             items=product_dtos,
-            total_count=total_count,
+            total=total_count,
             page=query.page,
-            page_size=query.page_size,
+            size=query.page_size,
+            pages=total_pages,
         )
 
-    async def _create_mock_products(self) -> List[Product]:
+    async def _create_mock_products(self) -> list[Product]:
         """Create mock products for demonstration."""
         from uuid import uuid4
 
@@ -112,47 +116,47 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
             Product.create(
                 product_id=uuid4(),
                 name="Laptop Computer",
-                category="Electronics",
+                category=["Electronics"],
                 description="High-performance laptop for work and gaming",
                 image_file="laptop.jpg",
-                price=999.99,
+                price=Decimal("999.99"),
             ),
             Product.create(
                 product_id=uuid4(),
                 name="Wireless Mouse",
-                category="Electronics",
+                category=["Electronics"],
                 description="Ergonomic wireless mouse with precision tracking",
                 image_file="mouse.jpg",
-                price=29.99,
+                price=Decimal("29.99"),
             ),
             Product.create(
                 product_id=uuid4(),
                 name="Office Chair",
-                category="Furniture",
+                category=["Furniture"],
                 description="Comfortable ergonomic office chair",
                 image_file="chair.jpg",
-                price=249.99,
+                price=Decimal("249.99"),
             ),
             Product.create(
                 product_id=uuid4(),
                 name="Coffee Mug",
-                category="Kitchen",
+                category=["Kitchen"],
                 description="Ceramic coffee mug with handle",
                 image_file="mug.jpg",
-                price=12.99,
+                price=Decimal("12.99"),
             ),
         ]
 
     def _apply_filters(
-        self, products: List[Product], query: GetProductsQuery
-    ) -> List[Product]:
+        self, products: list[Product], query: GetProductsQuery
+    ) -> list[Product]:
         """Apply filtering to products list."""
         filtered = products
 
         # Filter by category if specified
         if query.category_id:
             # In real implementation, you'd match by category ID
-            filtered = [p for p in filtered if p.category == str(query.category_id)]
+            filtered = [p for p in filtered if str(query.category_id) in p.category]
 
         # Filter by search term if specified
         if query.search_term:
@@ -171,8 +175,8 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
         return ProductDto(
             id=product.id,
             name=product.name,
-            category=product.category,
+            category=", ".join(product.category),  # Convert list to string for DTO
             description=product.description,
             image_file=product.image_file,
-            price=product.price,
+            price=float(product.price),  # Convert Decimal to float for DTO
         )

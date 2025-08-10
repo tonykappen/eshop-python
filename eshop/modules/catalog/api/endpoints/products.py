@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 
 from eshop.core.auth.rbac import require_command_access, require_query_access
-from eshop.core.contracts.cqrs import ICommand, IQuery
+from eshop.core.contracts.cqrs import ICommand
 from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.fastapi_integration import (
     get_cancellation_token_dependency,
@@ -24,6 +24,9 @@ from eshop.core.repr.base import (
 from eshop.modules.catalog.contracts.products.dtos import ProductDto
 from eshop.modules.catalog.contracts.products.features.get_product_by_id import (
     GetProductByIdQuery,
+)
+from eshop.modules.catalog.application.handlers.get_products_handler import (
+    GetProductsQuery,
 )
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -73,10 +76,6 @@ class CreateProductCommand(ICommand[dict]):
     description: str
     price: float
     picture_url: str
-
-
-# Import the GetProductsQuery from the handler module
-from eshop.modules.catalog.application.handlers.get_products_handler import GetProductsQuery
 
 
 # Dependency for mediator - matches .NET ISender dependency injection

@@ -16,7 +16,7 @@ def configure_mediator() -> None:
     """Configure mediator for FastAPI - matches .NET Program.cs configuration."""
     # Create handler registry
     handler_registry = HandlerRegistry()
-    
+
     # Register catalog handlers manually for now
     # TODO: Implement automatic handler discovery
     _register_catalog_handlers(handler_registry)
@@ -31,6 +31,10 @@ def configure_mediator() -> None:
 
 def _register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
     """Register catalog module handlers manually."""
+    from eshop.modules.catalog.application.handlers.create_product_handler import (
+        CreateProductCommand,
+        CreateProductHandler,
+    )
     from eshop.modules.catalog.application.handlers.get_product_by_id_handler import (
         GetProductByIdHandler,
     )
@@ -38,14 +42,10 @@ def _register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
         GetProductsHandler,
         GetProductsQuery,
     )
-    from eshop.modules.catalog.application.handlers.create_product_handler import (
-        CreateProductHandler,
-        CreateProductCommand,
-    )
     from eshop.modules.catalog.contracts.products.features.get_product_by_id import (
         GetProductByIdQuery,
     )
-    
+
     # Register handlers with their corresponding query/command types
     handler_registry.register_handler(GetProductByIdQuery, GetProductByIdHandler(None))
     handler_registry.register_handler(GetProductsQuery, GetProductsHandler(None))

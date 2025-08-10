@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2025-08-10T19:16:40Z",
+  "generated_at": "2025-08-10T19:29:31Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 5,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 5,
       "SEVERITY.MEDIUM": 1,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 5450,
+      "loc": 5605,
       "nosec": 0,
       "skipped_tests": 4
     },
@@ -531,7 +531,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 36,
+      "loc": 56,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -830,7 +830,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 140,
+      "loc": 137,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -883,6 +883,19 @@
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
       "loc": 52,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "eshop/modules/catalog/application/handlers/get_products_handler.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 138,
       "nosec": 0,
       "skipped_tests": 0
     },

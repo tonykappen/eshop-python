@@ -75,14 +75,8 @@ class CreateProductCommand(ICommand[dict]):
     picture_url: str
 
 
-# Queries (CQRS layer - already have GetProductByIdQuery)
-class GetProductsQuery(IQuery[dict]):
-    """Query to get products with optional filtering and pagination."""
-
-    page: int = 1
-    page_size: int = 10
-    category_id: UUID | None = None
-    search_term: str | None = None
+# Import the GetProductsQuery from the handler module
+from eshop.modules.catalog.application.handlers.get_products_handler import GetProductsQuery
 
 
 # Dependency for mediator - matches .NET ISender dependency injection

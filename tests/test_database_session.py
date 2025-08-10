@@ -12,6 +12,7 @@ from eshop.core.database.session import (
     engine,
     AsyncSessionLocal,
 )
+from eshop.core.exceptions.base import DatabaseError
 
 
 class TestDatabaseSession:
@@ -75,7 +76,7 @@ class TestDatabaseSession:
         with patch("eshop.core.database.session.engine") as mock_engine:
             mock_engine.begin.side_effect = Exception("Connection failed")
             
-            with pytest.raises(Exception, match="Connection failed"):
+            with pytest.raises(DatabaseError, match="Database engine creation failed"):
                 await create_db_engine()
 
     @pytest.mark.asyncio
@@ -94,7 +95,7 @@ class TestDatabaseSession:
         with patch("eshop.core.database.session.engine") as mock_engine:
             mock_engine.dispose = AsyncMock(side_effect=Exception("Dispose failed"))
             
-            with pytest.raises(Exception, match="Dispose failed"):
+            with pytest.raises(DatabaseError, match="Database engine close failed"):
                 await close_db_engine()
 
     def test_engine_configuration(self):

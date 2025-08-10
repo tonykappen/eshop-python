@@ -7,6 +7,10 @@ from uuid import UUID
 from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.handler_registry import IRequestHandler
 from eshop.modules.catalog.contracts.products.dtos import ProductDto
+from eshop.modules.catalog.domain.exceptions import (
+    ProductCreationError,
+    ProductValidationError,
+)
 from eshop.modules.catalog.domain.models import Product
 
 
@@ -70,19 +74,33 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
         Returns:
             Created Product entity
+
+        Raises:
+            ProductValidationError: If product data is invalid
         """
         from uuid import uuid4
 
-        product = Product.create(
-            product_id=uuid4(),
-            name=product_dto.name,
-            category=product_dto.category,
-            description=product_dto.description,
-            image_file=product_dto.image_file,
-            price=product_dto.price,
-        )
+        # Validate product data
+        if not product_dto.name or not product_dto.name.strip():
+            raise ProductValidationError("Product name is required", field="name")
 
-        return product
+        if product_dto.price <= 0:
+            raise ProductValidationError(
+                "Product price must be greater than zero", field="price"
+            )
+
+        try:
+            product = Product.create(
+                product_id=uuid4(),
+                name=product_dto.name,
+                category=product_dto.category,
+                description=product_dto.description,
+                image_file=product_dto.image_file,
+                price=product_dto.price,
+            )
+            return product
+        except Exception as e:
+            raise ProductValidationError(f"Failed to create product: {str(e)}") from e
 
     async def _save_to_database(
         self,
@@ -93,12 +111,17 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         # Check for cancellation before save
         cancellation_token.throw_if_cancellation_requested()
 
-        # Simulate database save delay
-        await asyncio.sleep(0.1)
+        try:
+            # Simulate database save delay
+            await asyncio.sleep(0.1)
 
-        # Check again after delay
-        cancellation_token.throw_if_cancellation_requested()
+            # Check again after delay
+            cancellation_token.throw_if_cancellation_requested()
 
-        # In real implementation, this would be:
-        # self.db_context.Products.Add(product)
-        # await self.db_context.SaveChangesAsync(cancellationToken)
+            # In real implementation, this would be:
+            # self.db_context.Products.Add(product)
+            # await self.db_context.SaveChangesAsync(cancellationToken)
+        except Exception as e:
+            raise ProductCreationError(
+                message="Failed to save product to database", details=str(e)
+            ) from e

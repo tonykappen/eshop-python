@@ -11,4 +11,44 @@ class ProductNotFoundError(NotFoundError):
     def __init__(self, product_id: UUID) -> None:
         """Initialize exception with product ID."""
         self.product_id = product_id
-        super().__init__(f"Product with ID {product_id} was not found")
+        super().__init__(name="Product", key=product_id)
+
+
+class ProductValidationError(Exception):
+    """Exception for product validation errors."""
+
+    def __init__(self, message: str, field: str | None = None) -> None:
+        """Initialize product validation error."""
+        self.message = message
+        self.field = field
+        super().__init__(self.message)
+
+
+class ProductCreationError(Exception):
+    """Exception for product creation errors."""
+
+    def __init__(self, message: str, details: str | None = None) -> None:
+        """Initialize product creation error."""
+        self.message = message
+        self.details = details
+        super().__init__(self.message)
+
+
+class ProductUpdateError(Exception):
+    """Exception for product update errors."""
+
+    def __init__(self, message: str, details: str | None = None) -> None:
+        """Initialize product update error."""
+        self.message = message
+        self.details = details
+        super().__init__(self.message)
+
+
+class ProductDeletionError(Exception):
+    """Exception for product deletion errors."""
+
+    def __init__(self, message: str, details: str | None = None) -> None:
+        """Initialize product deletion error."""
+        self.message = message
+        self.details = details
+        super().__init__(self.message)

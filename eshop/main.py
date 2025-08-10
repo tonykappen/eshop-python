@@ -11,6 +11,7 @@ from fastapi_pagination import add_pagination
 from eshop.config.settings import settings
 from eshop.core.auth.keycloak import KeycloakUser, add_keycloak_routes
 from eshop.core.di.container import create_container, scan_assemblies, wire_container
+from eshop.core.exceptions.handler import add_exception_handlers
 from eshop.core.health.health_service import health_service
 from eshop.core.lifecycle.handlers import (
     auth_handler,
@@ -179,6 +180,9 @@ add_auth_middleware(app)
 
 # Add pagination support
 add_pagination(app)
+
+# Add custom exception handlers
+add_exception_handlers(app)
 
 # Add request logging middleware (before other middleware)
 if settings.log_enable_request_logging:

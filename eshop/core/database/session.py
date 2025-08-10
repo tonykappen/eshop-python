@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from eshop.config.settings import settings
+from eshop.core.exceptions.base import DatabaseError
 from eshop.core.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -50,7 +51,9 @@ async def create_db_engine() -> None:
         logger.info("✅ Database engine created and connection tested")
     except Exception as e:
         logger.error(f"❌ Database engine creation failed: {e}")
-        raise
+        raise DatabaseError(
+            message="Database engine creation failed", details=str(e)
+        ) from e
 
 
 async def close_db_engine() -> None:
@@ -60,4 +63,6 @@ async def close_db_engine() -> None:
         logger.info("✅ Database engine closed")
     except Exception as e:
         logger.error(f"❌ Database engine close failed: {e}")
-        raise
+        raise DatabaseError(
+            message="Database engine close failed", details=str(e)
+        ) from e

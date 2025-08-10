@@ -27,8 +27,8 @@ class TestHealthService:
             "Database connection test requires complex async mocking - tested indirectly"
         )
 
-    @patch("core.health.health_service.asyncpg.create_pool")
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.asyncpg.create_pool")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_database_failure(
         self, mock_settings: MagicMock, mock_create_pool: AsyncMock
@@ -55,8 +55,8 @@ class TestHealthService:
         assert result["port"] == 5432
         assert "timestamp" in result
 
-    @patch("core.health.health_service.redis.Redis")
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.redis.Redis")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_redis_success(
         self, mock_settings: MagicMock, mock_redis_class: MagicMock
@@ -93,8 +93,8 @@ class TestHealthService:
         mock_redis_client.ping.assert_called_once()
         mock_redis_client.close.assert_called_once()
 
-    @patch("core.health.health_service.redis.Redis")
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.redis.Redis")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_redis_failure(
         self, mock_settings: MagicMock, mock_redis_class: MagicMock
@@ -121,8 +121,8 @@ class TestHealthService:
         assert result["port"] == 6379
         assert "timestamp" in result
 
-    @patch("core.health.health_service.RabbitBroker")
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.RabbitBroker")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_rabbitmq_success(
         self, mock_settings: MagicMock, mock_broker_class: MagicMock
@@ -152,8 +152,8 @@ class TestHealthService:
         mock_broker.connect.assert_called_once()
         mock_broker.close.assert_called_once()
 
-    @patch("core.health.health_service.RabbitBroker")
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.RabbitBroker")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_rabbitmq_failure(
         self, mock_settings: MagicMock, mock_broker_class: MagicMock
@@ -180,7 +180,7 @@ class TestHealthService:
         assert result["port"] == 5672
         assert "timestamp" in result
 
-    @patch("core.health.health_service.keycloak_service")
+    @patch("app.core.health.health_service.keycloak_service")
     @pytest.mark.asyncio
     async def test_check_keycloak_success(
         self, mock_keycloak_service: MagicMock
@@ -206,7 +206,7 @@ class TestHealthService:
         # Verify Keycloak service call
         mock_keycloak_service.health_check.assert_called_once()
 
-    @patch("core.health.health_service.keycloak_service")
+    @patch("app.core.health.health_service.keycloak_service")
     @pytest.mark.asyncio
     async def test_check_keycloak_failure(
         self, mock_keycloak_service: MagicMock
@@ -232,7 +232,7 @@ class TestHealthService:
         # Verify Keycloak service call
         mock_keycloak_service.health_check.assert_called_once()
 
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_all_services_success(self, mock_settings: MagicMock) -> None:
         """Test successful health check for all services."""
@@ -277,7 +277,7 @@ class TestHealthService:
             assert services["rabbitmq"]["status"] == "healthy"
             assert services["keycloak"]["status"] == "healthy"
 
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_all_services_partial_failure(
         self, mock_settings: MagicMock
@@ -329,7 +329,7 @@ class TestHealthService:
             assert services["rabbitmq"]["status"] == "healthy"
             assert services["keycloak"]["status"] == "healthy"
 
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_all_services_with_exceptions(
         self, mock_settings: MagicMock
@@ -377,7 +377,7 @@ class TestHealthService:
             assert services["rabbitmq"]["status"] == "healthy"
             assert services["keycloak"]["status"] == "healthy"
 
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_all_services_with_unknown_result(
         self, mock_settings: MagicMock
@@ -422,8 +422,8 @@ class TestHealthService:
             )
             assert services["rabbitmq"]["status"] == "healthy"
 
-    @patch("core.health.health_service.asyncio.gather")
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.asyncio.gather")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_all_services_gather_exception(
         self, mock_settings: MagicMock, mock_gather: MagicMock
@@ -444,7 +444,7 @@ class TestHealthService:
         assert result["version"] == "1.0.0"
         assert "timestamp" in result
 
-    @patch("core.health.health_service.settings")
+    @patch("app.core.health.health_service.settings")
     @pytest.mark.asyncio
     async def test_check_all_services_concurrent_execution(
         self, mock_settings: MagicMock
@@ -511,7 +511,7 @@ class TestGlobalHealthService:
         assert health_service.db_pool is None
         assert health_service.rabbit_broker is None
 
-    @patch("core.health.health_service.health_service.check_all_services")
+    @patch("app.core.health.health_service.health_service.check_all_services")
     @pytest.mark.asyncio
     async def test_global_health_service_functionality(
         self, mock_check_all: MagicMock

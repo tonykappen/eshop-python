@@ -117,7 +117,7 @@ class TestDatabaseSession:
 class TestDatabaseConnectionString:
     """Test database connection string configuration."""
 
-    @patch("config.settings.settings")
+    @patch("app.config.settings.settings")
     def test_database_connection_string_format(self, mock_settings):
         """Test database connection string format."""
         # Mock settings with property
@@ -138,7 +138,7 @@ class TestDatabaseConnectionString:
 
         assert connection_string == expected
 
-    @patch("config.settings.settings")
+    @patch("app.config.settings.settings")
     def test_database_connection_string_with_special_chars(self, mock_settings):
         """Test database connection string with special characters in password."""
         # Mock settings with special characters in password

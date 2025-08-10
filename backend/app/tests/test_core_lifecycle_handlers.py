@@ -28,9 +28,9 @@ class TestDatabaseLifecycleHandler:
         assert handler.connection_pool is None
         assert handler.is_connected is False
 
-    @patch("core.lifecycle.handlers.create_db_engine")
-    @patch("core.lifecycle.handlers.run_migrations")
-    @patch("core.lifecycle.handlers.run_seeding")
+    @patch("app.core.lifecycle.handlers.create_db_engine")
+    @patch("app.core.lifecycle.handlers.run_migrations")
+    @patch("app.core.lifecycle.handlers.run_seeding")
     async def test_startup_success(
         self,
         mock_run_seeding: AsyncMock,
@@ -47,7 +47,7 @@ class TestDatabaseLifecycleHandler:
         mock_run_seeding.assert_called_once()
         assert handler.is_connected is True
 
-    @patch("core.lifecycle.handlers.create_db_engine")
+    @patch("app.core.lifecycle.handlers.create_db_engine")
     async def test_startup_failure(self, mock_create_db_engine: AsyncMock) -> None:
         """Test database startup failure."""
         mock_create_db_engine.side_effect = Exception("Database connection failed")
@@ -58,7 +58,7 @@ class TestDatabaseLifecycleHandler:
 
         assert handler.is_connected is False
 
-    @patch("core.lifecycle.handlers.close_db_engine")
+    @patch("app.core.lifecycle.handlers.close_db_engine")
     async def test_shutdown_success(self, mock_close_db_engine: AsyncMock) -> None:
         """Test successful database shutdown."""
         handler = DatabaseLifecycleHandler()
@@ -69,7 +69,7 @@ class TestDatabaseLifecycleHandler:
         mock_close_db_engine.assert_called_once()
         assert handler.is_connected is False
 
-    @patch("core.lifecycle.handlers.close_db_engine")
+    @patch("app.core.lifecycle.handlers.close_db_engine")
     async def test_shutdown_failure(self, mock_close_db_engine: AsyncMock) -> None:
         """Test database shutdown failure."""
         mock_close_db_engine.side_effect = Exception("Close failed")
@@ -342,7 +342,7 @@ class TestHealthCheckLifecycleHandler:
         assert handler.health_service is None
         assert handler.is_running is False
 
-    @patch("core.lifecycle.handlers.health_service")
+    @patch("app.core.lifecycle.handlers.health_service")
     async def test_startup_success(self, mock_health_service: MagicMock) -> None:
         """Test successful health startup."""
         handler = HealthCheckLifecycleHandler()
@@ -450,10 +450,10 @@ class TestGlobalLifecycleHandlers:
 class TestLifecycleHandlersIntegration:
     """Integration tests for lifecycle handlers."""
 
-    @patch("core.lifecycle.handlers.create_db_engine")
-    @patch("core.lifecycle.handlers.run_migrations")
-    @patch("core.lifecycle.handlers.run_seeding")
-    @patch("core.lifecycle.handlers.health_service")
+    @patch("app.core.lifecycle.handlers.create_db_engine")
+    @patch("app.core.lifecycle.handlers.run_migrations")
+    @patch("app.core.lifecycle.handlers.run_seeding")
+    @patch("app.core.lifecycle.handlers.health_service")
     async def test_full_lifecycle_flow(
         self,
         mock_health_service: MagicMock,  # noqa: ARG002

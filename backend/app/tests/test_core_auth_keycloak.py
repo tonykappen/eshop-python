@@ -81,8 +81,8 @@ class TestKeycloakService:
         assert service.keycloak is None
         assert service._initialized is False
 
-    @patch("core.auth.keycloak.FastAPIKeycloak")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.FastAPIKeycloak")
+    @patch("app.core.auth.keycloak.settings")
     def test_initialize_keycloak_success(
         self, _mock_settings: MagicMock, mock_fastapi_keycloak: MagicMock
     ) -> None:
@@ -110,8 +110,8 @@ class TestKeycloakService:
             admin_client_secret=None,
         )
 
-    @patch("core.auth.keycloak.FastAPIKeycloak")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.FastAPIKeycloak")
+    @patch("app.core.auth.keycloak.settings")
     def test_initialize_keycloak_failure(
         self, _mock_settings: MagicMock, mock_fastapi_keycloak: MagicMock
     ) -> None:
@@ -125,8 +125,8 @@ class TestKeycloakService:
         assert service._initialized is False
         assert service.keycloak is None
 
-    @patch("core.auth.keycloak.FastAPIKeycloak")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.FastAPIKeycloak")
+    @patch("app.core.auth.keycloak.settings")
     def test_initialize_keycloak_idempotent(
         self, _mock_settings: MagicMock, mock_fastapi_keycloak: MagicMock
     ) -> None:
@@ -289,7 +289,7 @@ class TestKeycloakService:
         assert result is False
 
     @patch("httpx.AsyncClient")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.settings")
     @pytest.mark.asyncio
     async def test_health_check_success(
         self, mock_settings: MagicMock, mock_async_client: MagicMock
@@ -317,7 +317,7 @@ class TestKeycloakService:
         assert result["response_time"] == "OK"
 
     @patch("httpx.AsyncClient")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.settings")
     @pytest.mark.asyncio
     async def test_health_check_failure(
         self, mock_settings: MagicMock, mock_async_client: MagicMock
@@ -339,8 +339,8 @@ class TestKeycloakService:
         assert result["service"] == "keycloak"
         assert "Connection failed" in result["error"]
 
-    @patch("core.auth.keycloak.FastAPIKeycloak")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.FastAPIKeycloak")
+    @patch("app.core.auth.keycloak.settings")
     def test_get_current_user_dependency_success(
         self, _mock_settings: MagicMock, mock_fastapi_keycloak: MagicMock
     ) -> None:
@@ -357,8 +357,8 @@ class TestKeycloakService:
         result = service.get_current_user_dependency()
         assert result == mock_dependency
 
-    @patch("core.auth.keycloak.FastAPIKeycloak")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.FastAPIKeycloak")
+    @patch("app.core.auth.keycloak.settings")
     def test_get_current_user_dependency_not_initialized(
         self, _mock_settings: MagicMock, _mock_fastapi_keycloak: MagicMock
     ) -> None:
@@ -370,8 +370,8 @@ class TestKeycloakService:
         with pytest.raises(Exception, match="Keycloak not initialized"):
             service.get_current_user_dependency()
 
-    @patch("core.auth.keycloak.FastAPIKeycloak")
-    @patch("core.auth.keycloak.settings")
+    @patch("app.core.auth.keycloak.FastAPIKeycloak")
+    @patch("app.core.auth.keycloak.settings")
     def test_require_role_dependency_success(
         self, _mock_settings: MagicMock, mock_fastapi_keycloak: MagicMock
     ) -> None:
@@ -479,7 +479,7 @@ class TestAuthDependencies:
 class TestKeycloakIntegration:
     """Test Keycloak integration helpers."""
 
-    @patch("core.auth.keycloak.keycloak_service")
+    @patch("app.core.auth.keycloak.keycloak_service")
     def test_get_keycloak_app_success(self, mock_keycloak_service: MagicMock) -> None:
         """Test successful Keycloak app retrieval."""
         mock_app = MagicMock()
@@ -490,7 +490,7 @@ class TestKeycloakIntegration:
         assert result == mock_app
         mock_keycloak_service._initialize_keycloak.assert_called_once()
 
-    @patch("core.auth.keycloak.keycloak_service")
+    @patch("app.core.auth.keycloak.keycloak_service")
     def test_add_keycloak_routes_success(
         self, mock_keycloak_service: MagicMock
     ) -> None:
@@ -505,7 +505,7 @@ class TestKeycloakIntegration:
         mock_keycloak_service._initialize_keycloak.assert_called_once()
         mock_keycloak_app.add_auth_routes.assert_called_once_with(mock_app)
 
-    @patch("core.auth.keycloak.keycloak_service")
+    @patch("app.core.auth.keycloak.keycloak_service")
     def test_add_keycloak_routes_no_keycloak(
         self, mock_keycloak_service: MagicMock
     ) -> None:

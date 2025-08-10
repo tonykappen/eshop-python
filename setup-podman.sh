@@ -147,6 +147,112 @@ else
     echo -e "${YELLOW}⚠️ Keycloak setup script not found${NC}"
 fi
 
+# Create users manually
+echo -e "${BLUE}👥 Creating users manually...${NC}"
+
+# Get admin token
+echo -e "${BLUE}🔑 Getting admin token...${NC}"
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/realms/master/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin" \
+  -d "password=admin" \
+  -d "grant_type=password" \
+  -d "client_id=admin-cli" | python -c "import sys, json; data=json.load(sys.stdin); print(data.get('access_token', ''))")
+
+if [ -z "$ADMIN_TOKEN" ]; then
+    echo -e "${RED}❌ Failed to get admin token${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Admin token obtained${NC}"
+
+# Create test user
+echo -e "${BLUE}👤 Creating test user...${NC}"
+TEST_USER_RESPONSE=$(curl -s -X POST "http://localhost:8080/admin/realms/eshop/users" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "email": "testuser@example.com",
+    "firstName": "Test",
+    "lastName": "User",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [{
+      "type": "password",
+      "value": "password",
+      "temporary": false
+    }]
+  }')
+
+if echo "$TEST_USER_RESPONSE" | grep -q "error"; then
+    echo -e "${YELLOW}⚠️ Test user may already exist or creation failed${NC}"
+else
+    echo -e "${GREEN}✅ Test user created successfully${NC}"
+fi
+
+# Create admin user
+echo -e "${BLUE}👑 Creating admin user...${NC}"
+ADMIN_USER_RESPONSE=$(curl -s -X POST "http://localhost:8080/admin/realms/eshop/users" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "adminuser",
+    "email": "admin@example.com",
+    "firstName": "Admin",
+    "lastName": "User",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [{
+      "type": "password",
+      "value": "admin123",
+      "temporary": false
+    }]
+  }')
+
+if echo "$ADMIN_USER_RESPONSE" | grep -q "error"; then
+    echo -e "${YELLOW}⚠️ Admin user may already exist or creation failed${NC}"
+else
+    echo -e "${GREEN}✅ Admin user created successfully${NC}"
+fi
+
+# Get user IDs for role assignment
+echo -e "${BLUE}🔍 Getting user IDs for role assignment...${NC}"
+TEST_USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=testuser" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | python -c "import sys, json; data=json.load(sys.stdin); print(data[0]['id'] if data else '')")
+
+ADMIN_USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=adminuser" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | python -c "import sys, json; data=json.load(sys.stdin); print(data[0]['id'] if data else '')")
+
+# Get role IDs
+echo -e "${BLUE}🔍 Getting role IDs...${NC}"
+USER_ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/user" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | python -c "import sys, json; data=json.load(sys.stdin); print(data.get('id', ''))")
+
+ADMIN_ROLE_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/roles/admin" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | python -c "import sys, json; data=json.load(sys.stdin); print(data.get('id', ''))")
+
+# Assign roles to users
+if [ -n "$TEST_USER_ID" ] && [ -n "$USER_ROLE_ID" ]; then
+    echo -e "${BLUE}🔗 Assigning user role to test user...${NC}"
+    curl -s -X POST "http://localhost:8080/admin/realms/eshop/users/$TEST_USER_ID/role-mappings/realm" \
+      -H "Authorization: Bearer $ADMIN_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "[{\"id\":\"$USER_ROLE_ID\",\"name\":\"user\"}]"
+    echo -e "${GREEN}✅ User role assigned to test user${NC}"
+fi
+
+if [ -n "$ADMIN_USER_ID" ] && [ -n "$ADMIN_ROLE_ID" ]; then
+    echo -e "${BLUE}🔗 Assigning admin role to admin user...${NC}"
+    curl -s -X POST "http://localhost:8080/admin/realms/eshop/users/$ADMIN_USER_ID/role-mappings/realm" \
+      -H "Authorization: Bearer $ADMIN_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "[{\"id\":\"$ADMIN_ROLE_ID\",\"name\":\"admin\"}]"
+    echo -e "${GREEN}✅ Admin role assigned to admin user${NC}"
+fi
+
+echo -e "${GREEN}✅ User creation and role assignment completed${NC}"
+
 echo -e "${BLUE}📋 Access Points:${NC}"
 echo -e "  • Application: http://localhost:8000"
 echo -e "  • API Docs: http://localhost:8000/docs"
@@ -156,8 +262,13 @@ echo -e "  • Redis: localhost:6379"
 echo -e "  • RabbitMQ Management: http://localhost:15672 (guest/guest)"
 echo -e "  • Keycloak Admin: http://localhost:8080 (admin/admin)"
 
+echo -e "${BLUE}👥 Test Users:${NC}"
+echo -e "  • Test User: testuser / password"
+echo -e "  • Admin User: adminuser / admin123"
+
 echo -e "${BLUE}🔧 Useful Commands:${NC}"
 echo -e "  • View logs: podman logs <container-name>"
 echo -e "  • Stop services: podman stop eshop-postgres eshop-redis eshop-rabbitmq eshop-keycloak"
 echo -e "  • Remove containers: podman rm eshop-postgres eshop-redis eshop-rabbitmq eshop-keycloak"
-echo -e "  • Test health: curl http://localhost:8000/health/detailed" 
+echo -e "  • Test health: curl http://localhost:8000/health/detailed"
+echo -e "  • Test products API: curl http://localhost:8000/api/v1/products/" 

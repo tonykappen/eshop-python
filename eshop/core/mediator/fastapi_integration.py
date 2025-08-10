@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from fastapi import Request
+
+from .cancellation import CancellationToken, get_cancellation_token
 from .handler_registry import HandlerRegistry
 from .mediator import Mediator
 
@@ -49,3 +52,8 @@ def get_mediator_dependency() -> Mediator:
 def get_handler_registry_dependency() -> HandlerRegistry:
     """FastAPI dependency for handler registry."""
     return get_handler_registry()
+
+
+def get_cancellation_token_dependency(request: Request) -> CancellationToken:
+    """FastAPI dependency for cancellation token - matches .NET CancellationToken injection."""
+    return get_cancellation_token(request)

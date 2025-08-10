@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import Field
 
 from eshop.core.contracts.cqrs import ICommand, IQuery
-from eshop.core.mediator.fastapi_integration import get_mediator_dependency
+from eshop.core.mediator.cancellation import CancellationToken
+from eshop.core.mediator.fastapi_integration import (
+    get_cancellation_token_dependency,
+    get_mediator_dependency,
+)
 from eshop.core.repr.base import (
     BaseRequest,
     CQRSEndpointFactory,
@@ -84,6 +88,12 @@ class GetProductsQuery(IQuery[dict]):
 def get_mediator() -> IMediator:
     """Get mediator instance - matches .NET ISender dependency injection."""
     return get_mediator_dependency()
+
+
+# Dependency for cancellation token - matches .NET CancellationToken dependency injection
+def get_cancellation_token(request: Request) -> CancellationToken:
+    """Get cancellation token from request - matches .NET CancellationToken injection."""
+    return get_cancellation_token_dependency(request)
 
 
 # Dependency for CQRS endpoint factory

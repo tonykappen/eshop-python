@@ -1,8 +1,10 @@
 """GetProductByIdHandler with 1-1 parity to .NET implementation."""
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
+from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.handler_registry import IRequestHandler
 from eshop.modules.catalog.contracts.products.dtos import ProductDto
 from eshop.modules.catalog.contracts.products.features.get_product_by_id import (
@@ -19,7 +21,9 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
         """Initialize handler with database context."""
         self.db_context = db_context
 
-    async def handle(self, query: GetProductByIdQuery) -> GetProductByIdResult:
+    async def handle(
+        self, query: GetProductByIdQuery, cancellation_token: CancellationToken
+    ) -> GetProductByIdResult:
         """
         Handle the query - matches .NET Handle(GetProductByIdQuery query, CancellationToken cancellationToken).
 
@@ -34,7 +38,9 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
         """
         # Get product by id using dbContext
         # This is a simplified implementation - in real code, you'd use SQLAlchemy
-        product = await self._get_product_by_id(query.id)
+        # Check for cancellation before database operation
+        cancellation_token.throw_if_cancellation_requested()
+        product = await self._get_product_by_id(query.id, cancellation_token)
 
         if product is None:
             raise ProductNotFoundError(query.id)
@@ -52,12 +58,25 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
 
         return GetProductByIdResult(product=product_dto)
 
-    async def _get_product_by_id(self, product_id: UUID) -> Any | None:  # noqa: ARG002
+    async def _get_product_by_id(
+        self,
+        product_id: UUID,
+        cancellation_token: CancellationToken,  # noqa: ARG002, ARG001
+    ) -> Any | None:
         """Get product by ID from database."""
         # Simplified implementation - in real code, you'd use SQLAlchemy
         # var product = await dbContext.Products
         #     .AsNoTracking()
         #     .SingleOrDefaultAsync(p => p.Id == query.Id, cancellationToken);
+
+        # Check for cancellation during database operation
+        cancellation_token.throw_if_cancellation_requested()
+
+        # Simulate database delay
+        await asyncio.sleep(0.1)
+
+        # Check again after delay
+        cancellation_token.throw_if_cancellation_requested()
 
         # For now, return None to simulate not found
         return None

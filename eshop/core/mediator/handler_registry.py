@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
 from eshop.core.logging.logger import get_logger
+from eshop.core.mediator.cancellation import CancellationToken
 
 TRequest = TypeVar("TRequest")
 TResponse = TypeVar("TResponse")
@@ -13,7 +14,9 @@ class IRequestHandler(ABC, Generic[TRequest, TResponse]):
     """Base interface for request handlers - matches .NET IRequestHandler<TRequest, TResponse>."""
 
     @abstractmethod
-    async def handle(self, request: TRequest) -> TResponse:
+    async def handle(
+        self, request: TRequest, cancellation_token: CancellationToken
+    ) -> TResponse:
         """Handle the request - matches .NET Handle(TRequest request, CancellationToken cancellationToken)."""
         pass
 

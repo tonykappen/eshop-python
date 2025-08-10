@@ -7,6 +7,8 @@ from typing import Any, Generic, TypeVar
 
 from eshop.core.logging.logger import get_logger
 
+from .cancellation import CancellationToken
+
 TRequest = TypeVar("TRequest")
 TResponse = TypeVar("TResponse")
 
@@ -35,11 +37,11 @@ class BehaviorWrapper:
         self.behavior = behavior
         self.next_handler = next_handler
 
-    async def handle(self, request: Any) -> Any:
+    async def handle(self, request: Any, cancellation_token: CancellationToken) -> Any:
         """Handle request through this behavior."""
 
-        async def next_callable() -> Any:
-            return await self.next_handler.handle(request)
+        def next_callable() -> Any:
+            return self.next_handler.handle(request, cancellation_token)
 
         return await self.behavior.handle(request, next_callable)
 

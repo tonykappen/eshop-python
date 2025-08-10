@@ -1,8 +1,10 @@
 """CreateProductHandler with 1-1 parity to .NET implementation."""
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
+from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.handler_registry import IRequestHandler
 from eshop.modules.catalog.contracts.products.dtos import ProductDto
 from eshop.modules.catalog.domain.models import Product
@@ -29,7 +31,9 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         """Initialize handler with database context."""
         self.db_context = db_context
 
-    async def handle(self, command: CreateProductCommand) -> CreateProductResult:
+    async def handle(
+        self, command: CreateProductCommand, cancellation_token: CancellationToken
+    ) -> CreateProductResult:
         """
         Handle the command - matches .NET Handle(CreateProductCommand command, CancellationToken cancellationToken).
 
@@ -43,11 +47,17 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         # save to database
         # return result
 
+        # Check for cancellation before database operation
+        cancellation_token.throw_if_cancellation_requested()
+
         product = self._create_new_product(command.product)
 
         # In real implementation, you'd use SQLAlchemy
         # dbContext.Products.Add(product);
         # await dbContext.SaveChangesAsync(cancellationToken);
+
+        # Simulate database save with cancellation check
+        await self._save_to_database(product, cancellation_token)
 
         return CreateProductResult(product.id)
 
@@ -73,3 +83,22 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         )
 
         return product
+
+    async def _save_to_database(
+        self,
+        product: Product,
+        cancellation_token: CancellationToken,  # noqa: ARG002, ARG001
+    ) -> None:
+        """Save product to database with cancellation support."""
+        # Check for cancellation before save
+        cancellation_token.throw_if_cancellation_requested()
+
+        # Simulate database save delay
+        await asyncio.sleep(0.1)
+
+        # Check again after delay
+        cancellation_token.throw_if_cancellation_requested()
+
+        # In real implementation, this would be:
+        # self.db_context.Products.Add(product)
+        # await self.db_context.SaveChangesAsync(cancellationToken)

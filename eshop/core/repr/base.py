@@ -10,6 +10,7 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from eshop.core.contracts.cqrs import ICommand, IQuery
+from eshop.core.mediator.cancellation import CancellationToken
 from eshop.core.mediator.mediator import IMediator
 
 # Type variables for REPR pattern
@@ -195,7 +196,9 @@ class CQRSEndpoint(Endpoint[TRequest, TResponse], Generic[TRequest, TResponse]):
 
         # Step 2: Command/Query -> Result (via mediator)
         # Use the unified send method - matches .NET ISender.Send()
-        result = await self.mediator.send(command_or_query)
+        # Get cancellation token from request
+        cancellation_token = CancellationToken(request)
+        result = await self.mediator.send(command_or_query, cancellation_token)
 
         # Step 3: Result -> Response
         response = await self.result_mapper.map_to_response(result, request)

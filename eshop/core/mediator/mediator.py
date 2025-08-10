@@ -7,6 +7,7 @@ from eshop.core.contracts.cqrs import ICommand, IQuery
 from eshop.core.logging.logger import get_logger
 
 from .behaviors import LoggingBehavior, ValidationBehavior
+from .cancellation import CancellationToken
 from .handler_registry import HandlerRegistry
 
 TResponse = TypeVar("TResponse")
@@ -16,7 +17,11 @@ class IMediator(ABC):
     """Interface for mediator pattern - matches .NET ISender interface."""
 
     @abstractmethod
-    async def send(self, request: ICommand[TResponse] | IQuery[TResponse]) -> TResponse:
+    async def send(
+        self,
+        request: ICommand[TResponse] | IQuery[TResponse],
+        cancellation_token: CancellationToken,
+    ) -> TResponse:
         """Send a command or query and get result - matches .NET ISender.Send()."""
         pass
 
@@ -31,7 +36,11 @@ class Mediator(IMediator):
         # Pipeline behaviors (matches .NET MediatR behaviors)
         self.behaviors: list[Any] = [ValidationBehavior(), LoggingBehavior()]
 
-    async def send(self, request: ICommand[TResponse] | IQuery[TResponse]) -> TResponse:
+    async def send(
+        self,
+        request: ICommand[TResponse] | IQuery[TResponse],
+        cancellation_token: CancellationToken,
+    ) -> TResponse:
         """
         Send a command or query through the mediator pipeline.
 
@@ -47,21 +56,27 @@ class Mediator(IMediator):
                 f"No handler registered for request type: {request_type.__name__}"
             )
 
-            # Execute through pipeline behaviors
-        result = await self._execute_pipeline(request, handler)
+        # Execute through pipeline behaviors
+        result = await self._execute_pipeline(request, handler, cancellation_token)
 
         self.logger.debug(f"Mediator completed request: {request_type.__name__}")
         return result  # type: ignore
 
-    async def send_command(self, command: ICommand[TResponse]) -> TResponse:
+    async def send_command(
+        self, command: ICommand[TResponse], cancellation_token: CancellationToken
+    ) -> TResponse:
         """Send a command - matches .NET ISender.Send(ICommand<TResponse>)."""
-        return await self.send(command)
+        return await self.send(command, cancellation_token)
 
-    async def send_query(self, query: IQuery[TResponse]) -> TResponse:
+    async def send_query(
+        self, query: IQuery[TResponse], cancellation_token: CancellationToken
+    ) -> TResponse:
         """Send a query - matches .NET ISender.Send(IQuery<TResponse>)."""
-        return await self.send(query)
+        return await self.send(query, cancellation_token)
 
-    async def _execute_pipeline(self, request: Any, handler: Any) -> Any:
+    async def _execute_pipeline(
+        self, request: Any, handler: Any, cancellation_token: CancellationToken
+    ) -> Any:
         """Execute request through pipeline behaviors - matches .NET MediatR pipeline."""
         # Start with the handler
         current_handler = handler
@@ -70,8 +85,8 @@ class Mediator(IMediator):
         for behavior in reversed(self.behaviors):
             current_handler = behavior.wrap(current_handler)
 
-        # Execute the pipeline
-        return await current_handler.handle(request)
+        # Execute the pipeline with cancellation token
+        return await current_handler.handle(request, cancellation_token)
 
     def register_handler(self, request_type: type[Any], handler: Any) -> None:
         """Register a handler for a specific request type."""

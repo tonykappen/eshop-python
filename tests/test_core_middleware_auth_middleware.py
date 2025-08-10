@@ -237,7 +237,7 @@ class TestRequireRole:
         )
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.check_role = AsyncMock(return_value=False)
 
@@ -261,7 +261,7 @@ class TestRequireRole:
         )
 
         with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
+            "eshop.core.auth.keycloak.keycloak_service"
         ) as mock_service:
             mock_service.check_role = AsyncMock(return_value=True)
 
@@ -401,9 +401,23 @@ class TestAuthMiddlewareIntegration:
             roles=["admin", "user"],
         )
 
-        with patch(
-            "eshop.core.middleware.auth_middleware.keycloak_service"
-        ) as mock_service:
+        with patch("jwt.decode") as mock_jwt_decode, \
+             patch("jwt.PyJWKClient") as mock_jwks_client, \
+             patch("eshop.core.auth.keycloak.keycloak_service") as mock_service:
+            
+            # Mock JWT decoding
+            mock_jwt_decode.return_value = {
+                "sub": "test-user-id",
+                "email": "test@example.com",
+                "name": "Test User",
+                "preferred_username": "testuser",
+                "realm_access": {"roles": ["admin", "user"]},
+            }
+            mock_signing_key = MagicMock()
+            mock_signing_key.key = "mock-key"
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
+            
+            # Mock service methods
             mock_service.get_user_info = AsyncMock(return_value=mock_user)
             mock_service.check_role = AsyncMock(return_value=True)
 

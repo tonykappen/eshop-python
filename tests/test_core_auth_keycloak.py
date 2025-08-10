@@ -140,27 +140,31 @@ class TestKeycloakService:
 
         mock_fastapi_keycloak.assert_called_once()
 
-    @pytest.mark.skip(reason="Mock JWT token format issue - skipping for now")
     @pytest.mark.asyncio
     async def test_verify_token_success(self) -> None:
         """Test successful token verification."""
-        mock_keycloak = MagicMock()
-        mock_keycloak.decode_token.return_value = {
+        expected_token_info = {
             "sub": "user123",
             "email": "test@example.com",
             "name": "Test User",
         }
 
-        service = KeycloakService()
-        service.keycloak = mock_keycloak  # type: ignore
-        service._initialized = True
+        with patch("jwt.decode") as mock_jwt_decode, \
+             patch("jwt.PyJWKClient") as mock_jwks_client:
+            
+            # Mock the JWT decoding process
+            mock_jwt_decode.return_value = expected_token_info
+            mock_signing_key = MagicMock()
+            mock_signing_key.key = "mock-key"
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
 
-        result = await service.verify_token("valid-token")
+            service = KeycloakService()
+            result = await service.verify_token("valid-token")
 
-        assert result["sub"] == "user123"
-        assert result["email"] == "test@example.com"
-        assert result["name"] == "Test User"
-        mock_keycloak.decode_token.assert_called_once_with("valid-token")
+            assert result["sub"] == "user123"
+            assert result["email"] == "test@example.com"
+            assert result["name"] == "Test User"
+            mock_jwt_decode.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_verify_token_not_initialized(self) -> None:
@@ -191,12 +195,10 @@ class TestKeycloakService:
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
         assert exc_info.value.detail == "Invalid token"
 
-    @pytest.mark.skip(reason="Mock JWT token format issue - skipping for now")
     @pytest.mark.asyncio
     async def test_get_user_info_success(self) -> None:
         """Test successful user info retrieval."""
-        mock_keycloak = MagicMock()
-        mock_keycloak.decode_token.return_value = {
+        expected_token_info = {
             "sub": "user123",
             "email": "test@example.com",
             "name": "Test User",
@@ -204,37 +206,48 @@ class TestKeycloakService:
             "realm_access": {"roles": ["user", "admin"]},
         }
 
-        service = KeycloakService()
-        service.keycloak = mock_keycloak  # type: ignore
-        service._initialized = True
+        with patch("jwt.decode") as mock_jwt_decode, \
+             patch("jwt.PyJWKClient") as mock_jwks_client:
+            
+            # Mock the JWT decoding process
+            mock_jwt_decode.return_value = expected_token_info
+            mock_signing_key = MagicMock()
+            mock_signing_key.key = "mock-key"
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
 
-        user = await service.get_user_info("valid-token")
+            service = KeycloakService()
+            user = await service.get_user_info("valid-token")
 
-        assert isinstance(user, KeycloakUser)
-        assert user.sub == "user123"
-        assert user.email == "test@example.com"
-        assert user.name == "Test User"
-        assert user.preferred_username == "testuser"
-        assert user.roles == ["user", "admin"]
+            assert isinstance(user, KeycloakUser)
+            assert user.sub == "user123"
+            assert user.email == "test@example.com"
+            assert user.name == "Test User"
+            assert user.preferred_username == "testuser"
+            assert user.roles == ["user", "admin"]
 
-    @pytest.mark.skip(reason="Mock JWT token format issue - skipping for now")
     @pytest.mark.asyncio
     async def test_get_user_info_minimal_token(self) -> None:
         """Test user info retrieval with minimal token data."""
-        mock_keycloak = MagicMock()
-        mock_keycloak.decode_token.return_value = {"sub": "user123"}
+        expected_token_info = {"sub": "user123"}
 
-        service = KeycloakService()
-        service.keycloak = mock_keycloak  # type: ignore
-        service._initialized = True
+        with patch("jwt.decode") as mock_jwt_decode, \
+             patch("jwt.PyJWKClient") as mock_jwks_client:
+            
+            # Mock the JWT decoding process
+            mock_jwt_decode.return_value = expected_token_info
+            mock_signing_key = MagicMock()
+            mock_signing_key.key = "mock-key"
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
 
-        user = await service.get_user_info("valid-token")
+            service = KeycloakService()
+            user = await service.get_user_info("valid-token")
 
-        assert user.sub == "user123"
-        assert user.email is None
-        assert user.name is None
-        assert user.preferred_username is None
-        assert user.roles == []
+            assert isinstance(user, KeycloakUser)
+            assert user.sub == "user123"
+            assert user.email is None
+            assert user.name is None
+            assert user.preferred_username is None
+            assert user.roles == []
 
     @pytest.mark.asyncio
     async def test_check_role_user_has_role(self) -> None:

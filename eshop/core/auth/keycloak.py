@@ -170,7 +170,14 @@ async def get_current_user(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return await keycloak_service.get_user_info(credentials.credentials)
+    try:
+        return await keycloak_service.get_user_info(credentials.credentials)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 async def get_current_user_optional(

@@ -130,8 +130,8 @@ class ResultToDataResponseMapper(
     """Maps command/query results to data responses."""
 
     async def map_to_response(
-        self, result: TResult, original_request: Request
-    ) -> DataResponse[TResult]:  # noqa: ARG002, ARG001
+        self, result: TResult, original_request: Request  # noqa: ARG002
+    ) -> DataResponse[TResult]:
         """Map result to data response."""
         return DataResponse[TResult](
             data=result, message="Operation completed successfully"
@@ -142,8 +142,8 @@ class ResultToBaseResponseMapper(IResultMapper[Any, BaseResponse]):
     """Maps command results to base responses (for commands with no data)."""
 
     async def map_to_response(
-        self, result: Any, original_request: Request
-    ) -> BaseResponse:  # noqa: ARG002, ARG001
+        self, result: Any, original_request: Request  # noqa: ARG002
+    ) -> BaseResponse:
         """Map result to base response."""
         return BaseResponse(success=True, message="Operation completed successfully")
 
@@ -269,8 +269,8 @@ class PaginatedResultToResponseMapper(
     """Maps paginated query results to paginated responses."""
 
     async def map_to_response(
-        self, result: Any, original_request: Request
-    ) -> PaginatedResponse[TResult]:  # noqa: ARG002, ARG001
+        self, result: Any, original_request: Request  # noqa: ARG002
+    ) -> PaginatedResponse[TResult]:
         """Map paginated result to paginated response."""
         # Assuming result has pagination information
         total_pages = (result.total_count + result.page_size - 1) // result.page_size
@@ -291,8 +291,8 @@ class CQRSErrorHandler:
 
     @staticmethod
     async def handle_error(
-        error: Exception, request: Request
-    ) -> ErrorResponse:  # noqa: ARG004, ARG001
+        error: Exception, request: Request  # noqa: ARG004
+    ) -> ErrorResponse:
         """Map exceptions to error responses."""
         if isinstance(error, ValueError):
             return ErrorResponse(

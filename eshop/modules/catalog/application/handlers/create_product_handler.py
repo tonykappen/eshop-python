@@ -62,6 +62,7 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             Created Product entity
         """
         from uuid import uuid4
+
         product = Product.create(
             product_id=uuid4(),
             name=product_dto.name,

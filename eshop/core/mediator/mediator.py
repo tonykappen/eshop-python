@@ -47,7 +47,7 @@ class Mediator(IMediator):
                 f"No handler registered for request type: {request_type.__name__}"
             )
 
-                # Execute through pipeline behaviors
+            # Execute through pipeline behaviors
         result = await self._execute_pipeline(request, handler)
 
         self.logger.debug(f"Mediator completed request: {request_type.__name__}")

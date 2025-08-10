@@ -19,20 +19,50 @@ class Settings(BaseSettings):
 
     # Security
     secret_key: str = Field(default="your-secret-key-here", alias="SECRET_KEY")
+    algorithm: str = Field(default="HS256", alias="ALGORITHM")
+    access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
     # Database
-    db_host: str = Field(default="localhost", alias="DB_HOST")
-    db_port: int = Field(default=5432, alias="DB_PORT")
-    db_name: str = Field(default="eshop", alias="DB_NAME")
-    db_user: str = Field(default="postgres", alias="DB_USER")
-    db_password: str = Field(default="postgres", alias="DB_PASSWORD")
+    database_url: str = Field(default="postgresql://postgres:postgres@localhost:5432/eshop", alias="DATABASE_URL")
+    database_host: str = Field(default="localhost", alias="DATABASE_HOST")
+    database_port: int = Field(default=5432, alias="DATABASE_PORT")
+    database_name: str = Field(default="eshop", alias="DATABASE_NAME")
+    database_user: str = Field(default="postgres", alias="DATABASE_USER")
+    database_password: str = Field(default="postgres", alias="DATABASE_PASSWORD")
+
+    # Legacy database fields for backward compatibility
+    @property
+    def db_host(self) -> str:
+        """Get database host."""
+        return self.database_host
+
+    @property
+    def db_port(self) -> int:
+        """Get database port."""
+        return self.database_port
+
+    @property
+    def db_name(self) -> str:
+        """Get database name."""
+        return self.database_name
+
+    @property
+    def db_user(self) -> str:
+        """Get database user."""
+        return self.database_user
+
+    @property
+    def db_password(self) -> str:
+        """Get database password."""
+        return self.database_password
 
     @property
     def database_connection_string(self) -> str:
         """Get database connection string."""
-        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return f"postgresql+asyncpg://{self.database_user}:{self.database_password}@{self.database_host}:{self.database_port}/{self.database_name}"
 
     # Redis
+    redis_url: str = Field(default="redis://localhost:6379", alias="REDIS_URL")
     redis_host: str = Field(default="localhost", alias="REDIS_HOST")
     redis_port: int = Field(default=6379, alias="REDIS_PORT")
     redis_db: int = Field(default=0, alias="REDIS_DB")
@@ -43,6 +73,7 @@ class Settings(BaseSettings):
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
     # RabbitMQ
+    rabbitmq_url: str = Field(default="amqp://guest:guest@localhost:5672/", alias="RABBITMQ_URL")
     rabbitmq_host: str = Field(default="localhost", alias="RABBITMQ_HOST")
     rabbitmq_port: int = Field(default=5672, alias="RABBITMQ_PORT")
     rabbitmq_user: str = Field(default="guest", alias="RABBITMQ_USER")
@@ -87,6 +118,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "allow"  # Allow extra fields from .env file
 
 
 # Global settings instance

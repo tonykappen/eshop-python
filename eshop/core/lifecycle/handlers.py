@@ -3,6 +3,9 @@
 import asyncio
 from typing import Any
 
+from eshop.core.database.migrations import run_migrations
+from eshop.core.database.seeding import run_seeding
+from eshop.core.database.session import close_db_engine, create_db_engine
 from eshop.core.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,20 +20,22 @@ class DatabaseLifecycleHandler:
         self.is_connected: bool = False
 
     async def startup(self) -> None:
-        """Initialize database connections."""
-        logger.info("📊 Initializing database connections...")
+        """Initialize database connections and run migrations/seeding."""
+        logger.info("🗄️ Initializing database connections...")
         try:
-            # Here you would initialize your database connection pool
-            # For SQLAlchemy async:
-            # from eshop.config.db import get_engine
-            # self.connection_pool = get_engine()
+            # Create database engine
+            await create_db_engine()
 
-            # Verify database connectivity
-            await self._verify_database_connectivity()
+            # Run migrations
+            run_migrations()
+
+            # Run seeding
+            await run_seeding()
+
             self.is_connected = True
-            logger.info("✅ Database connections initialized successfully")
+            logger.info("✅ Database initialization completed successfully")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize database connections: {e}")
+            logger.error(f"❌ Database initialization failed: {e}")
             raise
 
     async def shutdown(self) -> None:
@@ -39,13 +44,9 @@ class DatabaseLifecycleHandler:
             logger.info("Database connections already closed")
             return
 
-        logger.info("📊 Closing database connections...")
+        logger.info("🗄️ Closing database connections...")
         try:
-            # Close connection pool
-            if self.connection_pool:
-                # await self.connection_pool.dispose()
-                logger.info("Database connection pool disposed")
-
+            await close_db_engine()
             self.is_connected = False
             logger.info("✅ Database connections closed successfully")
         except Exception as e:

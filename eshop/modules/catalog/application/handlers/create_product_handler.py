@@ -86,8 +86,8 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
     async def _save_to_database(
         self,
-        product: Product,
-        cancellation_token: CancellationToken,  # noqa: ARG002, ARG001
+        product: Product,  # noqa: ARG002
+        cancellation_token: CancellationToken,  # noqa: ARG001
     ) -> None:
         """Save product to database with cancellation support."""
         # Check for cancellation before save

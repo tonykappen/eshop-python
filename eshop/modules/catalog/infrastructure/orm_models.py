@@ -1,16 +1,44 @@
 """SQLAlchemy ORM models for the Catalog module."""
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from eshop.core.database.base import Base
 
 
-class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+class ProductORM(Base):
+    """ORM model for products - matches .NET Product entity."""
 
-    pass
+    __tablename__ = "products"
+    __table_args__ = {"schema": "catalog"}
+
+    # Primary key
+    id: Mapped[str] = mapped_column(UUID, primary_key=True)
+
+    # Basic properties
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    category: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
+    description: Mapped[str] = mapped_column(String(200), nullable=False)
+    image_file: Mapped[str] = mapped_column(String(100), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+
+    # Audit fields
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_modified: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_modified_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<ProductORM(id={self.id}, name={self.name}, price={self.price})>"
 
 
 class CatalogItemORM(Base):

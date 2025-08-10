@@ -60,8 +60,8 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
 
     async def _get_product_by_id(
         self,
-        product_id: UUID,
-        cancellation_token: CancellationToken,  # noqa: ARG002, ARG001
+        product_id: UUID,  # noqa: ARG002
+        cancellation_token: CancellationToken,  # noqa: ARG001
     ) -> Any | None:
         """Get product by ID from database."""
         # Simplified implementation - in real code, you'd use SQLAlchemy

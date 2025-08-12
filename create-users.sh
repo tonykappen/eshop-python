@@ -34,16 +34,17 @@ fi
 echo -e "${GREEN}✅ Admin token obtained${NC}"
 
 # Define users with their roles and details
-declare -A USERS=(
-    ["user"]="user:User Test:user@example.com:Basic user role - can read data"
-    ["manager"]="manager:Manager Test:manager@example.com:Manager role - can read and write data"
-    ["adminuser"]="admin:Admin Test:admin@example.com:Admin role - full access to all operations"
-    ["testuser"]="user:Test User:testuser@example.com:Test user for development"
-)
+USERS=("user" "manager" "adminuser" "testuser")
+ROLES=("user" "manager" "admin" "user")
+NAMES=("User Test" "Manager Test" "Admin Test" "Test User")
+EMAILS=("user@example.com" "manager@example.com" "admin@example.com" "testuser@example.com")
 
 # Create users
-for username in "${!USERS[@]}"; do
-    IFS=':' read -r role first_name email description <<< "${USERS[$username]}"
+for i in "${!USERS[@]}"; do
+    username="${USERS[$i]}"
+    role="${ROLES[$i]}"
+    first_name="${NAMES[$i]}"
+    email="${EMAILS[$i]}"
     
     echo -e "${BLUE}👤 Processing user: $username with role: $role${NC}"
     
@@ -138,8 +139,9 @@ done
 # Verify user creation and role assignments
 echo -e "${BLUE}🔍 Verifying user creation and role assignments...${NC}"
 
-for username in "${!USERS[@]}"; do
-    IFS=':' read -r role first_name email description <<< "${USERS[$username]}"
+for i in "${!USERS[@]}"; do
+    username="${USERS[$i]}"
+    role="${ROLES[$i]}"
     
     USER_INFO=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
         -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0]')
@@ -162,7 +164,8 @@ done
 # Test authentication for each user
 echo -e "${BLUE}🧪 Testing authentication for each user...${NC}"
 
-for username in "${!USERS[@]}"; do
+for i in "${!USERS[@]}"; do
+    username="${USERS[$i]}"
     echo -e "${BLUE}🔐 Testing authentication for $username...${NC}"
     
     AUTH_RESPONSE=$(curl -s -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token \
@@ -206,8 +209,9 @@ echo -e "  • Client: eshop-api"
 echo -e "  • Client Secret: your-client-secret"
 
 echo -e "${BLUE}👥 Created Users:${NC}"
-for username in "${!USERS[@]}"; do
-    IFS=':' read -r role first_name email description <<< "${USERS[$username]}"
+for i in "${!USERS[@]}"; do
+    username="${USERS[$i]}"
+    role="${ROLES[$i]}"
     echo -e "  • $username/password ($role role)"
 done
 

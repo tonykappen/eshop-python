@@ -1,22 +1,31 @@
-FROM python:3.12
+FROM python:3.12-slim
 
-WORKDIR /app/
+WORKDIR /app
 
-# Install Poetry
-RUN pip install poetry
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy poetry files
-COPY ./pyproject.toml ./poetry.lock* /app/
+# Install poetry
+RUN pip install --no-cache-dir poetry
 
-# Configure poetry: Don't create a virtual environment
+# Configure poetry to not create virtual environment
 RUN poetry config virtualenvs.create false
 
+# Copy poetry files first for better caching
+COPY pyproject.toml poetry.lock ./
+
 # Install dependencies
-RUN poetry install --no-dev
+RUN poetry install --only=main --no-interaction
 
-# Copy app code
-COPY ./app /app/app
-COPY ./alembic /app/alembic
-COPY ./alembic.ini /app/alembic.ini
+# Copy the entire backend directory
+COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+# Expose port
+EXPOSE 8000
+
+# Run migrations and start app
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -33,7 +33,7 @@ ARG UPDATE_DEPS=false
 RUN if [ "$UPDATE_DEPS" = "true" ]; then \
         poetry lock && poetry install --no-root --no-interaction --no-cache; \
     else \
-        poetry lock --no-update && poetry install --no-root --no-interaction --no-cache; \
+        poetry lock && poetry install --no-root --no-interaction --no-cache; \
     fi
 
 # Copy application code

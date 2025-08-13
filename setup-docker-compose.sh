@@ -9,22 +9,26 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}🚀 Setting up eShop with Docker Compose...${NC}"
 
-# Check if Docker Compose is available
-if ! command -v docker-compose &> /dev/null; then
+# Resolve Docker Compose command (v2 plugin or legacy)
+if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+    DC="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DC="docker-compose"
+else
     echo -e "${RED}❌ Docker Compose is not installed${NC}"
-    echo "Please install Docker Compose first"
+    echo "Install Docker and Docker Compose plugin, or docker-compose"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Docker Compose is available${NC}"
+echo -e "${GREEN}✅ Using command: $DC${NC}"
 
 # Stop any existing containers
 echo -e "${BLUE}🛑 Stopping existing containers...${NC}"
-docker-compose down -v 2>/dev/null || true
+$DC down -v 2>/dev/null || true
 
 # Build and start services
 echo -e "${BLUE}🔨 Building and starting services...${NC}"
-if docker-compose up --build -d; then
+if $DC up --build -d; then
     echo -e "${GREEN}✅ Services started successfully${NC}"
 else
     echo -e "${RED}❌ Failed to start services${NC}"
@@ -37,7 +41,7 @@ sleep 30
 
 # Check service status
 echo -e "${BLUE}📊 Service Status:${NC}"
-docker-compose ps
+$DC ps
 
 # Wait for Keycloak to be fully initialized
 echo -e "${BLUE}⏳ Waiting for Keycloak to be fully initialized...${NC}"

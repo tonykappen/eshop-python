@@ -7,13 +7,19 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     curl \
+    gcc \
+    g++ \
+    libffi-dev \
+    libssl-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install poetry
 RUN pip install --no-cache-dir poetry
 
-# Configure poetry to not create virtual environment
-RUN poetry config virtualenvs.create false
+# Configure poetry to not create virtual environment and use system packages
+RUN poetry config virtualenvs.create false && \
+    poetry config installer.max-workers 10
 
 # Copy poetry files first for better caching
 COPY pyproject.toml poetry.lock ./
@@ -25,9 +31,9 @@ ARG UPDATE_DEPS=false
 
 # Install dependencies - update if requested or if lock file is stale
 RUN if [ "$UPDATE_DEPS" = "true" ]; then \
-        poetry lock && poetry install --no-root --no-interaction; \
+        poetry lock && poetry install --no-root --no-interaction --no-cache; \
     else \
-        poetry lock --no-update && poetry install --no-root --no-interaction; \
+        poetry lock --no-update && poetry install --no-root --no-interaction --no-cache; \
     fi
 
 # Copy application code

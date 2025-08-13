@@ -66,7 +66,7 @@ services:
   backend:
     build: 
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: ${BACKEND_DOCKERFILE:-Dockerfile}
       args:
         CACHEBUST: ${CACHEBUST:-1}
         UPDATE_DEPS: ${UPDATE_DEPS:-false}
@@ -85,44 +85,44 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: "30"
       
       # Database
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: eshop
-      DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "eshop"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
       
       # Redis
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
-      REDIS_DB: 0
+      REDIS_DB: "0"
       
       # RabbitMQ
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: guest
-      RABBITMQ_PASSWORD: guest
-      RABBITMQ_VHOST: /
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "guest"
+      RABBITMQ_PASSWORD: "guest"
+      RABBITMQ_VHOST: "/"
       
       # Keycloak
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
-      KEYCLOAK_REALM: eshop
-      KEYCLOAK_CLIENT_ID: eshop-api
-      KEYCLOAK_CLIENT_SECRET: your-client-secret
-      KEYCLOAK_ADMIN_USERNAME: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_SERVER_URL: "http://keycloak:8080"
+      KEYCLOAK_REALM: "eshop"
+      KEYCLOAK_CLIENT_ID: "eshop-api"
+      KEYCLOAK_CLIENT_SECRET: "your-client-secret"
+      KEYCLOAK_ADMIN_USERNAME: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
       
       # Logging
-      LOG_LEVEL: INFO
-      SEQ_URL: http://localhost:5341
-      LOG_ENABLE_CONSOLE: true
-      LOG_ENABLE_SEQ: false
-      LOG_ENABLE_FILE: true
-      LOG_DIRECTORY: logs
-      LOG_SEPARATE_SERVER_LOGS: true
-      LOG_ENABLE_REQUEST_LOGGING: true
-      LOG_REQUEST_BODY: false
-      LOG_RESPONSE_BODY: false
+      LOG_LEVEL: "INFO"
+      SEQ_URL: "http://localhost:5341"
+      LOG_ENABLE_CONSOLE: "true"
+      LOG_ENABLE_SEQ: "false"
+      LOG_ENABLE_FILE: "true"
+      LOG_DIRECTORY: "logs"
+      LOG_SEPARATE_SERVER_LOGS: "true"
+      LOG_ENABLE_REQUEST_LOGGING: "true"
+      LOG_REQUEST_BODY: "false"
+      LOG_RESPONSE_BODY: "false"
       
       # CORS
       BACKEND_CORS_ORIGINS: '["http://localhost:3000", "http://localhost:8001"]'

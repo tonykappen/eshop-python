@@ -1,0 +1,379 @@
+# Cursor Rules for eShop Python Project
+
+## Project Context
+- This is a modular monolith eShop application migrated from .NET to Python/FastAPI
+- Reference code is in `just_for_reference_do_not_commit/python/backend/` - USE FOR REFERENCE ONLY
+- Current Python version: 3.12
+- Architecture: Domain-Driven Design with CQRS pattern
+
+## Development Guidelines
+
+### Code Style & Quality
+- Use Python 3.12+ features (type hints, union types, etc.)
+- Follow FastAPI best practices
+- Use async/await for database and external service calls
+- Implement proper error handling with custom exceptions
+- Add comprehensive type hints everywhere
+- Use dependency injection pattern
+
+#### ⚠️ CRITICAL: Code Quality First
+**When implementing ANY new feature/code:**
+1. **Type Hints**: Add complete type annotations (args, returns, variables)
+2. **MyPy Clean**: Ensure 0 MyPy errors before proceeding
+3. **Ruff/Black**: Auto-format and fix linting issues immediately
+4. **Bandit**: No security warnings
+5. **Import Order**: Use proper import organization
+6. **Docstrings**: Add for all public functions/classes
+
+**DO NOT:**
+- Write untyped functions (missing `-> ReturnType`)
+- Use `Any` without `# type: ignore` comments when necessary
+- Leave unused variables/imports
+- Create security vulnerabilities
+- Skip error handling
+
+**ALWAYS RUN AFTER CHANGES:**
+```bash
+poetry run ruff check . --fix && poetry run black . && poetry run mypy eshop/ --ignore-missing-imports
+```
+
+### Architecture Patterns
+- **Domain-Driven Design**: Separate domain, application, and infrastructure layers
+- **CQRS**: Separate commands and queries
+- **Repository Pattern**: For data access
+- **Mediator Pattern**: For handling commands/queries
+- **Event Sourcing**: For integration events
+
+### Module Structure (per module: basket, catalog, ordering)
+```
+modules/{module}/
+├── api/           # FastAPI routes and endpoints
+├── application/   # Use cases, commands, queries
+├── domain/        # Entities, value objects, domain services
+└── infrastructure/# Repositories, external service adapters
+```
+
+### Database & ORM
+- Use SQLAlchemy 2.0+ with async support
+- Implement proper migrations with Alembic
+- Use async session management
+- Add database seeding for development
+
+### Testing
+- Unit tests for domain logic
+- Integration tests for API endpoints
+- Use pytest with async support
+- Mock external dependencies
+
+### Logging & Monitoring
+- Use structured logging with structlog
+- Capture request/response logs
+- Separate application and server logs
+- Add health checks
+
+### Security
+- Implement proper authentication with Keycloak
+- Use JWT tokens
+- Add authorization middleware
+- Validate all inputs
+
+### Messaging
+- Use RabbitMQ for async messaging
+- Implement integration events
+- Add proper error handling for message processing
+
+### Keycloak Setup & Troubleshooting
+This section documents the complete Keycloak setup process and common troubleshooting steps.
+
+#### Initial Keycloak Setup
+1. **Start Keycloak Container**:
+   ```bash
+   # Using Podman (preferred)
+   podman run -d --name keycloak-eshop -p 8080:8080 \
+     -e KEYCLOAK_ADMIN=admin \
+     -e KEYCLOAK_ADMIN_PASSWORD=admin \
+     quay.io/keycloak/keycloak:latest start-dev
+   
+   # Or using Docker
+   docker run -d --name keycloak-eshop -p 8080:8080 \
+     -e KEYCLOAK_ADMIN=admin \
+     -e KEYCLOAK_ADMIN_PASSWORD=admin \
+     quay.io/keycloak/keycloak:latest start-dev
+   ```
+
+2. **Run Setup Script**:
+   ```bash
+   chmod +x setup-keycloak.sh
+   ./setup-keycloak.sh
+   ```
+
+#### Keycloak Configuration Verification
+```bash
+# Check if Keycloak is running
+curl -s http://localhost:8080/ | head -5
+
+# Test admin access
+curl -s -X POST http://localhost:8080/realms/master/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin" \
+  -d "password=admin" \
+  -d "grant_type=password" \
+  -d "client_id=admin-cli"
+
+# Check realm configuration
+curl -s http://localhost:8080/realms/eshop | python -c "import sys, json; data=json.load(sys.stdin); print(f'Realm: {data.get(\"realm\")}')"
+```
+
+#### User Creation Troubleshooting
+If test user authentication fails with "Account is not fully set up":
+
+1. **Check User Status**:
+   ```bash
+   # Get admin token
+   ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/realms/master/protocol/openid-connect/token \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=admin" \
+     -d "password=admin" \
+     -d "grant_type=password" \
+     -d "client_id=admin-cli" | python -c "import sys, json; data=json.load(sys.stdin); print(data.get('access_token', ''))")
+   
+   # Check user details
+   USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=testuser" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" | python -c "import sys, json; data=json.load(sys.stdin); print(data[0]['id'] if data else '')")
+   
+   curl -s -X GET "http://localhost:8080/admin/realms/eshop/users/$USER_ID" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" | python -c "import sys, json; data=json.load(sys.stdin); print(f'Credentials: {len(data.get(\"credentials\", []))} set')"
+   ```
+
+2. **Fix User Setup** (if credentials are 0 or profile incomplete):
+   ```bash
+   # Reset password
+   curl -s -X PUT "http://localhost:8080/admin/realms/eshop/users/$USER_ID/reset-password" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "type": "password",
+       "value": "password",
+       "temporary": false
+     }'
+   
+   # Update user profile
+   curl -s -X PUT "http://localhost:8080/admin/realms/eshop/users/$USER_ID" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "enabled": true,
+       "emailVerified": true,
+       "firstName": "Test",
+       "lastName": "User",
+       "requiredActions": []
+     }'
+   ```
+
+3. **Test Authentication**:
+   ```bash
+   # Test user login
+   curl -s -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=testuser" \
+     -d "password=password" \
+     -d "grant_type=password" \
+     -d "client_id=eshop-api" \
+     -d "client_secret=your-client-secret"
+   
+   # Test client credentials
+   curl -s -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "grant_type=client_credentials" \
+     -d "client_id=eshop-api" \
+     -d "client_secret=your-client-secret"
+   ```
+
+#### FastAPI Keycloak Integration
+The application uses `fastapi-keycloak` with lazy initialization to avoid startup issues:
+
+- **Health Check**: Uses HTTP connectivity test to Keycloak realm endpoint
+- **Settings**: Client secret set to "your-client-secret" from setup script
+- **Database Config**: Updated to use "postgres" password instead of "password"
+
+#### Common Issues & Solutions
+1. **"Keycloak not initialized"**: Health check works but auth fails
+   - Reason: fastapi-keycloak requires admin access for full initialization
+   - Solution: Health check uses simple HTTP test, auth uses lazy initialization
+
+2. **"Account is not fully set up"**: User exists but can't authenticate
+   - Reason: Password credentials not set or user profile incomplete
+   - Solution: Use admin API to set password and complete profile
+
+3. **"Public client not allowed to retrieve service account"**: Log warning on startup
+   - Reason: fastapi-keycloak tries to get service account token
+   - Solution: Expected behavior, health checks still work
+
+#### Validation Commands
+```bash
+# Complete validation sequence
+echo "=== Keycloak Status ==="
+podman ps | grep keycloak
+curl -s http://localhost:8080/realms/eshop | python -c "import sys, json; data=json.load(sys.stdin); print(f'Realm: {data.get(\"realm\")}')"
+
+echo "=== Authentication Tests ==="
+# Test both flows
+curl -s -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token -d "grant_type=client_credentials&client_id=eshop-api&client_secret=your-client-secret"
+curl -s -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token -d "username=testuser&password=password&grant_type=password&client_id=eshop-api&client_secret=your-client-secret"
+
+echo "=== FastAPI Health ==="
+curl -s http://localhost:8000/health/keycloak | python -m json.tool
+```
+
+## Reference Guidelines
+- The `just_for_reference_do_not_commit/` folder contains the original .NET code
+- Use it to understand business logic and requirements
+- DO NOT copy-paste directly - adapt patterns to Python/FastAPI
+- Focus on understanding the domain model and use cases
+
+## Client Feedback Priority
+1. Python 3.12 upgrade ✅ (COMPLETED)
+2. FastAPI full-stack template adoption
+3. Module scaffolding implementation
+4. Database migrations and seeding
+5. Pylance error resolution
+6. Testing implementation
+7. Debug configuration (launch.json)
+8. Core module improvements
+9. Logging enhancements
+10. Authentication improvements
+
+## File Naming & Organization
+- Use snake_case for Python files and functions
+- Use PascalCase for classes
+- Group related functionality in modules
+- Keep modules loosely coupled
+
+## Error Handling
+- Create custom exception hierarchy
+- Use proper HTTP status codes
+- Add meaningful error messages
+- Log errors with context
+
+## Performance
+- Use async operations where possible
+- Implement caching strategies
+- Add database query optimization
+- Monitor application performance
+
+## CI/CD Local Checks (After Major Changes)
+After any major change, perform these local checks similar to CI/CD:
+
+### 1. Code Quality Checks (Fix Issues Found)
+```bash
+# Run all linting and formatting checks - FIX ISSUES AUTOMATICALLY
+poetry run ruff check eshop/ --fix --unsafe-fixes
+poetry run ruff format eshop/
+poetry run black eshop/
+poetry run mypy eshop/ --ignore-missing-imports
+poetry run bandit -r eshop/
+
+# IMPORTANT: Fix remaining MyPy errors manually before proceeding
+# Target: 0 MyPy errors, minimal Ruff warnings
+```
+
+### 2. Testing
+```bash
+# Run all tests
+poetry run pytest tests/ -v --cov=eshop --cov-report=html
+poetry run pytest tests/ -v --cov=eshop --cov-report=term-missing
+```
+
+### 3. Manual Testing (Quick Start & Stop)
+```bash
+# Start the application in background
+poetry run uvicorn eshop.main:app --host 0.0.0.0 --port 8000 &
+APP_PID=$!
+
+# Wait for startup
+sleep 3
+
+# Test health endpoints quickly
+curl -s http://localhost:8000/health | python -c "import sys, json; print('✅ Health OK' if json.load(sys.stdin).get('status') == 'ok' else '❌ Health failed')"
+curl -s http://localhost:8000/api/v1/health | head -1
+curl -s http://localhost:8000/health/detailed | head -1
+
+# Stop app
+kill $APP_PID 2>/dev/null || true
+```
+
+### 4. Health Checks
+- Verify all health endpoints return 200 OK
+- Check database connectivity
+- Verify Redis connection
+- Test RabbitMQ connectivity
+- Validate Keycloak integration
+
+### 5. Setup Scripts Validation
+```bash
+# Test setup scripts
+./setup-dev.sh
+./setup-docker.sh
+./setup-podman.sh
+./setup-keycloak.sh
+```
+
+### 6. Container Testing
+```bash
+# Test Docker
+docker-compose up --build -d
+docker-compose ps
+docker-compose logs app
+docker-compose down
+
+# Test Podman (if available)
+podman-compose up --build -d
+podman-compose ps
+podman-compose logs app
+podman-compose down
+```
+
+### 7. Documentation Updates
+- Update README.md with any new features/changes
+- Verify all setup instructions work
+- Update API documentation if endpoints changed
+- Check environment variable documentation
+
+### 8. Pre-commit Checks
+```bash
+# Run pre-commit hooks
+poetry run pre-commit run --all-files
+```
+
+### 9. Final Validation
+- [ ] All linting checks pass
+- [ ] All tests pass with good coverage
+- [ ] Application starts without errors
+- [ ] Health checks return healthy status
+- [ ] Setup scripts work correctly
+- [ ] Docker/Podman containers start successfully
+- [ ] README is up to date
+- [ ] No breaking changes introduced
+
+### 10. Git Commit Guidelines
+After all checks pass, commit with short, descriptive messages:
+
+```bash
+# Format: <type>: <short description>
+git add .
+git commit -m "feat: migrate to fastapi-keycloak"
+git commit -m "fix: resolve pylance errors in auth module"
+git commit -m "docs: update setup instructions"
+git commit -m "refactor: improve error handling in health service"
+```
+
+**Commit Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `refactor`: Code refactoring
+- `test`: Test additions/changes
+- `chore`: Maintenance tasks
+- `perf`: Performance improvements
+- `style`: Code style changes
+- `ci`: CI/CD changes 

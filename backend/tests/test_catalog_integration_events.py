@@ -157,9 +157,7 @@ class TestProductInventoryUpdatedIntegrationEvent:
         assert event.warehouse_id == warehouse_id
         assert event.event_type == "product_inventory_updated_integration"
         assert event.topic == "app.catalog.product_inventory_updated_integration"
-        assert (
-            event.routing_key == "app.catalog.product_inventory_updated_integration"
-        )
+        assert event.routing_key == "app.catalog.product_inventory_updated_integration"
 
     def test_inventory_updated_event_without_warehouse(self) -> None:
         """Test creating an inventory updated event without warehouse."""

@@ -398,7 +398,6 @@ class TestAuthMiddlewareIntegration:
             patch("jwt.PyJWKClient") as mock_jwks_client,
             patch("app.core.auth.keycloak.keycloak_service") as mock_service,
         ):
-
             # Mock JWT decoding
             mock_jwt_decode.return_value = {
                 "sub": "test-user-id",

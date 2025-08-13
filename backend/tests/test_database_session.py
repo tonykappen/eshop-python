@@ -34,9 +34,7 @@ class TestDatabaseSession:
         """Test get_db_session as context manager."""
         mock_session = AsyncMock(spec=AsyncSession)
 
-        with patch(
-            "app.core.database.session.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             async for session in get_db_session():
@@ -52,9 +50,7 @@ class TestDatabaseSession:
         mock_session = AsyncMock(spec=AsyncSession)
         mock_session.execute.side_effect = Exception("Database error")
 
-        with patch(
-            "app.core.database.session.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             async for session in get_db_session():
@@ -175,9 +171,7 @@ class TestDatabaseSessionLifecycle:
         mock_session = AsyncMock(spec=AsyncSession)
 
         # Test the actual get_db_session function which handles session lifecycle
-        with patch(
-            "app.core.database.session.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
 
@@ -201,9 +195,7 @@ class TestDatabaseSessionLifecycle:
         """Test session lifecycle with exception handling."""
         mock_session = AsyncMock(spec=AsyncSession)
 
-        with patch(
-            "app.core.database.session.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
 

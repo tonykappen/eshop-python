@@ -228,9 +228,7 @@ class TestDispatchDomainEventsInterceptor:
         mock_entity.clear_domain_events = MagicMock()
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -306,9 +304,7 @@ class TestAutoLogAsync:
             return "success"
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -329,9 +325,7 @@ class TestAutoLogAsync:
             return "success"
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -352,9 +346,7 @@ class TestAutoLogAsync:
             return f"{arg1}_{arg2}"
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -475,9 +467,7 @@ class TestAutoLogDatabaseOperation:
         mock_self.__class__.__name__ = "TestClass"
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -505,9 +495,7 @@ class TestAutoLogDatabaseOperation:
         mock_self = MagicMock()
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -528,9 +516,7 @@ class TestAutoLogDatabaseOperation:
             return "success"
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -695,9 +681,7 @@ class TestMiddlewareBehaviorsIntegration:
         mock_entity.clear_domain_events = MagicMock()
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()
@@ -731,9 +715,7 @@ class TestMiddlewareBehaviorsIntegration:
                 return f"user_{user_data['id']}"
 
         with (
-            patch(
-                "app.core.middleware.behaviors.get_logger", return_value=mock_logger
-            ),
+            patch("app.core.middleware.behaviors.get_logger", return_value=mock_logger),
             patch("app.core.middleware.behaviors.AutoLogContext") as mock_context,
         ):
             mock_context.return_value.__aenter__ = AsyncMock()

@@ -378,7 +378,8 @@ class TestFastAPIIntegrationIntegration:
 
             class TestHandler:
                 async def handle(
-                    self, request: TestCommand  # noqa: ARG002
+                    self,
+                    request: TestCommand,  # noqa: ARG002
                 ) -> TestResult:
                     return TestResult()
 

@@ -230,7 +230,8 @@ class TestCreateProductHandler:
 
         # Mock the _save_to_database method to check cancellation
         async def mock_save_with_cancellation(
-            product, cancellation_token  # noqa: ARG001
+            product,
+            cancellation_token,  # noqa: ARG001
         ):
             cancellation_token.throw_if_cancellation_requested()
             # Simulate some work

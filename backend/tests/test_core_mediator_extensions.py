@@ -286,6 +286,7 @@ class TestExtractRequestType:
 
     def test_extract_request_type_from_generic_base(self) -> None:
         """Test extracting request type from generic base."""
+
         # Create a handler with generic base
         class GenericHandler:
             __orig_bases__ = ((MockCommand, MockResult),)

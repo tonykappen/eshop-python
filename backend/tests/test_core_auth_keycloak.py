@@ -149,14 +149,17 @@ class TestKeycloakService:
             "name": "Test User",
         }
 
-        with patch("jwt.decode") as mock_jwt_decode, \
-             patch("jwt.PyJWKClient") as mock_jwks_client:
-            
+        with (
+            patch("jwt.decode") as mock_jwt_decode,
+            patch("jwt.PyJWKClient") as mock_jwks_client,
+        ):
             # Mock the JWT decoding process
             mock_jwt_decode.return_value = expected_token_info
             mock_signing_key = MagicMock()
             mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
 
             service = KeycloakService()
             result = await service.verify_token("valid-token")
@@ -206,14 +209,17 @@ class TestKeycloakService:
             "realm_access": {"roles": ["user", "admin"]},
         }
 
-        with patch("jwt.decode") as mock_jwt_decode, \
-             patch("jwt.PyJWKClient") as mock_jwks_client:
-            
+        with (
+            patch("jwt.decode") as mock_jwt_decode,
+            patch("jwt.PyJWKClient") as mock_jwks_client,
+        ):
             # Mock the JWT decoding process
             mock_jwt_decode.return_value = expected_token_info
             mock_signing_key = MagicMock()
             mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
 
             service = KeycloakService()
             user = await service.get_user_info("valid-token")
@@ -230,14 +236,17 @@ class TestKeycloakService:
         """Test user info retrieval with minimal token data."""
         expected_token_info = {"sub": "user123"}
 
-        with patch("jwt.decode") as mock_jwt_decode, \
-             patch("jwt.PyJWKClient") as mock_jwks_client:
-            
+        with (
+            patch("jwt.decode") as mock_jwt_decode,
+            patch("jwt.PyJWKClient") as mock_jwks_client,
+        ):
             # Mock the JWT decoding process
             mock_jwt_decode.return_value = expected_token_info
             mock_signing_key = MagicMock()
             mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
 
             service = KeycloakService()
             user = await service.get_user_info("valid-token")

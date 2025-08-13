@@ -7,7 +7,13 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.testclient import TestClient
 
-from app.core.auth.keycloak import KeycloakUser, get_current_user_optional, require_role, security, get_current_user
+from app.core.auth.keycloak import (
+    KeycloakUser,
+    get_current_user,
+    get_current_user_optional,
+    require_role,
+    security,
+)
 
 # Alias get_current_user as get_current_user_required for tests
 get_current_user_required = get_current_user
@@ -44,7 +50,7 @@ class TestGetCurrentUserOptional:
     @pytest.mark.asyncio
     async def test_get_current_user_optional_with_valid_credentials(self) -> None:
         """Test get_current_user_optional with valid credentials."""
-        mock_request = MagicMock()
+        MagicMock()
         mock_credentials = MagicMock(spec=HTTPAuthorizationCredentials)
         mock_credentials.credentials = "valid-token"
 
@@ -55,9 +61,7 @@ class TestGetCurrentUserOptional:
             roles=["user"],
         )
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.get_user_info = AsyncMock(return_value=mock_user)
 
             result = await get_current_user_optional(credentials=mock_credentials)
@@ -68,13 +72,11 @@ class TestGetCurrentUserOptional:
     @pytest.mark.asyncio
     async def test_get_current_user_optional_with_invalid_credentials(self) -> None:
         """Test get_current_user_optional with invalid credentials."""
-        mock_request = MagicMock()
+        MagicMock()
         mock_credentials = MagicMock(spec=HTTPAuthorizationCredentials)
         mock_credentials.credentials = "invalid-token"
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.get_user_info = AsyncMock(
                 side_effect=Exception("Invalid token")
             )
@@ -170,9 +172,7 @@ class TestGetCurrentUserRequired:
             roles=["user"],
         )
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.get_user_info = AsyncMock(return_value=mock_user)
 
             result = await get_current_user_required(credentials=mock_credentials)
@@ -186,9 +186,7 @@ class TestGetCurrentUserRequired:
         mock_credentials = MagicMock(spec=HTTPAuthorizationCredentials)
         mock_credentials.credentials = "invalid-token"
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.get_user_info = AsyncMock(
                 side_effect=Exception("Invalid token")
             )
@@ -215,9 +213,7 @@ class TestRequireRole:
             roles=["admin", "user"],
         )
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.check_role = AsyncMock(return_value=True)
 
             role_checker = require_role("admin")
@@ -236,9 +232,7 @@ class TestRequireRole:
             roles=["user"],
         )
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.check_role = AsyncMock(return_value=False)
 
             role_checker = require_role("admin")
@@ -260,9 +254,7 @@ class TestRequireRole:
             roles=["admin"],
         )
 
-        with patch(
-            "app.core.auth.keycloak.keycloak_service"
-        ) as mock_service:
+        with patch("app.core.auth.keycloak.keycloak_service") as mock_service:
             mock_service.check_role = AsyncMock(return_value=True)
 
             role_checker = require_role("admin")
@@ -401,10 +393,11 @@ class TestAuthMiddlewareIntegration:
             roles=["admin", "user"],
         )
 
-        with patch("jwt.decode") as mock_jwt_decode, \
-             patch("jwt.PyJWKClient") as mock_jwks_client, \
-             patch("app.core.auth.keycloak.keycloak_service") as mock_service:
-            
+        with (
+            patch("jwt.decode") as mock_jwt_decode,
+            patch("jwt.PyJWKClient") as mock_jwks_client,
+            patch("app.core.auth.keycloak.keycloak_service") as mock_service,
+        ):
             # Mock JWT decoding
             mock_jwt_decode.return_value = {
                 "sub": "test-user-id",
@@ -415,8 +408,10 @@ class TestAuthMiddlewareIntegration:
             }
             mock_signing_key = MagicMock()
             mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = mock_signing_key
-            
+            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
+
             # Mock service methods
             mock_service.get_user_info = AsyncMock(return_value=mock_user)
             mock_service.check_role = AsyncMock(return_value=True)

@@ -78,9 +78,7 @@ class TestDataSeederManager:
         manager.register_seeder(MockSeeder)
 
         # Mock the database session to avoid greenlet issues
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session = AsyncMock()
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
@@ -103,9 +101,7 @@ class TestDataSeederManager:
         manager.register_seeder(FailingSeeder)
 
         # Mock the database session to avoid greenlet issues
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session = AsyncMock()
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
@@ -141,9 +137,7 @@ class TestSeedingFunctions:
         mock_result.scalar.return_value = 5
         mock_session.execute.return_value = mock_result
 
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -162,9 +156,7 @@ class TestSeedingFunctions:
         mock_result.scalar.return_value = 0
         mock_session.execute.return_value = mock_result
 
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -179,9 +171,7 @@ class TestSeedingFunctions:
         mock_result.scalar.return_value = None
         mock_session.execute.return_value = mock_result
 
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -194,9 +184,7 @@ class TestSeedingFunctions:
         mock_session = AsyncMock()
         mock_session.execute.side_effect = Exception("Database error")
 
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             result = await check_if_data_exists("test_table", "test_schema")
@@ -208,9 +196,7 @@ class TestSeedingFunctions:
         """Test successful schema creation."""
         mock_session = AsyncMock()
 
-        with patch(
-            "app.core.database.seeding.AsyncSessionLocal"
-        ) as mock_session_local:
+        with patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             await ensure_schema_exists("test_schema")
@@ -227,9 +213,7 @@ class TestSeedingFunctions:
         mock_session.execute.side_effect = Exception("Schema creation failed")
 
         with (
-            patch(
-                "app.core.database.seeding.AsyncSessionLocal"
-            ) as mock_session_local,
+            patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local,
             pytest.raises(Exception, match="Schema creation failed"),
         ):
             mock_session_local.return_value.__aenter__.return_value = mock_session
@@ -261,13 +245,9 @@ class TestCatalogDataSeeder:
 
         # Mock check_if_data_exists to return False
         with (
-            patch(
-                "app.core.database.seeding.check_if_data_exists", return_value=False
-            ),
+            patch("app.core.database.seeding.check_if_data_exists", return_value=False),
             patch("app.core.database.seeding.ensure_schema_exists"),
-            patch(
-                "app.core.database.seeding.AsyncSessionLocal"
-            ) as mock_session_local,
+            patch("app.core.database.seeding.AsyncSessionLocal") as mock_session_local,
         ):
             mock_session = AsyncMock()
             mock_session_local.return_value.__aenter__.return_value = mock_session

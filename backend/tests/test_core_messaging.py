@@ -96,9 +96,7 @@ class TestIntegrationEvent:
             pass
 
         # Mock the module path
-        with patch.object(
-            TestEvent, "__module__", "app.modules.catalog.domain.events"
-        ):
+        with patch.object(TestEvent, "__module__", "app.modules.catalog.domain.events"):
             event = TestEvent()
             assert event.source_module == "catalog"
 
@@ -119,9 +117,7 @@ class TestIntegrationEvent:
         class TestEvent(IntegrationEvent):
             pass
 
-        with patch.object(
-            TestEvent, "__module__", "app.modules.catalog.domain.events"
-        ):
+        with patch.object(TestEvent, "__module__", "app.modules.catalog.domain.events"):
             event = TestEvent()
             assert event.topic == "app.catalog.test"
 
@@ -131,9 +127,7 @@ class TestIntegrationEvent:
         class TestEvent(IntegrationEvent):
             pass
 
-        with patch.object(
-            TestEvent, "__module__", "app.modules.catalog.domain.events"
-        ):
+        with patch.object(TestEvent, "__module__", "app.modules.catalog.domain.events"):
             event = TestEvent()
             assert event.routing_key == "app.catalog.test"
 

@@ -53,7 +53,9 @@ class TestQueryHandler(IRequestHandler[TestQuery, str]):
     """Test query handler."""
 
     async def handle(
-        self, request: TestQuery, cancellation_token: CancellationToken  # noqa: ARG002
+        self,
+        request: TestQuery,
+        cancellation_token: CancellationToken,  # noqa: ARG002
     ) -> str:
         return f"Query result: {request.id}"
 

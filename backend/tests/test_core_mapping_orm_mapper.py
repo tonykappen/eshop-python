@@ -2,15 +2,12 @@
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import DeclarativeBase
 
-from app.core.domain.entity import Entity
 from app.core.mapping.orm_mapper import (
     ORMMapper,
     from_orm,
@@ -28,7 +25,16 @@ class MockDeclarativeBase(DeclarativeBase):
 class MockORMModel:
     """Mock ORM model for testing."""
 
-    def __init__(self, id: int = None, name: str = None, description: str = None, created_at: datetime = None, uuid_field: str = None, uuid_list: list[str] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        id: int = None,
+        name: str = None,
+        description: str = None,
+        created_at: datetime = None,
+        uuid_field: str = None,
+        uuid_list: list[str] = None,
+        **kwargs: Any,
+    ) -> None:
         """Initialize mock ORM model."""
         self.id = id
         self.name = name
@@ -51,7 +57,9 @@ class MockORMModelWithTable:
 
     __tablename__ = "mock_table_with_table"
 
-    def __init__(self, id: int = None, name: str = None, email: str = None, **kwargs: Any) -> None:
+    def __init__(
+        self, id: int = None, name: str = None, email: str = None, **kwargs: Any
+    ) -> None:
         """Initialize mock ORM model with table."""
         self.id = id
         self.name = name
@@ -730,18 +738,29 @@ class TestORMMapperErrorHandling:
 
     def test_update_orm_conversion_error(self) -> None:
         """Test error handling during ORM update."""
+
         # Create a custom ORM model that raises an exception when setattr is called
         class ErrorORMModel:
-            def __init__(self, id: int = None, name: str = None, description: str = None, created_at: datetime = None, uuid_field: str = None, **kwargs: Any) -> None:
+            def __init__(
+                self,
+                id: int = None,
+                name: str = None,
+                description: str = None,
+                created_at: datetime = None,
+                uuid_field: str = None,
+                **kwargs: Any,
+            ) -> None:
                 # Use direct dict assignment to avoid __setattr__ during construction
-                self.__dict__.update({
-                    'id': id,
-                    'name': name,
-                    'description': description,
-                    'created_at': created_at,
-                    'uuid_field': uuid_field,
-                    **kwargs
-                })
+                self.__dict__.update(
+                    {
+                        "id": id,
+                        "name": name,
+                        "description": description,
+                        "created_at": created_at,
+                        "uuid_field": uuid_field,
+                        **kwargs,
+                    }
+                )
 
             def __setattr__(self, name: str, value: Any) -> None:
                 if name == "name":  # Raise exception when setting 'name'

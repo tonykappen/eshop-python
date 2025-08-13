@@ -153,7 +153,6 @@ class TestKeycloakService:
             patch("jwt.decode") as mock_jwt_decode,
             patch("jwt.PyJWKClient") as mock_jwks_client,
         ):
-
             # Mock the JWT decoding process
             mock_jwt_decode.return_value = expected_token_info
             mock_signing_key = MagicMock()
@@ -214,7 +213,6 @@ class TestKeycloakService:
             patch("jwt.decode") as mock_jwt_decode,
             patch("jwt.PyJWKClient") as mock_jwks_client,
         ):
-
             # Mock the JWT decoding process
             mock_jwt_decode.return_value = expected_token_info
             mock_signing_key = MagicMock()
@@ -242,7 +240,6 @@ class TestKeycloakService:
             patch("jwt.decode") as mock_jwt_decode,
             patch("jwt.PyJWKClient") as mock_jwks_client,
         ):
-
             # Mock the JWT decoding process
             mock_jwt_decode.return_value = expected_token_info
             mock_signing_key = MagicMock()

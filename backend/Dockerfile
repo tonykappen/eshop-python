@@ -24,17 +24,9 @@ RUN poetry config virtualenvs.create false && \
 # Copy poetry files first for better caching
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies with proper resolution and cache busting
-# ARG CACHEBUST=1 ensures we always get fresh dependencies
-ARG CACHEBUST=1
-ARG UPDATE_DEPS=false
 
 # Install dependencies - update if requested or if lock file is stale
-RUN if [ "$UPDATE_DEPS" = "true" ]; then \
-        poetry lock && poetry install --no-root --no-interaction --no-cache; \
-    else \
-        poetry lock && poetry install --no-root --no-interaction --no-cache; \
-    fi
+RUN poetry lock && poetry install --no-root --no-interaction --no-cache
 
 # Copy application code
 COPY . .

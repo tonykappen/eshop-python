@@ -80,9 +80,6 @@ services:
     build: 
       context: ./backend
       dockerfile: ${BACKEND_DOCKERFILE:-Dockerfile}
-      args:
-        CACHEBUST: ${CACHEBUST:-1}
-        UPDATE_DEPS: ${UPDATE_DEPS:-false}
     container_name: eshop-backend
     environment:
       # Application Settings

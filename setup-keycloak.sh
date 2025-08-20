@@ -7,9 +7,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔐 Setting up Keycloak for eShop with RBAC...${NC}"
-
-# Wait for Keycloak to be ready
+./# Wait for Keycloak to be ready
 echo -e "${BLUE}⏳ Waiting for Keycloak to be ready...${NC}"
 sleep 20
 

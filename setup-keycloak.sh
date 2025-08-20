@@ -107,15 +107,17 @@ done
 # Create test users with different roles
 echo -e "${BLUE}👤 Creating test users with RBAC roles...${NC}"
 
-# Minimal set of 3 users with their roles
-declare -A USERS=(
-    ["admin"]="admin"
-    ["manager"]="manager"
-    ["user"]="user"
+# Minimal set of 4 users with their roles
+USERS=(
+    "adminuser:admin"
+    "manager:manager"
+    "user:user"
+    "testuser:user"
 )
 
-for username in "${!USERS[@]}"; do
-    role="${USERS[$username]}"
+for user_entry in "${USERS[@]}"; do
+    username=$(echo "$user_entry" | cut -d: -f1)
+    role=$(echo "$user_entry" | cut -d: -f2)
     echo -e "${BLUE}Creating user: $username with role: $role${NC}"
     
     # Create user with proper error handling
@@ -142,7 +144,27 @@ for username in "${!USERS[@]}"; do
     if [ "$HTTP_STATUS" -eq 201 ]; then
         echo -e "${GREEN}✅ User '$username' created successfully${NC}"
     elif [ "$HTTP_STATUS" -eq 409 ]; then
-        echo -e "${YELLOW}⚠️ User '$username' already exists, continuing with role assignment${NC}"
+        echo -e "${YELLOW}⚠️ User '$username' already exists, updating password...${NC}"
+        
+        # Get user ID for existing user
+        USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+        
+        if [ "$USER_ID" != "null" ] && [ -n "$USER_ID" ]; then
+            # Reset password for existing user
+            PASSWORD_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X PUT "http://localhost:8080/admin/realms/eshop/users/$USER_ID/reset-password" \
+                -H "Authorization: Bearer $ADMIN_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d '{"type": "password", "value": "password", "temporary": false}')
+            
+            PASSWORD_HTTP_STATUS=$(echo $PASSWORD_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+            
+            if [ "$PASSWORD_HTTP_STATUS" -eq 204 ]; then
+                echo -e "${GREEN}✅ Password updated for existing user '$username'${NC}"
+            else
+                echo -e "${RED}❌ Failed to update password for '$username' (HTTP $PASSWORD_HTTP_STATUS)${NC}"
+            fi
+        fi
     else
         echo -e "${RED}❌ Failed to create user '$username' (HTTP $HTTP_STATUS)${NC}"
         continue
@@ -227,8 +249,9 @@ fi
 echo -e "${BLUE}🔍 Verifying user creation and role assignments...${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 
-for username in "${!USERS[@]}"; do
-    expected_role="${USERS[$username]}"
+for user_entry in "${USERS[@]}"; do
+    username=$(echo "$user_entry" | cut -d: -f1)
+    expected_role=$(echo "$user_entry" | cut -d: -f2)
     
     # Get user info
     USER_INFO=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
@@ -258,6 +281,31 @@ for username in "${!USERS[@]}"; do
     fi
 done
 
+# Final verification - ensure all users have passwords
+echo -e "${BLUE}🔐 Final verification - checking user passwords...${NC}"
+for user_entry in "${USERS[@]}"; do
+    username=$(echo "$user_entry" | cut -d: -f1)
+    USER_ID=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users?username=$username" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+    
+    if [ "$USER_ID" != "null" ] && [ -n "$USER_ID" ]; then
+        CREDENTIALS_COUNT=$(curl -s -X GET "http://localhost:8080/admin/realms/eshop/users/$USER_ID" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.credentials | length')
+        
+        if [ "$CREDENTIALS_COUNT" -gt 0 ]; then
+            echo -e "${GREEN}✅ $username: Password is set${NC}"
+        else
+            echo -e "${RED}❌ $username: No password set - attempting to fix...${NC}"
+            # Try to set password again
+            curl -s -X PUT "http://localhost:8080/admin/realms/eshop/users/$USER_ID/reset-password" \
+                -H "Authorization: Bearer $ADMIN_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d '{"type": "password", "value": "password", "temporary": false}' > /dev/null
+            echo -e "${YELLOW}🔄 Password reset attempted for $username${NC}"
+        fi
+    fi
+done
+
 echo -e "${GREEN}🎉 Keycloak RBAC setup complete!${NC}"
 echo -e "${BLUE}📋 Access Points:${NC}"
 echo -e "  • Keycloak Admin: http://localhost:8080/admin/ (admin/admin)"
@@ -265,9 +313,10 @@ echo -e "  • Realm: eshop"
 echo -e "  • Client: eshop-api"
 echo -e ""
 echo -e "${BLUE}👥 Test Users & Roles:${NC}"
-echo -e "  • ${GREEN}admin/password${NC} (Admin role - full access)"
+echo -e "  • ${GREEN}adminuser/password${NC} (Admin role - full access)"
 echo -e "  • ${YELLOW}manager/password${NC} (Manager role - read/write access)"
 echo -e "  • ${BLUE}user/password${NC} (User role - read-only access)"
+echo -e "  • ${BLUE}testuser/password${NC} (User role - read-only access)"
 echo -e ""
 echo -e "${BLUE}🔐 RBAC Permissions:${NC}"
 echo -e "  • ${RED}Command endpoints${NC} (POST/PUT/DELETE): ${GREEN}admin${NC}, ${YELLOW}manager${NC}"
@@ -280,7 +329,7 @@ echo -e "    -d 'username=user&password=password&grant_type=password&client_id=e
 echo -e ""
 echo -e "  # Test admin login (full access)"
 echo -e "  curl -X POST http://localhost:8080/realms/eshop/protocol/openid-connect/token \\"
-echo -e "    -d 'username=admin&password=password&grant_type=password&client_id=eshop-api&client_secret=your-client-secret'"
+echo -e "    -d 'username=adminuser&password=password&grant_type=password&client_id=eshop-api&client_secret=your-client-secret'"
 echo -e ""
 echo -e "${BLUE}🔧 Next Steps:${NC}"
 echo -e "  1. Update your .env file with the correct client secret"

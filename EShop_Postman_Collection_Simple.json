@@ -1,0 +1,677 @@
+{
+	"info": {
+		"_postman_id": "eshop-api-collection-complete",
+		"name": "eShop API Collection (Complete)",
+		"description": "Complete eShop API collection with all endpoints and user selection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "keycloak_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "realm",
+			"value": "eshop",
+			"type": "string"
+		},
+		{
+			"key": "client_id",
+			"value": "eshop-api",
+			"type": "string"
+		},
+		{
+			"key": "client_secret",
+			"value": "your-client-secret",
+			"type": "string"
+		},
+		{
+			"key": "current_user",
+			"value": "user",
+			"type": "string"
+		},
+		{
+			"key": "bearer_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{bearer_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Simple user configuration",
+					"var users = {",
+					"    'user': { username: 'user', password: 'password' },",
+					"    'testuser': { username: 'testuser', password: 'password' },",
+					"    'manager': { username: 'manager', password: 'password' },",
+					"    'adminuser': { username: 'adminuser', password: 'password' }",
+					"};",
+					"",
+					"// Get current user",
+					"var currentUser = pm.collectionVariables.get('current_user');",
+					"var userCreds = users[currentUser];",
+					"",
+					"if (!userCreds) {",
+					"    console.error('Invalid user: ' + currentUser);",
+					"    return;",
+					"}",
+					"",
+					"console.log('Using user: ' + currentUser);",
+					"",
+					"// Get token",
+					"var tokenRequest = {",
+					"    url: pm.collectionVariables.get('keycloak_url') + '/realms/' + pm.collectionVariables.get('realm') + '/protocol/openid-connect/token',",
+					"    method: 'POST',",
+					"    header: {",
+					"        'Content-Type': 'application/x-www-form-urlencoded'",
+					"    },",
+					"    body: {",
+					"        mode: 'urlencoded',",
+					"        urlencoded: [",
+					"            { key: 'username', value: userCreds.username },",
+					"            { key: 'password', value: userCreds.password },",
+					"            { key: 'grant_type', value: 'password' },",
+					"            { key: 'client_id', value: pm.collectionVariables.get('client_id') },",
+					"            { key: 'client_secret', value: pm.collectionVariables.get('client_secret') }",
+					"        ]",
+					"    }",
+					"};",
+					"",
+					"pm.sendRequest(tokenRequest, function (err, response) {",
+					"    if (err) {",
+					"        console.error('Error:', err);",
+					"        return;",
+					"    }",
+					"    ",
+					"    if (response.code === 200) {",
+					"        var tokenData = response.json();",
+					"        pm.collectionVariables.set('bearer_token', tokenData.access_token);",
+					"        console.log('Token generated for ' + currentUser);",
+					"    } else {",
+					"        console.error('Failed to get token:', response.text());",
+					"    }",
+					"});"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "User Selection",
+			"item": [
+				{
+					"name": "Switch to User (Read-only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('current_user', 'user');",
+									"console.log('Switched to user (Read-only access)');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Switch to TestUser (Read-only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('current_user', 'testuser');",
+									"console.log('Switched to testuser (Read-only access)');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Switch to Manager (Read/Write)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('current_user', 'manager');",
+									"console.log('Switched to manager (Read/Write access)');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Switch to AdminUser (Full Access)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('current_user', 'adminuser');",
+									"console.log('Switched to adminuser (Full access)');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health Checks",
+			"item": [
+				{
+					"name": "Root Endpoint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": ["{{base_url}}"],
+							"path": [""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Basic Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "API Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Detailed Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/detailed",
+							"host": ["{{base_url}}"],
+							"path": ["health", "detailed"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Database Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/database",
+							"host": ["{{base_url}}"],
+							"path": ["health", "database"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Redis Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/redis",
+							"host": ["{{base_url}}"],
+							"path": ["health", "redis"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "RabbitMQ Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/rabbitmq",
+							"host": ["{{base_url}}"],
+							"path": ["health", "rabbitmq"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Keycloak Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/keycloak",
+							"host": ["{{base_url}}"],
+							"path": ["health", "keycloak"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Current User Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Realm Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth-proxy/realm-info",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth-proxy", "realm-info"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Token via Proxy",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "user",
+									"description": "Username"
+								},
+								{
+									"key": "password",
+									"value": "password",
+									"description": "Password"
+								},
+								{
+									"key": "grant_type",
+									"value": "password",
+									"description": "Grant type"
+								},
+								{
+									"key": "client_id",
+									"value": "eshop-api",
+									"description": "Client ID"
+								},
+								{
+									"key": "client_secret",
+									"value": "your-client-secret",
+									"description": "Client secret"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth-proxy/token",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth-proxy", "token"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Catalog Module",
+			"item": [
+				{
+					"name": "Test Catalog Router",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/test",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "test"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test RBAC",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rbac-test",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "rbac-test"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products with Pagination",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/?page=1&page_size=5",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "page_size",
+									"value": "5",
+									"description": "Items per page"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products with Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/?search_term=laptop",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""],
+							"query": [
+								{
+									"key": "search_term",
+									"value": "laptop",
+									"description": "Search term"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/123e4567-e89b-12d3-a456-426614174000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "123e4567-e89b-12d3-a456-426614174000"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product for API testing\",\n    \"price\": 99.99,\n    \"category\": \"Electronics\",\n    \"stock_quantity\": 100,\n    \"picture_url\": \"https://example.com/image.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product (Manager/Admin Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Premium Laptop\",\n    \"description\": \"High-performance laptop for professionals\",\n    \"price\": 1299.99,\n    \"category\": \"Electronics\",\n    \"stock_quantity\": 50,\n    \"picture_url\": \"https://example.com/laptop.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Documentation",
+			"item": [
+				{
+					"name": "OpenAPI JSON",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/openapi.json",
+							"host": ["{{base_url}}"],
+							"path": ["openapi.json"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Swagger UI",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/docs",
+							"host": ["{{base_url}}"],
+							"path": ["docs"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "RBAC Testing",
+			"item": [
+				{
+					"name": "Test User Access (Read-only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const currentUser = pm.collectionVariables.get('current_user');",
+									"console.log('Testing RBAC for user: ' + currentUser);",
+									"",
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Access granted for ' + currentUser);",
+									"    const responseData = pm.response.json();",
+									"    if (responseData.data) {",
+									"        console.log('📊 Products returned: ' + responseData.data.length);",
+									"    }",
+									"} else if (pm.response.code === 401) {",
+									"    console.log('❌ Unauthorized access for ' + currentUser);",
+									"} else if (pm.response.code === 403) {",
+									"    console.log('🚫 Forbidden access for ' + currentUser + ' (insufficient permissions)');",
+									"} else {",
+									"    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Create Product (Manager/Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const currentUser = pm.collectionVariables.get('current_user');",
+									"console.log('Testing product creation for user: ' + currentUser);",
+									"",
+									"if (pm.response.code === 201 || pm.response.code === 200) {",
+									"    console.log('✅ Product creation successful for ' + currentUser);",
+									"} else if (pm.response.code === 401) {",
+									"    console.log('❌ Unauthorized access for ' + currentUser);",
+									"} else if (pm.response.code === 403) {",
+									"    console.log('🚫 Forbidden: ' + currentUser + ' cannot create products (User role only)');",
+									"} else {",
+									"    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"RBAC Test Product\",\n    \"description\": \"Testing RBAC permissions\",\n    \"price\": 49.99,\n    \"category\": \"Test\",\n    \"stock_quantity\": 50,\n    \"picture_url\": \"https://example.com/test.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

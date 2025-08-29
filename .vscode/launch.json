@@ -1,0 +1,173 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Backend (FastAPI)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/app/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "DATABASE_URL": "postgresql+asyncpg://postgres:postgres@localhost:5432/eshop",
+                "DB_HOST": "localhost",
+                "DB_PORT": "5432",
+                "DB_USER": "postgres",
+                "DB_PASSWORD": "postgres",
+                "DB_NAME": "eshop",
+                "REDIS_URL": "redis://localhost:6379",
+                "REDIS_HOST": "localhost",
+                "REDIS_PORT": "6379",
+                "RABBITMQ_URL": "amqp://guest:guest@localhost:5672/",
+                "RABBITMQ_HOST": "localhost",
+                "RABBITMQ_PORT": "5672",
+                "RABBITMQ_USER": "guest",
+                "RABBITMQ_PASSWORD": "guest",
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080",
+                "KEYCLOAK_REALM": "eshop",
+                "KEYCLOAK_CLIENT_ID": "eshop-api",
+                "KEYCLOAK_CLIENT_SECRET": "your-client-secret",
+                "APP_NAME": "eShop Modular Monolith",
+                "APP_VERSION": "0.1.0",
+                "DEBUG": "true",
+                "LOG_LEVEL": "debug",
+                "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\", \"http://localhost:8001\"]"
+            },
+            "args": [],
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug Backend (uvicorn)",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--host", "0.0.0.0",
+                "--port", "8000",
+                "--reload",
+                "--log-level", "debug"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "DATABASE_URL": "postgresql+asyncpg://postgres:postgres@localhost:5432/eshop",
+                "DB_HOST": "localhost",
+                "DB_PORT": "5432",
+                "DB_USER": "postgres",
+                "DB_PASSWORD": "postgres",
+                "DB_NAME": "eshop",
+                "REDIS_URL": "redis://localhost:6379",
+                "REDIS_HOST": "localhost",
+                "REDIS_PORT": "6379",
+                "RABBITMQ_URL": "amqp://guest:guest@localhost:5672/",
+                "RABBITMQ_HOST": "localhost",
+                "RABBITMQ_PORT": "5672",
+                "RABBITMQ_USER": "guest",
+                "RABBITMQ_PASSWORD": "guest",
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080",
+                "KEYCLOAK_REALM": "eshop",
+                "KEYCLOAK_CLIENT_ID": "eshop-api",
+                "KEYCLOAK_CLIENT_SECRET": "your-client-secret",
+                "APP_NAME": "eShop Modular Monolith",
+                "APP_VERSION": "0.1.0",
+                "DEBUG": "true",
+                "LOG_LEVEL": "debug",
+                "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\", \"http://localhost:8001\"]"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug Frontend (HTTP Server)",
+            "type": "python",
+            "request": "launch",
+            "module": "http.server",
+            "args": ["3000"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/frontend",
+            "env": {
+                "BACKEND_URL": "http://localhost:8000"
+            },
+            "serverReadyAction": {
+                "pattern": "Serving HTTP on.*port 3000",
+                "uriFormat": "http://localhost:3000",
+                "action": "debugWithChrome"
+            }
+        },
+        {
+            "name": "Debug Frontend (Chrome)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/frontend",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-profile"
+        },
+        {
+            "name": "Debug Frontend (Edge)",
+            "type": "msedge",
+            "request": "launch",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/frontend",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceFolder}/.vscode/edge-debug-profile"
+        },
+        {
+            "name": "Debug Backend Tests",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-v",
+                "--tb=short",
+                "--cov=app",
+                "--cov-report=term-missing"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "DATABASE_URL": "postgresql+asyncpg://postgres:postgres@localhost:5432/eshop_test",
+                "DB_HOST": "localhost",
+                "DB_PORT": "5432",
+                "DB_USER": "postgres",
+                "DB_PASSWORD": "postgres",
+                "DB_NAME": "eshop_test",
+                "REDIS_URL": "redis://localhost:6379",
+                "RABBITMQ_URL": "amqp://guest:guest@localhost:5672/",
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080",
+                "DEBUG": "true",
+                "LOG_LEVEL": "debug"
+            },
+            "justMyCode": false
+        },
+
+    ],
+    "compounds": [
+        {
+            "name": "Debug Full Stack (Backend + Frontend)",
+            "configurations": [
+                "Debug Backend (uvicorn)",
+                "Debug Frontend (HTTP Server)"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Debug Backend + Tests",
+            "configurations": [
+                "Debug Backend (uvicorn)",
+                "Debug Backend Tests"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Stop All Debug Sessions",
+            "configurations": [],
+            "stopAll": true
+        }
+    ]
+} 

@@ -1,0 +1,36 @@
+[
+    {
+        "key": "ctrl+shift+k",
+        "command": "workbench.action.debug.stop",
+        "when": "debuggersAvailable && inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+alt+k",
+        "command": "workbench.action.debug.stopAll",
+        "when": "debuggersAvailable"
+    },
+    {
+        "key": "ctrl+shift+t",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Stop All Development Servers",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+b",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Stop Backend Server",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+f",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Stop Frontend Server",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "ctrl+shift+c",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Check Running Servers",
+        "when": "!inDebugMode"
+    }
+]

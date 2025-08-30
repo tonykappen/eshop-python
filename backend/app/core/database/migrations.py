@@ -1,12 +1,38 @@
 """Database migration system using Alembic with automatic execution."""
 
+import asyncio
 import subprocess
 from pathlib import Path
+from typing import Optional
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import text
 
 from app.config.settings import settings
+from app.core.database.session import AsyncSessionLocal
 from app.core.logging.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:
+    """Wait for database to be ready."""
+    logger.info("⏳ Waiting for database to be ready...")
+    
+    for attempt in range(max_retries):
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+                logger.info("✅ Database is ready!")
+                return
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.debug(f"Database not ready (attempt {attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(delay)
+            else:
+                logger.error(f"❌ Database failed to become ready after {max_retries} attempts")
+                raise
 
 
 def run_migrations() -> None:
@@ -21,30 +47,47 @@ def run_migrations() -> None:
             _create_alembic_config()
 
         # Check if migrations directory exists
-        migrations_dir = Path("migrations")
+        migrations_dir = Path("alembic")
         if not migrations_dir.exists():
             logger.info("📁 Creating migrations directory...")
             _create_migrations_directory()
 
-        # Run migrations
-        result = subprocess.run(
-            ["poetry", "run", "alembic", "upgrade", "head"],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd(),
-        )
+        # Check if initial migration exists, create if needed
+        _create_initial_migration_if_needed()
 
-        if result.returncode == 0:
-            logger.info("✅ Database migrations completed successfully")
-            if result.stdout:
-                logger.debug(f"Migration output: {result.stdout}")
-        else:
-            logger.error(f"❌ Database migrations failed: {result.stderr}")
-            raise RuntimeError(f"Migration failed: {result.stderr}")
+        # Run migrations using Alembic command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        
+        logger.info("✅ Database migrations completed successfully")
 
     except Exception as e:
         logger.error(f"❌ Migration execution failed: {e}")
         raise
+
+
+def _create_initial_migration_if_needed() -> None:
+    """Create initial migration if none exists."""
+    try:
+        versions_dir = Path("alembic/versions")
+        if not versions_dir.exists() or not list(versions_dir.glob("*.py")):
+            logger.info("📝 Creating initial migration...")
+            alembic_cfg = Config("alembic.ini")
+            
+            # Create the migration using autogenerate
+            command.revision(
+                alembic_cfg,
+                autogenerate=True,
+                message="Initial migration"
+            )
+            logger.info("✅ Initial migration created successfully")
+        else:
+            logger.info("✅ Migration files already exist")
+    except Exception as e:
+        logger.error(f"❌ Failed to create initial migration: {e}")
+        logger.error(f"❌ Error details: {type(e).__name__}: {str(e)}")
+        # Don't raise here, just log the error and continue
+        logger.warning("⚠️ Continuing without auto-generated migration")
 
 
 def _create_alembic_config() -> None:
@@ -262,7 +305,15 @@ def run_migrations_online() -> None:
 
     """
 
-    asyncio.run(run_async_migrations())
+    # Use sync version to avoid async issues
+    from sqlalchemy import create_engine
+    from alembic import context
+    
+    engine = create_engine(config.get_main_option("sqlalchemy.url"))
+    with engine.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 if context.is_offline_mode():

@@ -10,18 +10,26 @@ This guide explains how to develop the eShop application using a hybrid approach
 ./scripts/start-infrastructure.sh
 ```
 
-### 2. Run Backend Locally
+### 2. Setup Keycloak (Optional)
+```bash
+# Configure Keycloak realm, client, and users
+./scripts/setup-keycloak.sh
+```
+
+### 3. Run Backend Locally
 ```bash
 cd backend
 poetry install
 poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Run Frontend Locally
+### 4. Run Frontend Locally
 ```bash
 cd frontend
 python -m http.server 3000
 ```
+
+**Note**: Database schemas are automatically created by the custom PostgreSQL container on every startup.
 
 ## 🔧 VS Code Debugging
 

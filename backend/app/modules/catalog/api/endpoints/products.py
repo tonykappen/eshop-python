@@ -75,7 +75,7 @@ class CreateProductCommand(ICommand[dict]):
     name: str
     description: str
     price: float
-    picture_url: str
+    image_file: str  # Changed from picture_url to match domain model
 
 
 # Dependency for mediator - matches .NET ISender dependency injection

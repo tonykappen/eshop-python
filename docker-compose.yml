@@ -2,7 +2,7 @@
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:17
     container_name: eshop-postgres
     environment:
       POSTGRES_USER: postgres
@@ -19,7 +19,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     container_name: eshop-redis
     ports:
       - "6379:6379"
@@ -32,7 +32,7 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     container_name: eshop-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest

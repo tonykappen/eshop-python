@@ -56,8 +56,17 @@ This project follows a **modular monolith** architecture with **Domain-Driven De
 This will:
 - Build and start all containers
 - Set up Keycloak with test users
-- Run database migrations
+- Run database migrations and seeding
 - Provide access URLs and credentials
+
+### 2. Database Setup
+
+The application automatically initializes the database with:
+- PostgreSQL 17 (latest stable)
+- Automatic migration creation and execution using Alembic
+- Initial data seeding (catalog products)
+
+For database troubleshooting, see [DATABASE_SETUP.md](DATABASE_SETUP.md).
 
 ### 2. Access the Application
 

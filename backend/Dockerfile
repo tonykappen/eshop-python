@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libssl-dev \
     pkg-config \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install poetry
@@ -24,7 +25,6 @@ RUN poetry config virtualenvs.create false && \
 # Copy poetry files first for better caching
 COPY pyproject.toml poetry.lock ./
 
-
 # Install dependencies - update if requested or if lock file is stale
 RUN poetry lock && poetry install --no-root --no-interaction --no-cache
 
@@ -34,5 +34,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start app
+# Start the application (database initialization is handled by the Python code)
 CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

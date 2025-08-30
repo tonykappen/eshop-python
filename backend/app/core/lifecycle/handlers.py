@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from app.core.database.migrations import run_migrations
+from app.core.database.migrations import run_migrations, wait_for_database
 from app.core.database.seeding import run_seeding
 from app.core.database.session import close_db_engine, create_db_engine
 from app.core.health.health_service import health_service
@@ -26,6 +26,9 @@ class DatabaseLifecycleHandler:
         try:
             # Create database engine
             await create_db_engine()
+
+            # Wait for database to be ready
+            await wait_for_database()
 
             # Run migrations
             run_migrations()

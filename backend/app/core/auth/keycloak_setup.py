@@ -22,7 +22,8 @@ class KeycloakSetup:
         self.realm = settings.keycloak_realm
         self.client_id = settings.keycloak_client_id
         self.client_secret = settings.keycloak_client_secret
-        self.admin_token: Optional[str] = None
+        self.master_admin_token: Optional[str] = None
+        self.realm_admin_token: Optional[str] = None
 
     async def setup_keycloak(self) -> bool:
         """Complete Keycloak setup process."""
@@ -38,9 +39,9 @@ class KeycloakSetup:
                 logger.error("❌ Keycloak is not accessible")
                 return False
 
-            # Get admin token
-            if not await self._get_admin_token():
-                logger.error("❌ Failed to get admin token")
+            # Get master admin token (for realm creation only)
+            if not await self._get_master_admin_token():
+                logger.error("❌ Failed to get master admin token")
                 return False
 
             # Create realm
@@ -51,18 +52,27 @@ class KeycloakSetup:
             if not await self._create_client():
                 logger.warning("⚠️ Client creation failed or already exists")
 
-            # Create roles
+            # Create realm admin user
+            if not await self._create_realm_admin():
+                logger.warning("⚠️ Realm admin creation failed or already exists")
+
+            # Get realm admin token
+            if not await self._get_realm_admin_token():
+                logger.error("❌ Failed to get realm admin token")
+                return False
+
+            # Create roles using realm admin
             if not await self._create_roles():
                 logger.warning("⚠️ Role creation failed or already exists")
 
-            # Create users
+            # Create users using realm admin
             if not await self._create_users():
                 logger.warning("⚠️ User creation failed or already exists")
 
-            # Setup role hierarchy
+            # Setup role hierarchy using realm admin
             await self._setup_role_hierarchy()
 
-            # Verify setup
+            # Verify setup using realm admin
             await self._verify_setup()
 
             logger.info("✅ Keycloak setup completed successfully")
@@ -88,8 +98,8 @@ class KeycloakSetup:
             logger.error(f"❌ Keycloak is not accessible: {e}")
             return False
 
-    async def _get_admin_token(self) -> bool:
-        """Get admin token from Keycloak."""
+    async def _get_master_admin_token(self) -> bool:
+        """Get master admin token from Keycloak."""
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -104,15 +114,42 @@ class KeycloakSetup:
                 )
                 response.raise_for_status()
                 data = response.json()
-                self.admin_token = data.get("access_token")
-                if self.admin_token:
-                    logger.info("✅ Admin token obtained")
+                self.master_admin_token = data.get("access_token")
+                if self.master_admin_token:
+                    logger.info("✅ Master admin token obtained")
                     return True
                 else:
                     logger.error("❌ No access token in response")
                     return False
         except Exception as e:
-            logger.error(f"❌ Failed to get admin token: {e}")
+            logger.error(f"❌ Failed to get master admin token: {e}")
+            return False
+
+    async def _get_realm_admin_token(self) -> bool:
+        """Get realm admin token from Keycloak."""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.base_url}/realms/{self.realm}/protocol/openid-connect/token",
+                    data={
+                        "username": "realm-admin",
+                        "password": "admin123",
+                        "grant_type": "password",
+                        "client_id": "admin-cli",
+                    },
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                response.raise_for_status()
+                data = response.json()
+                self.realm_admin_token = data.get("access_token")
+                if self.realm_admin_token:
+                    logger.info("✅ Realm admin token obtained")
+                    return True
+                else:
+                    logger.error("❌ No realm admin access token in response")
+                    return False
+        except Exception as e:
+            logger.error(f"❌ Failed to get realm admin token: {e}")
             return False
 
     async def _create_realm(self) -> bool:
@@ -122,7 +159,7 @@ class KeycloakSetup:
                 response = await client.post(
                     f"{self.base_url}/admin/realms",
                     headers={
-                        "Authorization": f"Bearer {self.admin_token}",
+                        "Authorization": f"Bearer {self.master_admin_token}",
                         "Content-Type": "application/json",
                     },
                     json={
@@ -151,7 +188,7 @@ class KeycloakSetup:
                 response = await client.post(
                     f"{self.base_url}/admin/realms/{self.realm}/clients",
                     headers={
-                        "Authorization": f"Bearer {self.admin_token}",
+                        "Authorization": f"Bearer {self.master_admin_token}",
                         "Content-Type": "application/json",
                     },
                     json={
@@ -181,8 +218,52 @@ class KeycloakSetup:
             logger.error(f"❌ Client creation failed: {e}")
             return False
 
+    async def _create_realm_admin(self) -> bool:
+        """Create a realm admin user."""
+        try:
+            async with httpx.AsyncClient() as client:
+                # Create realm admin user
+                user_data = {
+                    "username": "realm-admin",
+                    "email": "realm-admin@eshop.com",
+                    "enabled": True,
+                    "emailVerified": True,
+                    "firstName": "Realm",
+                    "lastName": "Admin",
+                    "credentials": [
+                        {
+                            "type": "password",
+                            "value": "admin123",
+                            "temporary": False,
+                        }
+                    ],
+                    "realmRoles": ["admin"],  # Assign admin role
+                }
+
+                response = await client.post(
+                    f"{self.base_url}/admin/realms/{self.realm}/users",
+                    headers={
+                        "Authorization": f"Bearer {self.master_admin_token}",
+                        "Content-Type": "application/json",
+                    },
+                    json=user_data,
+                )
+
+                if response.status_code == 201:
+                    logger.info("✅ Realm admin user created")
+                    return True
+                elif response.status_code == 409:
+                    logger.info("ℹ️ Realm admin user already exists")
+                    return True
+                else:
+                    logger.error(f"❌ Failed to create realm admin: {response.status_code}")
+                    return False
+        except Exception as e:
+            logger.error(f"❌ Realm admin creation failed: {e}")
+            return False
+
     async def _create_roles(self) -> bool:
-        """Create RBAC roles."""
+        """Create RBAC roles using realm admin."""
         roles = [
             {"name": "user", "description": "Basic user role - can read data"},
             {"name": "manager", "description": "Manager role - can read and write data"},
@@ -195,7 +276,7 @@ class KeycloakSetup:
                     response = await client.post(
                         f"{self.base_url}/admin/realms/{self.realm}/roles",
                         headers={
-                            "Authorization": f"Bearer {self.admin_token}",
+                            "Authorization": f"Bearer {self.realm_admin_token}",
                             "Content-Type": "application/json",
                         },
                         json=role,
@@ -213,7 +294,7 @@ class KeycloakSetup:
             return False
 
     async def _create_users(self) -> bool:
-        """Create test users with roles."""
+        """Create test users with roles using realm admin."""
         users = [
             ("adminuser", "admin"),
             ("manager", "manager"),
@@ -244,7 +325,7 @@ class KeycloakSetup:
                     response = await client.post(
                         f"{self.base_url}/admin/realms/{self.realm}/users",
                         headers={
-                            "Authorization": f"Bearer {self.admin_token}",
+                            "Authorization": f"Bearer {self.realm_admin_token}",
                             "Content-Type": "application/json",
                         },
                         json=user_data,
@@ -274,7 +355,7 @@ class KeycloakSetup:
             # Get user ID
             response = await client.get(
                 f"{self.base_url}/admin/realms/{self.realm}/users",
-                headers={"Authorization": f"Bearer {self.admin_token}"},
+                headers={"Authorization": f"Bearer {self.realm_admin_token}"},
                 params={"username": username},
             )
             response.raise_for_status()
@@ -285,7 +366,7 @@ class KeycloakSetup:
                 password_response = await client.put(
                     f"{self.base_url}/admin/realms/{self.realm}/users/{user_id}/reset-password",
                     headers={
-                        "Authorization": f"Bearer {self.admin_token}",
+                        "Authorization": f"Bearer {self.realm_admin_token}",
                         "Content-Type": "application/json",
                     },
                     json={
@@ -305,7 +386,7 @@ class KeycloakSetup:
             # Get user ID
             response = await client.get(
                 f"{self.base_url}/admin/realms/{self.realm}/users",
-                headers={"Authorization": f"Bearer {self.admin_token}"},
+                headers={"Authorization": f"Bearer {self.realm_admin_token}"},
                 params={"username": username},
             )
             response.raise_for_status()
@@ -319,7 +400,7 @@ class KeycloakSetup:
             # Get role ID
             role_response = await client.get(
                 f"{self.base_url}/admin/realms/{self.realm}/roles/{role_name}",
-                headers={"Authorization": f"Bearer {self.admin_token}"},
+                headers={"Authorization": f"Bearer {self.realm_admin_token}"},
             )
             role_response.raise_for_status()
             role_data = role_response.json()
@@ -329,7 +410,7 @@ class KeycloakSetup:
             assign_response = await client.post(
                 f"{self.base_url}/admin/realms/{self.realm}/users/{user_id}/role-mappings/realm",
                 headers={
-                    "Authorization": f"Bearer {self.admin_token}",
+                    "Authorization": f"Bearer {self.realm_admin_token}",
                     "Content-Type": "application/json",
                 },
                 json=[{"id": role_id, "name": role_name}],
@@ -350,7 +431,7 @@ class KeycloakSetup:
                 # Get role IDs
                 roles_response = await client.get(
                     f"{self.base_url}/admin/realms/{self.realm}/roles",
-                    headers={"Authorization": f"Bearer {self.admin_token}"},
+                    headers={"Authorization": f"Bearer {self.realm_admin_token}"},
                 )
                 roles_response.raise_for_status()
                 roles = roles_response.json()
@@ -362,7 +443,7 @@ class KeycloakSetup:
                     await client.post(
                         f"{self.base_url}/admin/realms/{self.realm}/roles/admin/composites",
                         headers={
-                            "Authorization": f"Bearer {self.admin_token}",
+                            "Authorization": f"Bearer {self.realm_admin_token}",
                             "Content-Type": "application/json",
                         },
                         json=[
@@ -377,7 +458,7 @@ class KeycloakSetup:
                     await client.post(
                         f"{self.base_url}/admin/realms/{self.realm}/roles/manager/composites",
                         headers={
-                            "Authorization": f"Bearer {self.admin_token}",
+                            "Authorization": f"Bearer {self.realm_admin_token}",
                             "Content-Type": "application/json",
                         },
                         json=[{"id": role_ids["user"], "name": "user"}],
@@ -394,7 +475,7 @@ class KeycloakSetup:
                 # Get all users
                 response = await client.get(
                     f"{self.base_url}/admin/realms/{self.realm}/users",
-                    headers={"Authorization": f"Bearer {self.admin_token}"},
+                    headers={"Authorization": f"Bearer {self.realm_admin_token}"},
                 )
                 response.raise_for_status()
                 users = response.json()
@@ -402,11 +483,11 @@ class KeycloakSetup:
                 logger.info("🔍 Verifying Keycloak setup...")
                 for user in users:
                     username = user.get("username", "")
-                    if username in ["adminuser", "manager", "user", "testuser"]:
+                    if username in ["adminuser", "manager", "user", "testuser", "realm-admin"]:
                         # Get user roles
                         roles_response = await client.get(
                             f"{self.base_url}/admin/realms/{self.realm}/users/{user['id']}/role-mappings/realm",
-                            headers={"Authorization": f"Bearer {self.admin_token}"},
+                            headers={"Authorization": f"Bearer {self.realm_admin_token}"},
                         )
                         if roles_response.status_code == 200:
                             roles = roles_response.json()

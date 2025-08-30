@@ -82,7 +82,7 @@ def _create_initial_migration_if_needed() -> None:
             )
             logger.info("✅ Initial migration created successfully")
         else:
-            logger.info("✅ Migration files already exist")
+            logger.info("✅ Migration files exist - will be applied during upgrade")
     except Exception as e:
         logger.error(f"❌ Failed to create initial migration: {e}")
         logger.error(f"❌ Error details: {type(e).__name__}: {str(e)}")

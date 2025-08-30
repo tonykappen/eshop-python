@@ -224,10 +224,12 @@ async def root() -> dict[str, str]:
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Basic health check endpoint."""
+    from datetime import datetime, timezone
+    
     return {
         "status": "healthy",
         "version": settings.version,
-        "timestamp": "2024-01-01T00:00:00Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

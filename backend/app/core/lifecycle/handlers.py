@@ -182,11 +182,14 @@ class AuthenticationLifecycleHandler:
         try:
             # Setup Keycloak (realm, client, roles, users)
             logger.info("🔧 Setting up Keycloak configuration...")
-            setup_success = await setup_keycloak_async()
-            if setup_success:
-                logger.info("✅ Keycloak setup completed successfully")
-            else:
-                logger.warning("⚠️ Keycloak setup failed or incomplete - continuing anyway")
+            try:
+                setup_success = await setup_keycloak_async()
+                if setup_success:
+                    logger.info("✅ Keycloak setup completed successfully")
+                else:
+                    logger.warning("⚠️ Keycloak setup failed or incomplete - continuing anyway")
+            except Exception as e:
+                logger.warning(f"⚠️ Keycloak setup failed with exception: {e} - continuing anyway")
             
             # Initialize Keycloak client
             # This would initialize the Keycloak client with proper configuration

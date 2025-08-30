@@ -1,14 +1,14 @@
+# eShop Application with Infrastructure Services
+# This file includes infrastructure services from docker-compose.infrastructure.yml
 
+version: '3.8'
 
-# Import infrastructure services from docker-compose.infrastructure.yml
 # Import infrastructure services
 include:
   - docker-compose.infrastructure.yml
 
 services:
-  # Infrastructure services are imported from docker-compose.infrastructure.yml
-  # This allows running infrastructure separately for development
-
+  # Application Services
   backend:
     build: 
       context: ./backend
@@ -95,6 +95,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 90s
+    networks:
+      - eshop-network
 
   frontend:
     build:
@@ -111,6 +113,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - eshop-network
 
-# Volumes are defined in docker-compose.infrastructure.yml
-# This file only defines application-specific volumes if needed
+# Volumes and networks are defined in docker-compose.infrastructure.yml

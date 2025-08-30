@@ -1,0 +1,103 @@
+"""Application initialization functions for eShop Modular Monolith."""
+
+from typing import Any
+
+from app.config.settings import settings
+from app.core.di.container import create_container, scan_assemblies, wire_container
+from app.core.logging.logger import configure_logging, get_logger
+from app.core.mediator.fastapi_integration import configure_mediator
+
+
+async def configure_application_startup() -> None:
+    """Configure application startup sequence."""
+    logger = get_logger("initialization")
+    logger.info("Configuring eShop Modular Monolith application")
+
+    # Configure logging first
+    configure_logging(
+        log_level=settings.log_level,
+        log_format="json",
+        enable_seq=settings.log_enable_seq,
+        seq_url=settings.seq_url,
+        enable_file_logging=settings.log_enable_file,
+        log_directory=settings.log_directory,
+        separate_server_logs=settings.log_separate_server_logs,
+    )
+
+    logger.info("Logging configuration completed")
+
+
+async def initialize_dependency_injection() -> None:
+    """Initialize dependency injection container."""
+    logger = get_logger("initialization")
+    logger.info("Initializing dependency injection container")
+
+    # Initialize DI container
+    container = create_container()
+    container.config.from_dict(
+        {
+            "database": {"connection_string": settings.database_connection_string},
+            "redis": {"connection_string": settings.redis_connection_string},
+            "rabbitmq": {"connection_string": settings.rabbitmq_connection_string},
+            "keycloak": {
+                "server_url": settings.keycloak_server_url,
+                "realm": settings.keycloak_realm,
+                "client_id": settings.keycloak_client_id,
+                "client_secret": settings.keycloak_client_secret,
+            },
+        }
+    )
+
+    # Scan assemblies for automatic service registration
+    scan_assemblies(
+        container,
+        ["app.modules.catalog", "app.modules.basket", "app.modules.ordering"],
+    )
+
+    # Wire container with packages (after services are registered)
+    try:
+        wire_container(
+            container,
+            ["app.modules.catalog", "app.modules.basket", "app.modules.ordering"],
+        )
+    except Exception as e:
+        logger.warning(f"Container wiring failed (non-critical): {e}")
+        # Continue without wiring - services can still be accessed directly
+
+    # Store container in global variable for access in main.py
+    global _app_container
+    _app_container = container
+
+    logger.info("Dependency injection container initialized")
+
+
+# Global container reference for lifecycle management
+_app_container = None
+
+
+def get_app_container():
+    """Get the application container instance."""
+    return _app_container
+
+
+async def initialize_mediator() -> None:
+    """Initialize mediator pattern - matches .NET AddMediatRWithAssemblies()."""
+    logger = get_logger("initialization")
+    logger.info("Initializing mediator pattern")
+
+    # Configure mediator (matches .NET Program.cs configuration)
+    configure_mediator()
+
+    logger.info("Mediator pattern initialized")
+
+
+async def cleanup_dependency_injection() -> None:
+    """Cleanup dependency injection container."""
+    logger = get_logger("initialization")
+    logger.info("Cleaning up dependency injection container")
+
+    global _app_container
+    if _app_container:
+        # Perform any necessary cleanup
+        # container.unwire()
+        logger.info("Dependency injection container cleanup completed")

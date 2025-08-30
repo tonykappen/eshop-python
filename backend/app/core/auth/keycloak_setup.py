@@ -411,25 +411,50 @@ class KeycloakSetup:
                     logger.info(f"ℹ️ Role '{role_name}' already assigned to user '{username}'")
                     return True
 
-            # Assign role
+            # Assign role with explicit role data
+            role_payload = {
+                "id": role_id,
+                "name": role_name,
+                "description": role_data.get("description", ""),
+                "composite": role_data.get("composite", False),
+                "clientRole": role_data.get("clientRole", False)
+            }
+
             assign_response = await client.post(
                 f"{self.base_url}/admin/realms/{self.realm}/users/{user_id}/role-mappings/realm",
                 headers={
                     "Authorization": f"Bearer {self.master_admin_token}",
                     "Content-Type": "application/json",
                 },
-                json=[{"id": role_id, "name": role_name}],
+                json=[role_payload],
             )
 
             if assign_response.status_code == 204:
                 logger.info(f"✅ Role '{role_name}' assigned to user '{username}'")
-                return True
+                
+                # Verify the assignment was successful
+                await asyncio.sleep(1)  # Small delay to ensure assignment is processed
+                verify_response = await client.get(
+                    f"{self.base_url}/admin/realms/{self.realm}/users/{user_id}/role-mappings/realm",
+                    headers={"Authorization": f"Bearer {self.master_admin_token}"},
+                )
+                if verify_response.status_code == 200:
+                    assigned_roles = verify_response.json()
+                    if any(role["name"] == role_name for role in assigned_roles):
+                        logger.info(f"✅ Verified: Role '{role_name}' successfully assigned to '{username}'")
+                        return True
+                    else:
+                        logger.error(f"❌ Role assignment verification failed for '{username}' -> '{role_name}'")
+                        return False
+                else:
+                    logger.error(f"❌ Could not verify role assignment for '{username}' -> '{role_name}'")
+                    return False
             else:
-                logger.warning(f"⚠️ Failed to assign role '{role_name}' to '{username}': {assign_response.status_code}")
+                logger.error(f"❌ Failed to assign role '{role_name}' to '{username}': {assign_response.status_code} - {assign_response.text}")
                 return False
 
         except Exception as e:
-            logger.warning(f"⚠️ Failed to assign role '{role_name}' to '{username}': {e}")
+            logger.error(f"❌ Failed to assign role '{role_name}' to '{username}': {e}")
             return False
 
     async def _setup_role_hierarchy(self) -> None:

@@ -1,4 +1,6 @@
-version: '3.8'
+# Infrastructure services for eShop application
+# This file can be used independently for development
+# or imported by the main docker-compose.yml
 
 services:
   postgres:
@@ -24,7 +26,7 @@ services:
       - eshop-network
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     container_name: eshop-redis
     ports:
       - "6379:6379"
@@ -39,7 +41,7 @@ services:
       - eshop-network
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     container_name: eshop-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
@@ -61,8 +63,12 @@ services:
     image: quay.io/keycloak/keycloak:latest
     container_name: eshop-keycloak
     environment:
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/eshop
       KC_DB_SCHEMA: keycloak
@@ -79,6 +85,14 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
     networks:
       - eshop-network
 

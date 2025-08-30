@@ -46,29 +46,43 @@ This project follows a **modular monolith** architecture with **Domain-Driven De
 - Docker and Docker Compose
 - (Optional) Python 3.12+ and Poetry for local development
 
-### 1. Start All Services
+### 1. Start Infrastructure Services
 
 ```bash
-# Start the full stack
-./scripts/start-dev.sh
+# Start infrastructure services (PostgreSQL, Redis, RabbitMQ, Keycloak)
+./scripts/start-infrastructure.sh
 ```
 
-This will:
-- Build and start all containers
-- Set up Keycloak with test users
+### 2. Start Application Services
+
+```bash
+# Start backend (from backend directory)
+cd backend
+DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/eshop" \
+REDIS_URL="redis://localhost:6379" \
+RABBITMQ_URL="amqp://guest:guest@localhost:5672/" \
+KEYCLOAK_SERVER_URL="http://localhost:8080" \
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Start frontend (from frontend directory, in another terminal)
+cd frontend
+python3 -m http.server 3000
+```
+
+The backend will automatically:
+- Set up Keycloak realm, client, roles, and users
 - Run database migrations and seeding
 - Provide access URLs and credentials
 
-### 2. Database Setup
+### 3. Database Setup
 
 The application automatically initializes the database with:
 - PostgreSQL 17 (latest stable)
 - Automatic migration creation and execution using Alembic
 - Initial data seeding (catalog products)
+- Programmatic schema management (keycloak, catalog schemas)
 
-For database troubleshooting, see [DATABASE_SETUP.md](DATABASE_SETUP.md).
-
-### 2. Access the Application
+### 4. Access the Application
 
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
@@ -79,8 +93,10 @@ For database troubleshooting, see [DATABASE_SETUP.md](DATABASE_SETUP.md).
 
 | Username | Password | Role    | Permissions                |
 |----------|----------|---------|---------------------------|
+| user     | password | user    | View products only        |
+| manager  | password | manager | Read/write access         |
+| adminuser| password | admin   | Full access (CRUD)        |
 | testuser | password | user    | View products only        |
-| admin    | password | admin   | Full access (CRUD)        |
 
 ## 🔐 Security & RBAC
 
@@ -171,12 +187,14 @@ poetry run pytest tests/
 ```
 
 ### Manual Testing
-1. Start services: `./scripts/start-dev.sh`
-2. Open frontend: http://localhost:3000
-3. Login as different users
-4. Test RBAC features:
+1. Start infrastructure: `./scripts/start-infrastructure.sh`
+2. Start backend and frontend (see Quick Start above)
+3. Open frontend: http://localhost:3000
+4. Login as different users
+5. Test RBAC features:
    - Regular user: can only view products
-   - Admin user: can view and create products
+   - Manager: can view and create products
+   - Admin: can view and create products
 
 ## 🔧 Development
 
@@ -184,6 +202,10 @@ poetry run pytest tests/
 ```bash
 cd backend
 poetry install
+DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/eshop" \
+REDIS_URL="redis://localhost:6379" \
+RABBITMQ_URL="amqp://guest:guest@localhost:5672/" \
+KEYCLOAK_SERVER_URL="http://localhost:8080" \
 poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -240,7 +262,7 @@ This project was migrated from a standalone structure to follow the [FastAPI Ful
 
 - [Frontend README](frontend/README.md) - Detailed frontend documentation
 - [Backend API Docs](http://localhost:8000/docs) - Interactive API documentation
-- [Authentication Guide](docs/AUTHENTICATION_GUIDE.md) - Keycloak setup and RBAC details
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Development setup and debugging guide
 
 ## 🤝 Contributing
 

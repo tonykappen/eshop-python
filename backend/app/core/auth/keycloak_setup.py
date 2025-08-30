@@ -572,10 +572,18 @@ class KeycloakSetup:
                             # Filter out default roles
                             default_roles = ["offline_access", "uma_authorization", f"default-roles-{self.realm}"]
                             user_roles = [role for role in roles if role not in default_roles]
-                            if user_roles:
-                                logger.info(f"✅ User '{username}' token includes roles: {', '.join(user_roles)}")
+                            
+                            # Special handling for realm-admin (admin-cli tokens don't include realm roles)
+                            if username == "realm-admin":
+                                if user_roles:
+                                    logger.info(f"✅ User '{username}' token includes roles: {', '.join(user_roles)}")
+                                else:
+                                    logger.info(f"ℹ️ User '{username}' token generated successfully (admin-cli tokens typically don't include realm roles)")
                             else:
-                                logger.warning(f"⚠️ User '{username}' token missing expected roles")
+                                if user_roles:
+                                    logger.info(f"✅ User '{username}' token includes roles: {', '.join(user_roles)}")
+                                else:
+                                    logger.warning(f"⚠️ User '{username}' token missing expected roles")
                         except Exception as e:
                             logger.warning(f"⚠️ Could not decode token for '{username}': {e}")
                 else:

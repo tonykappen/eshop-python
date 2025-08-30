@@ -33,8 +33,10 @@ A simple HTML/JavaScript frontend for the eShop application.
 
 | Username | Password | Role | Permissions |
 |----------|----------|------|-------------|
+| user     | password | user | Read-only access to products |
+| manager  | password | manager | Read/write access to products |
+| adminuser| password | admin | Full access (view + create products) |
 | testuser | password | user | Read-only access to products |
-| admin    | password | admin | Full access (view + create products) |
 
 ## Usage
 

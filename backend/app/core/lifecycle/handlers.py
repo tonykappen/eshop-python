@@ -8,6 +8,7 @@ from app.core.database.seeding import run_seeding
 from app.core.database.session import close_db_engine, create_db_engine
 from app.core.health.health_service import health_service
 from app.core.logging.logger import get_logger
+from app.core.auth.keycloak_setup import setup_keycloak_async
 
 logger = get_logger(__name__)
 
@@ -179,6 +180,14 @@ class AuthenticationLifecycleHandler:
         """Initialize authentication services."""
         logger.info("🔐 Initializing authentication services...")
         try:
+            # Setup Keycloak (realm, client, roles, users)
+            logger.info("🔧 Setting up Keycloak configuration...")
+            setup_success = await setup_keycloak_async()
+            if setup_success:
+                logger.info("✅ Keycloak setup completed successfully")
+            else:
+                logger.warning("⚠️ Keycloak setup failed or incomplete - continuing anyway")
+            
             # Initialize Keycloak client
             # This would initialize the Keycloak client with proper configuration
             await self._verify_auth_connectivity()

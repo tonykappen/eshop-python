@@ -104,6 +104,9 @@ class Settings(BaseSettings):
     keycloak_callback_uri: str = Field(
         default_factory=lambda: get_env("KEYCLOAK_CALLBACK_URI", "http://localhost:8000/auth/callback")
     )
+    keycloak_grant_type: str = Field(
+        default_factory=lambda: get_env("KEYCLOAK_GRANT_TYPE", "password")
+    )
 
     # Logging
     log_level: str = Field(default_factory=lambda: get_env("LOG_LEVEL", "INFO"))

@@ -26,9 +26,9 @@ class TokenResponse(BaseModel):
 async def proxy_token_request(
     username: str = Form(...),
     password: str = Form(...),
-    grant_type: str = Form(default="password"),
-    client_id: str = Form(default="eshop-api"),
-    client_secret: str = Form(default="your-client-secret"),
+    grant_type: str = Form(default=settings.keycloak_grant_type),
+    client_id: str = Form(default=settings.keycloak_client_id),
+    client_secret: str = Form(default=settings.keycloak_client_secret),
 ) -> TokenResponse:
     """
     Proxy token requests to Keycloak.

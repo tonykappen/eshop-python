@@ -5,12 +5,13 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from pydantic import BaseModel
 
 from app.core.auth.keycloak import KeycloakUser, get_current_user_optional
+from app.core.logging.logger import get_logger, log_security_event
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class RBACConfig(BaseModel):
@@ -41,9 +42,23 @@ def require_command_access(
 
     async def command_access_checker(
         current_user: KeycloakUser | None = Depends(get_current_user_optional),
+        request: Request = None,
     ) -> KeycloakUser:
         """Check if user has command access."""
         if not current_user:
+            # Log authentication failure for command access
+            await log_security_event(
+                logger=logger,
+                event_type="authentication_failure",
+                authentication_method="bearer_token",
+                authorization_outcome="failure",
+                source_ip=request.client.host if request and request.client else None,
+                user_agent=request.headers.get("user-agent") if request else None,
+                error="No authentication credentials provided",
+                error_type="MissingCredentials",
+                operation="command_access",
+                required_roles=rbac_config.command_roles,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication required for command access",
@@ -55,6 +70,21 @@ def require_command_access(
         )
 
         if not has_command_role:
+            # Log authorization failure for command access
+            await log_security_event(
+                logger=logger,
+                event_type="authorization_failure",
+                user_id=current_user.sub,
+                authentication_method="bearer_token",
+                authorization_outcome="failure",
+                source_ip=request.client.host if request and request.client else None,
+                user_agent=request.headers.get("user-agent") if request else None,
+                error=f"User lacks required command roles. User roles: {current_user.roles}, Required: {rbac_config.command_roles}",
+                error_type="InsufficientPrivileges",
+                operation="command_access",
+                user_roles=current_user.roles,
+                required_roles=rbac_config.command_roles,
+            )
             logger.warning(
                 f"User {current_user.preferred_username} attempted command access "
                 f"without required roles. User roles: {current_user.roles}, "
@@ -65,6 +95,19 @@ def require_command_access(
                 detail=f"Command access requires one of: {', '.join(rbac_config.command_roles)}",
             )
 
+        # Log successful command access
+        await log_security_event(
+            logger=logger,
+            event_type="authorization_success",
+            user_id=current_user.sub,
+            authentication_method="bearer_token",
+            authorization_outcome="success",
+            source_ip=request.client.host if request and request.client else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            operation="command_access",
+            user_roles=current_user.roles,
+            required_roles=rbac_config.command_roles,
+        )
         logger.info(
             f"User {current_user.preferred_username} granted command access "
             f"with roles: {current_user.roles}"
@@ -85,9 +128,23 @@ def require_query_access(
 
     async def query_access_checker(
         current_user: KeycloakUser | None = Depends(get_current_user_optional),
+        request: Request = None,
     ) -> KeycloakUser:
         """Check if user has query access."""
         if not current_user:
+            # Log authentication failure for query access
+            await log_security_event(
+                logger=logger,
+                event_type="authentication_failure",
+                authentication_method="bearer_token",
+                authorization_outcome="failure",
+                source_ip=request.client.host if request and request.client else None,
+                user_agent=request.headers.get("user-agent") if request else None,
+                error="No authentication credentials provided",
+                error_type="MissingCredentials",
+                operation="query_access",
+                required_roles=rbac_config.query_roles,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication required for query access",
@@ -99,6 +156,21 @@ def require_query_access(
         )
 
         if not has_query_role:
+            # Log authorization failure for query access
+            await log_security_event(
+                logger=logger,
+                event_type="authorization_failure",
+                user_id=current_user.sub,
+                authentication_method="bearer_token",
+                authorization_outcome="failure",
+                source_ip=request.client.host if request and request.client else None,
+                user_agent=request.headers.get("user-agent") if request else None,
+                error=f"User lacks required query roles. User roles: {current_user.roles}, Required: {rbac_config.query_roles}",
+                error_type="InsufficientPrivileges",
+                operation="query_access",
+                user_roles=current_user.roles,
+                required_roles=rbac_config.query_roles,
+            )
             logger.warning(
                 f"User {current_user.preferred_username} attempted query access "
                 f"without required roles. User roles: {current_user.roles}, "
@@ -109,6 +181,19 @@ def require_query_access(
                 detail=f"Query access requires one of: {', '.join(rbac_config.query_roles)}",
             )
 
+        # Log successful query access
+        await log_security_event(
+            logger=logger,
+            event_type="authorization_success",
+            user_id=current_user.sub,
+            authentication_method="bearer_token",
+            authorization_outcome="success",
+            source_ip=request.client.host if request and request.client else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            operation="query_access",
+            user_roles=current_user.roles,
+            required_roles=rbac_config.query_roles,
+        )
         logger.debug(
             f"User {current_user.preferred_username} granted query access "
             f"with roles: {current_user.roles}"

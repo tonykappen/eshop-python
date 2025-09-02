@@ -3,8 +3,10 @@
 import asyncio
 import logging
 import sys
+import inspect
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
+from datetime import datetime
 
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -27,6 +29,8 @@ def configure_logging(
     enable_file_logging: bool = True,
     log_directory: str = "logs",
     separate_server_logs: bool = True,
+    enable_console: bool = True,
+    environment: str = "development",
 ) -> None:
     """Configure structured logging with optional SEQ support and auto-logging."""
 
@@ -35,23 +39,32 @@ def configure_logging(
         log_path = Path(log_directory)
         log_path.mkdir(exist_ok=True)
 
+    # Configure structlog processors
+    processors = [
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+    ]
+
+    # Add source information in development mode
+    if environment == "development":
+        processors.append(_add_source_info)
+    
+    # Add final renderer
+    processors.append(
+        structlog.processors.JSONRenderer()
+        if log_format == "json"
+        else structlog.dev.ConsoleRenderer()
+    )
+
     # Configure structlog
     structlog.configure(
-        processors=[
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.UnicodeDecoder(),
-            (
-                structlog.processors.JSONRenderer()
-                if log_format == "json"
-                else structlog.dev.ConsoleRenderer()
-            ),
-        ],
+        processors=processors,
         context_class=dict,
         logger_factory=LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
@@ -61,10 +74,11 @@ def configure_logging(
     # Configure handlers
     handlers: list[logging.Handler] = []
 
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(logging.Formatter("%(message)s"))
-    handlers.append(console_handler)
+    # Console handler (enabled by default)
+    if enable_console:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(logging.Formatter("%(message)s"))
+        handlers.append(console_handler)
 
     # File handlers if enabled
     if enable_file_logging:
@@ -191,6 +205,32 @@ def configure_logging(
         )
 
 
+def _add_source_info(logger: Any, method_name: str, event_dict: dict) -> dict:
+    """Add source information (file, module, line) to log entries in development mode."""
+    try:
+        # Get the caller's frame
+        frame = inspect.currentframe()
+        if frame:
+            # Go up the call stack to find the actual caller
+            for _ in range(10):  # Limit stack depth
+                frame = frame.f_back
+                if frame and frame.f_code.co_name != '_add_source_info':
+                    break
+            
+            if frame:
+                event_dict.update({
+                    "file": frame.f_code.co_filename.split("/")[-1],  # Just filename, not full path
+                    "module": frame.f_globals.get("__name__", "unknown"),
+                    "function": frame.f_code.co_name,
+                    "line": frame.f_lineno,
+                })
+    except Exception:
+        # Silently fail if we can't get source info
+        pass
+    
+    return event_dict
+
+
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance."""
     return structlog.get_logger(name)  # type: ignore
@@ -203,6 +243,63 @@ class LoggerMixin:
     def logger(self) -> structlog.stdlib.BoundLogger:
         """Get a logger for this class."""
         return get_logger(self.__class__.__name__)
+
+
+# Enhanced async logging with security event tracking
+async def log_security_event(
+    logger: structlog.stdlib.BoundLogger,
+    event_type: str,
+    user_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    authentication_method: Optional[str] = None,
+    authorization_outcome: Optional[str] = None,
+    source_ip: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    status_code: Optional[int] = None,
+    **kwargs: Any
+) -> None:
+    """Log a security event with comprehensive information."""
+    
+    # Sanitize sensitive data
+    sanitized_kwargs = _sanitize_log_data(kwargs)
+    
+    log_entry = {
+        "event_type": event_type,
+        "timestamp": datetime.utcnow().isoformat(),
+        "user_id": user_id,
+        "session_id": session_id[:6] if session_id else None,  # First 6 characters only
+        "authentication_method": authentication_method,
+        "authorization_outcome": authorization_outcome,
+        "source_ip": source_ip,
+        "user_agent": user_agent,
+        "status_code": status_code,
+        **sanitized_kwargs
+    }
+    
+    # Remove None values
+    log_entry = {k: v for k, v in log_entry.items() if v is not None}
+    
+    logger.info(f"Security Event: {event_type}", **log_entry)
+
+
+def _sanitize_log_data(data: dict) -> dict:
+    """Remove sensitive information from log data."""
+    sensitive_keys = [
+        'password', 'secret', 'token', 'key', 'authorization', 'cookie',
+        'client_secret', 'bearer_token', 'api_key', 'private_key'
+    ]
+    
+    sanitized = {}
+    for key, value in data.items():
+        if any(sensitive in key.lower() for sensitive in sensitive_keys):
+            if isinstance(value, str) and len(value) > 0:
+                sanitized[key] = f"<REDACTED:{len(value)}>"
+            else:
+                sanitized[key] = "<REDACTED>"
+        else:
+            sanitized[key] = value
+    
+    return sanitized
 
 
 # Convenience function for async logging

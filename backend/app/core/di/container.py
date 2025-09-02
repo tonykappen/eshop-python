@@ -6,6 +6,7 @@ from dependency_injector import containers, providers
 
 from ..logging.logger import get_logger
 from .assembly_scanner import AssemblyScanner
+from ...config.settings import settings
 
 logger = get_logger(__name__)
 
@@ -56,12 +57,49 @@ def create_container() -> Container:
     """Create and configure the main container."""
     container = Container()
 
-    # Configure the container
+    # Configure the container using settings
     container.config.from_dict(
         {
-            "database": {"connection_string": "postgresql://user:pass@localhost/db"},
-            "redis": {"connection_string": "redis://localhost:6379"},
-            "rabbitmq": {"connection_string": "amqp://guest:guest@localhost:5672/"},
+            "database": {
+                "connection_string": settings.database_connection_string,
+                "host": settings.database_host,
+                "port": settings.database_port,
+                "name": settings.database_name,
+                "user": settings.database_user,
+                "password": settings.database_password,
+            },
+            "redis": {
+                "connection_string": settings.redis_connection_string,
+                "host": settings.redis_host,
+                "port": settings.redis_port,
+                "db": settings.redis_db,
+            },
+            "rabbitmq": {
+                "connection_string": settings.rabbitmq_connection_string,
+                "host": settings.rabbitmq_host,
+                "port": settings.rabbitmq_port,
+                "user": settings.rabbitmq_user,
+                "password": settings.rabbitmq_password,
+            },
+            "keycloak": {
+                "server_url": settings.keycloak_server_url,
+                "realm": settings.keycloak_realm,
+                "client_id": settings.keycloak_client_id,
+                "client_secret": settings.keycloak_client_secret,
+                "callback_uri": settings.keycloak_callback_uri,
+            },
+            "logging": {
+                "level": settings.log_level,
+                "enable_seq": settings.log_enable_seq,
+                "seq_url": settings.seq_url,
+                "seq_api_key": settings.seq_api_key,
+                "enable_file": settings.log_enable_file,
+                "directory": settings.log_directory,
+                "separate_server_logs": settings.log_separate_server_logs,
+                "enable_request_logging": settings.log_enable_request_logging,
+                "request_body": settings.log_request_body,
+                "response_body": settings.log_response_body,
+            },
         }
     )
 
@@ -112,3 +150,34 @@ def get_container() -> Container:
 def get_service_provider(container: Container) -> ServiceProvider:
     """Get a service provider for the container."""
     return ServiceProvider(container)
+
+
+def get_database_config(container: Container) -> dict[str, Any]:
+    """Get database configuration from container."""
+    return container.config.database()
+
+
+def get_redis_config(container: Container) -> dict[str, Any]:
+    """Get Redis configuration from container."""
+    return container.config.redis()
+
+
+def get_rabbitmq_config(container: Container) -> dict[str, Any]:
+    """Get RabbitMQ configuration from container."""
+    return container.config.rabbitmq()
+
+
+def get_keycloak_config(container: Container) -> dict[str, Any]:
+    """Get Keycloak configuration from container."""
+    return container.config.keycloak()
+
+
+def get_logging_config(container: Container) -> dict[str, Any]:
+    """Get logging configuration from container."""
+    return container.config.logging()
+
+
+def get_connection_string(container: Container, service: str) -> str:
+    """Get connection string for a specific service."""
+    service_config = getattr(container.config, service)()
+    return service_config.get("connection_string", "")

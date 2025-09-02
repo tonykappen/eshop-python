@@ -10,6 +10,7 @@ from fastapi_keycloak import FastAPIKeycloak
 from pydantic import BaseModel
 
 from app.config.settings import settings
+from app.core.logging.logger import log_security_event
 
 logger = logging.getLogger(__name__)
 

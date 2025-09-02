@@ -23,6 +23,8 @@ async def configure_application_startup() -> None:
         enable_file_logging=settings.log_enable_file,
         log_directory=settings.log_directory,
         separate_server_logs=settings.log_separate_server_logs,
+        enable_console=True,  # Always enable console output
+        environment=settings.environment,
     )
 
     logger.info("Logging configuration completed")

@@ -7,8 +7,9 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.auth.keycloak import KeycloakUser, keycloak_service
+from app.core.logging.logger import get_logger, log_security_event
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Security scheme
 security = HTTPBearer(auto_error=False)
@@ -30,8 +31,30 @@ async def get_current_user_optional_from_request(
         return None
 
     try:
-        return await keycloak_service.get_user_info(token)
+        user = await keycloak_service.get_user_info(token)
+        # Log successful authentication
+        await log_security_event(
+            logger=logger,
+            event_type="authentication_success",
+            user_id=user.sub if user else None,
+            authentication_method="bearer_token",
+            authorization_outcome="success",
+            source_ip=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+        return user
     except Exception as e:
+        # Log failed authentication
+        await log_security_event(
+            logger=logger,
+            event_type="authentication_failure",
+            authentication_method="bearer_token",
+            authorization_outcome="failure",
+            source_ip=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         logger.warning(f"Authentication failed: {e}")
         return None
 
@@ -54,8 +77,26 @@ async def get_current_user_required(
         )
 
     try:
-        return await keycloak_service.get_user_info(credentials.credentials)
+        user = await keycloak_service.get_user_info(credentials.credentials)
+        # Log successful authentication
+        await log_security_event(
+            logger=logger,
+            event_type="authentication_success",
+            user_id=user.sub if user else None,
+            authentication_method="bearer_token",
+            authorization_outcome="success",
+        )
+        return user
     except Exception as e:
+        # Log failed authentication
+        await log_security_event(
+            logger=logger,
+            event_type="authentication_failure",
+            authentication_method="bearer_token",
+            authorization_outcome="failure",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         logger.error(f"Authentication failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

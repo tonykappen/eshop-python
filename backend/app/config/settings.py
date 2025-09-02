@@ -107,6 +107,9 @@ class Settings(BaseSettings):
     keycloak_grant_type: str = Field(
         default_factory=lambda: get_env("KEYCLOAK_GRANT_TYPE", "password")
     )
+    keycloak_jwt_algorithms: list[str] = Field(
+        default_factory=lambda: get_env_list("KEYCLOAK_JWT_ALGORITHMS", "RS256")
+    )
 
     # Logging
     log_level: str = Field(default_factory=lambda: get_env("LOG_LEVEL", "INFO"))

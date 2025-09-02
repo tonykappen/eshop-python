@@ -71,7 +71,7 @@ class KeycloakService:
                 self._initialized = True
                 logger.info("FastAPI Keycloak initialized successfully")
             except Exception as e:
-                logger.warning(f"Failed to initialize Keycloak: {e}")
+                logger.error(f"Failed to initialize Keycloak: {e}")
                 # Create a minimal instance for basic functionality
                 self.keycloak = None
                 self._initialized = True
@@ -127,7 +127,7 @@ class KeycloakService:
             token_info = jwt.decode(
                 token,
                 signing_key.key,
-                algorithms=["RS256"],
+                algorithms=settings.keycloak_jwt_algorithms,
                 audience=[
                     "account",
                     settings.keycloak_client_id,

@@ -20,9 +20,9 @@ from app.core.exceptions.base import (
     UnauthorizedError,
     ValidationError,
 )
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CustomExceptionHandler:
@@ -31,13 +31,15 @@ class CustomExceptionHandler:
     @staticmethod
     async def handle_exception(request: Request, exception: Exception) -> JSONResponse:
         """Handle exceptions and return appropriate HTTP responses."""
-        # Log the error
-        from datetime import UTC, datetime
-
-        logger.error(
-            "Error Message: %s, Time of occurrence %s",
-            str(exception),
-            datetime.now(UTC).isoformat(),
+        # Log the error using base logger
+        logger.log_exception(
+            message="Exception occurred during request processing",
+            exception=exception,
+            context={
+                "request_path": str(request.url.path),
+                "request_method": request.method,
+                "request_headers": dict(request.headers),
+            }
         )
 
         # Map exception to HTTP status code and response details
@@ -193,4 +195,4 @@ def add_exception_handlers(app: Any) -> None:
     # Register general exception handler for unhandled exceptions
     app.add_exception_handler(Exception, handler.handle_exception)
 
-    logger.info("Custom exception handlers registered")
+    logger.log_info("Custom exception handlers registered")

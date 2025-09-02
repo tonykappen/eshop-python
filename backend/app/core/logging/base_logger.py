@@ -208,3 +208,40 @@ class BaseLogger:
     def get_logger(self) -> structlog.stdlib.BoundLogger:
         """Get the underlying structlog logger."""
         return self.logger
+
+    # Standard method names for easy migration
+    def info(self, message: str, *args, **kwargs) -> None:
+        """Standard info method for easy migration."""
+        if args:
+            # Handle format string style: logger.info("User %s logged in", username)
+            formatted_message = message % args if args else message
+            self.log_info(formatted_message, **kwargs)
+        else:
+            self.log_info(message, **kwargs)
+
+    def error(self, message: str, *args, **kwargs) -> None:
+        """Standard error method for easy migration."""
+        if args:
+            # Handle format string style: logger.error("Failed: %s", error)
+            formatted_message = message % args if args else message
+            self.log_error(formatted_message, **kwargs)
+        else:
+            self.log_error(message, **kwargs)
+
+    def warning(self, message: str, *args, **kwargs) -> None:
+        """Standard warning method for easy migration."""
+        if args:
+            # Handle format string style: logger.warning("Warning: %s", issue)
+            formatted_message = message % args if args else message
+            self.log_warning(formatted_message, **kwargs)
+        else:
+            self.log_warning(message, **kwargs)
+
+    def debug(self, message: str, *args, **kwargs) -> None:
+        """Standard debug method for easy migration."""
+        if args:
+            # Handle format string style: logger.debug("Debug: %s", data)
+            formatted_message = message % args if args else message
+            self.log_debug(formatted_message, **kwargs)
+        else:
+            self.log_debug(message, **kwargs)

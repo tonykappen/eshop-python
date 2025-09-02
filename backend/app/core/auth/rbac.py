@@ -9,9 +9,9 @@ from fastapi import Depends, HTTPException, status, Request
 from pydantic import BaseModel
 
 from app.core.auth.keycloak import KeycloakUser, get_current_user_optional
-from app.core.logging.logger import get_logger, log_security_event
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class RBACConfig(BaseModel):
@@ -47,8 +47,7 @@ def require_command_access(
         """Check if user has command access."""
         if not current_user:
             # Log authentication failure for command access
-            await log_security_event(
-                logger=logger,
+            logger.log_security_event(
                 event_type="authentication_failure",
                 authentication_method="bearer_token",
                 authorization_outcome="failure",
@@ -71,8 +70,7 @@ def require_command_access(
 
         if not has_command_role:
             # Log authorization failure for command access
-            await log_security_event(
-                logger=logger,
+            logger.log_security_event(
                 event_type="authorization_failure",
                 user_id=current_user.sub,
                 authentication_method="bearer_token",
@@ -85,10 +83,13 @@ def require_command_access(
                 user_roles=current_user.roles,
                 required_roles=rbac_config.command_roles,
             )
-            logger.warning(
-                f"User {current_user.preferred_username} attempted command access "
-                f"without required roles. User roles: {current_user.roles}, "
-                f"Required: {rbac_config.command_roles}"
+            logger.log_warning(
+                "User attempted command access without required roles",
+                context={
+                    "username": current_user.preferred_username,
+                    "user_roles": current_user.roles,
+                    "required_roles": rbac_config.command_roles
+                }
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -96,8 +97,7 @@ def require_command_access(
             )
 
         # Log successful command access
-        await log_security_event(
-            logger=logger,
+        logger.log_security_event(
             event_type="authorization_success",
             user_id=current_user.sub,
             authentication_method="bearer_token",
@@ -157,8 +157,7 @@ def require_query_access(
 
         if not has_query_role:
             # Log authorization failure for query access
-            await log_security_event(
-                logger=logger,
+            logger.log_security_event(
                 event_type="authorization_failure",
                 user_id=current_user.sub,
                 authentication_method="bearer_token",
@@ -171,10 +170,13 @@ def require_query_access(
                 user_roles=current_user.roles,
                 required_roles=rbac_config.query_roles,
             )
-            logger.warning(
-                f"User {current_user.preferred_username} attempted query access "
-                f"without required roles. User roles: {current_user.roles}, "
-                f"Required: {rbac_config.query_roles}"
+            logger.log_warning(
+                "User attempted query access without required roles",
+                context={
+                    "username": current_user.preferred_username,
+                    "user_roles": current_user.roles,
+                    "required_roles": rbac_config.query_roles
+                }
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -182,8 +184,7 @@ def require_query_access(
             )
 
         # Log successful query access
-        await log_security_event(
-            logger=logger,
+        logger.log_security_event(
             event_type="authorization_success",
             user_id=current_user.sub,
             authentication_method="bearer_token",
@@ -194,9 +195,12 @@ def require_query_access(
             user_roles=current_user.roles,
             required_roles=rbac_config.query_roles,
         )
-        logger.debug(
-            f"User {current_user.preferred_username} granted query access "
-            f"with roles: {current_user.roles}"
+        logger.log_debug(
+            "User granted query access",
+            context={
+                "username": current_user.preferred_username,
+                "user_roles": current_user.roles
+            }
         )
         return current_user
 
@@ -222,19 +226,25 @@ def require_specific_role(required_role: str) -> Callable[[KeycloakUser], Any]:
             )
 
         if required_role not in current_user.roles:
-            logger.warning(
-                f"User {current_user.preferred_username} attempted access "
-                f"without required role '{required_role}'. "
-                f"User roles: {current_user.roles}"
+            logger.log_warning(
+                "User attempted access without required role",
+                context={
+                    "username": current_user.preferred_username,
+                    "required_role": required_role,
+                    "user_roles": current_user.roles
+                }
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Role '{required_role}' required",
             )
 
-        logger.info(
-            f"User {current_user.preferred_username} granted access "
-            f"with role: {required_role}"
+        logger.log_info(
+            "User granted access with required role",
+            context={
+                "username": current_user.preferred_username,
+                "required_role": required_role
+            }
         )
         return current_user
 
@@ -262,19 +272,25 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
         has_required_role = any(role in current_user.roles for role in required_roles)
 
         if not has_required_role:
-            logger.warning(
-                f"User {current_user.preferred_username} attempted access "
-                f"without required roles. User roles: {current_user.roles}, "
-                f"Required: {required_roles}"
+            logger.log_warning(
+                "User attempted access without required roles",
+                context={
+                    "username": current_user.preferred_username,
+                    "user_roles": current_user.roles,
+                    "required_roles": required_roles
+                }
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access requires one of: {', '.join(required_roles)}",
             )
 
-        logger.info(
-            f"User {current_user.preferred_username} granted access "
-            f"with roles: {current_user.roles}"
+        logger.log_info(
+            "User granted access with required roles",
+            context={
+                "username": current_user.preferred_username,
+                "user_roles": current_user.roles
+            }
         )
         return current_user
 

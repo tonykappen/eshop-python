@@ -10,9 +10,9 @@ from fastapi_keycloak import FastAPIKeycloak
 from pydantic import BaseModel
 
 from app.config.settings import settings
-from app.core.logging.logger import log_security_event
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 # Security scheme
 security = HTTPBearer(auto_error=False)
@@ -41,7 +41,7 @@ class KeycloakService:
         if not self._initialized:
             # First check if configuration is available
             if not self._check_config_available():
-                logger.warning("Keycloak configuration not available - authentication will be disabled")
+                logger.log_warning("Keycloak configuration not available - authentication will be disabled")
                 self.keycloak = None
                 self._initialized = True
                 return
@@ -69,9 +69,9 @@ class KeycloakService:
                     admin_client_secret="",
                 )
                 self._initialized = True
-                logger.info("FastAPI Keycloak initialized successfully")
+                logger.log_info("FastAPI Keycloak initialized successfully")
             except Exception as e:
-                logger.error(f"Failed to initialize Keycloak: {e}")
+                logger.log_exception("Failed to initialize Keycloak", exception=e)
                 # Create a minimal instance for basic functionality
                 self.keycloak = None
                 self._initialized = True
@@ -90,7 +90,15 @@ class KeycloakService:
 
     def _check_config_available(self) -> bool:
         """Check if all required Keycloak configuration settings are present."""
-        logger.debug(f"Checking Keycloak config: server_url={settings.keycloak_server_url}, client_id={settings.keycloak_client_id}, client_secret={'***' if settings.keycloak_client_secret else 'None'}, realm={settings.keycloak_realm}")
+        logger.log_debug(
+            "Checking Keycloak configuration",
+            context={
+                "server_url": settings.keycloak_server_url,
+                "client_id": settings.keycloak_client_id,
+                "client_secret": "***" if settings.keycloak_client_secret else "None",
+                "realm": settings.keycloak_realm
+            }
+        )
         
         result = (
             settings.keycloak_server_url is not None and
@@ -103,14 +111,14 @@ class KeycloakService:
             settings.keycloak_realm != ""
         )
         
-        logger.debug(f"Keycloak config check result: {result}")
+        logger.log_debug("Keycloak configuration check completed", context={"result": result})
         return result
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
         # If Keycloak is not available, provide mock authentication for development
         if not self.is_available():
-            logger.warning("Keycloak not available - using mock authentication")
+            logger.log_warning("Keycloak not available - using mock authentication")
             return await self._verify_token_mock(token)
             
         try:
@@ -136,7 +144,7 @@ class KeycloakService:
             )
             return token_info  # type: ignore[no-any-return]
         except Exception as e:
-            logger.error(f"Token verification failed: {e}")
+            logger.log_exception("Token verification failed", exception=e)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
@@ -204,7 +212,7 @@ class KeycloakService:
                 else:
                     raise Exception(f"HTTP {response.status_code}")
         except Exception as e:
-            logger.error(f"Keycloak health check failed: {e}")
+            logger.log_exception("Keycloak health check failed", exception=e)
             return {
                 "status": "unhealthy",
                 "service": "keycloak",
@@ -278,7 +286,7 @@ async def get_current_user_optional(
     try:
         return await keycloak_service.get_user_info(credentials.credentials)
     except Exception as e:
-        logger.warning(f"Authentication failed: {e}")
+        logger.log_warning("Authentication failed", context={"error": str(e)})
         return None
 
 

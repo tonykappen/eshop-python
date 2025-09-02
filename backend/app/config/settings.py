@@ -3,37 +3,38 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
+from .env import get_env, get_env_bool, get_env_int, get_env_float, get_env_list
+
 
 class Settings(BaseSettings):
     """Application settings."""
 
     # Application
-    name: str = Field(default="eShop Modular Monolith", alias="APP_NAME")
-    version: str = Field(default="0.1.0", alias="APP_VERSION")
-    debug: bool = Field(default=False, alias="DEBUG")
-    environment: str = Field(default="development", alias="ENVIRONMENT")
+    name: str = Field(default_factory=lambda: get_env("APP_NAME", "eShop Modular Monolith"))
+    version: str = Field(default_factory=lambda: get_env("APP_VERSION", "0.1.0"))
+    debug: bool = Field(default_factory=lambda: get_env_bool("DEBUG", False))
+    environment: str = Field(default_factory=lambda: get_env("ENVIRONMENT", "development"))
 
     # Server
-    host: str = Field(default="0.0.0.0", alias="HOST")  # nosec B104
-    port: int = Field(default=8000, alias="PORT")
+    host: str = Field(default_factory=lambda: get_env("HOST", "0.0.0.0"))  # nosec B104
+    port: int = Field(default_factory=lambda: get_env_int("PORT", 8000))
 
     # Security
-    secret_key: str = Field(default="your-secret-key-here", alias="SECRET_KEY")
-    algorithm: str = Field(default="HS256", alias="ALGORITHM")
+    secret_key: str = Field(default_factory=lambda: get_env("SECRET_KEY", "your-secret-key-here"))
+    algorithm: str = Field(default_factory=lambda: get_env("ALGORITHM", "HS256"))
     access_token_expire_minutes: int = Field(
-        default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
+        default_factory=lambda: get_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
     )
 
     # Database
     database_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/eshop",
-        alias="DATABASE_URL",
+        default_factory=lambda: get_env("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/eshop")
     )
-    database_host: str = Field(default="localhost", alias="DATABASE_HOST")
-    database_port: int = Field(default=5432, alias="DATABASE_PORT")
-    database_name: str = Field(default="eshop", alias="DATABASE_NAME")
-    database_user: str = Field(default="postgres", alias="DATABASE_USER")
-    database_password: str = Field(default="postgres", alias="DATABASE_PASSWORD")
+    database_host: str = Field(default_factory=lambda: get_env("DATABASE_HOST", "localhost"))
+    database_port: int = Field(default_factory=lambda: get_env_int("DATABASE_PORT", 5432))
+    database_name: str = Field(default_factory=lambda: get_env("DATABASE_NAME", "eshop"))
+    database_user: str = Field(default_factory=lambda: get_env("DATABASE_USER", "postgres"))
+    database_password: str = Field(default_factory=lambda: get_env("DATABASE_PASSWORD", "postgres"))
 
     # Legacy database fields for backward compatibility
     @property
@@ -67,10 +68,10 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.database_user}:{self.database_password}@{self.database_host}:{self.database_port}/{self.database_name}"
 
     # Redis
-    redis_url: str = Field(default="redis://localhost:6379", alias="REDIS_URL")
-    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
-    redis_port: int = Field(default=6379, alias="REDIS_PORT")
-    redis_db: int = Field(default=0, alias="REDIS_DB")
+    redis_url: str = Field(default_factory=lambda: get_env("REDIS_URL", "redis://localhost:6379"))
+    redis_host: str = Field(default_factory=lambda: get_env("REDIS_HOST", "localhost"))
+    redis_port: int = Field(default_factory=lambda: get_env_int("REDIS_PORT", 6379))
+    redis_db: int = Field(default_factory=lambda: get_env_int("REDIS_DB", 0))
 
     @property
     def redis_connection_string(self) -> str:
@@ -79,12 +80,12 @@ class Settings(BaseSettings):
 
     # RabbitMQ
     rabbitmq_url: str = Field(
-        default="amqp://guest:guest@localhost:5672/", alias="RABBITMQ_URL"
+        default_factory=lambda: get_env("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     )
-    rabbitmq_host: str = Field(default="localhost", alias="RABBITMQ_HOST")
-    rabbitmq_port: int = Field(default=5672, alias="RABBITMQ_PORT")
-    rabbitmq_user: str = Field(default="guest", alias="RABBITMQ_USER")
-    rabbitmq_password: str = Field(default="guest", alias="RABBITMQ_PASSWORD")
+    rabbitmq_host: str = Field(default_factory=lambda: get_env("RABBITMQ_HOST", "localhost"))
+    rabbitmq_port: int = Field(default_factory=lambda: get_env_int("RABBITMQ_PORT", 5672))
+    rabbitmq_user: str = Field(default_factory=lambda: get_env("RABBITMQ_USER", "guest"))
+    rabbitmq_password: str = Field(default_factory=lambda: get_env("RABBITMQ_PASSWORD", "guest"))
 
     @property
     def rabbitmq_connection_string(self) -> str:
@@ -93,31 +94,32 @@ class Settings(BaseSettings):
 
     # Keycloak
     keycloak_server_url: str = Field(
-        default="http://localhost:8080", alias="KEYCLOAK_SERVER_URL"
+        default_factory=lambda: get_env("KEYCLOAK_SERVER_URL", "http://localhost:8080")
     )
-    keycloak_realm: str = Field(default="eshop", alias="KEYCLOAK_REALM")
-    keycloak_client_id: str = Field(default="eshop-api", alias="KEYCLOAK_CLIENT_ID")
+    keycloak_realm: str = Field(default_factory=lambda: get_env("KEYCLOAK_REALM", "eshop"))
+    keycloak_client_id: str = Field(default_factory=lambda: get_env("KEYCLOAK_CLIENT_ID", "eshop-api"))
     keycloak_client_secret: str = Field(
-        default="your-client-secret", alias="KEYCLOAK_CLIENT_SECRET"
+        default_factory=lambda: get_env("KEYCLOAK_CLIENT_SECRET", "your-client-secret")
     )
     keycloak_callback_uri: str = Field(
-        default="http://localhost:8000/auth/callback", alias="KEYCLOAK_CALLBACK_URI"
+        default_factory=lambda: get_env("KEYCLOAK_CALLBACK_URI", "http://localhost:8000/auth/callback")
     )
 
     # Logging
-    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-    log_enable_seq: bool = Field(default=False, alias="LOG_ENABLE_SEQ")
-    seq_url: str = Field(default="http://localhost:5341", alias="SEQ_URL")
-    log_enable_file: bool = Field(default=True, alias="LOG_ENABLE_FILE")
-    log_directory: str = Field(default="logs", alias="LOG_DIRECTORY")
+    log_level: str = Field(default_factory=lambda: get_env("LOG_LEVEL", "INFO"))
+    log_enable_seq: bool = Field(default_factory=lambda: get_env_bool("LOG_ENABLE_SEQ", True))
+    seq_url: str = Field(default_factory=lambda: get_env("SEQ_URL", "http://seq:80"))
+    seq_api_key: str = Field(default_factory=lambda: get_env("SEQ_API_KEY", "your-seq-api-key-change-in-production"))
+    log_enable_file: bool = Field(default_factory=lambda: get_env_bool("LOG_ENABLE_FILE", True))
+    log_directory: str = Field(default_factory=lambda: get_env("LOG_DIRECTORY", "logs"))
     log_separate_server_logs: bool = Field(
-        default=True, alias="LOG_SEPARATE_SERVER_LOGS"
+        default_factory=lambda: get_env_bool("LOG_SEPARATE_SERVER_LOGS", True)
     )
     log_enable_request_logging: bool = Field(
-        default=True, alias="LOG_ENABLE_REQUEST_LOGGING"
+        default_factory=lambda: get_env_bool("LOG_ENABLE_REQUEST_LOGGING", True)
     )
-    log_request_body: bool = Field(default=False, alias="LOG_REQUEST_BODY")
-    log_response_body: bool = Field(default=False, alias="LOG_RESPONSE_BODY")
+    log_request_body: bool = Field(default_factory=lambda: get_env_bool("LOG_REQUEST_BODY", False))
+    log_response_body: bool = Field(default_factory=lambda: get_env_bool("LOG_RESPONSE_BODY", False))
 
     class Config:
         """Pydantic configuration."""

@@ -199,8 +199,12 @@ format = %(levelname)-5.5s [%(name)s] %(message)s
 datefmt = %H:%M:%S
 """
 
-    with open("alembic.ini", "w") as f:
-        f.write(alembic_ini_content)
+    try:
+        with open("alembic.ini", "w") as f:
+            f.write(alembic_ini_content)
+        logger.debug("Created alembic.ini configuration file")
+    except Exception as e:
+        logger.warning(f"Failed to create alembic.ini: {e}")
 
 
 def _create_migrations_directory() -> None:

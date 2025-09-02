@@ -19,16 +19,38 @@ class KeycloakSetup:
     def __init__(self) -> None:
         """Initialize Keycloak setup."""
         self.base_url = settings.keycloak_server_url
-        # Temporarily use eshop4 realm for testing
-        self.realm = "eshop4"  # Changed from settings.keycloak_realm
+        self.realm = settings.keycloak_realm 
         self.client_id = settings.keycloak_client_id
         self.client_secret = settings.keycloak_client_secret
         self.master_admin_token: Optional[str] = None
+
+    def _check_config_available(self) -> bool:
+        """Check if all required Keycloak configuration settings are present."""
+        logger.debug(f"Checking Keycloak config: base_url={self.base_url}, client_id={self.client_id}, client_secret={'***' if self.client_secret else 'None'}, realm={self.realm}")
+        
+        result = (
+            self.base_url is not None and
+            self.base_url != "" and
+            self.client_id is not None and
+            self.client_id != "" and
+            self.client_secret is not None and
+            self.client_secret != "" and
+            self.realm is not None and
+            self.realm != ""
+        )
+        
+        logger.debug(f"Keycloak config check result: {result}")
+        return result
 
     async def setup_keycloak(self) -> bool:
         """Complete Keycloak setup process."""
         try:
             logger.info("🔧 Starting Keycloak setup...")
+            
+            # Check if configuration is available
+            if not self._check_config_available():
+                logger.warning("⚠️ Keycloak configuration not available - skipping setup")
+                return False
             
             # Wait for Keycloak to be ready
             logger.info("⏳ Waiting for Keycloak to be ready...")
@@ -598,10 +620,4 @@ async def setup_keycloak_async() -> bool:
     return await setup.setup_keycloak()
 
 
-def setup_keycloak_sync() -> bool:
-    """Synchronous wrapper for Keycloak setup."""
-    try:
-        return asyncio.run(setup_keycloak_async())
-    except Exception as e:
-        logger.error(f"❌ Keycloak setup failed: {e}")
-        return False
+

@@ -60,3 +60,9 @@ async def rabbitmq_health_check() -> dict[str, Any]:
 async def keycloak_health_check() -> dict[str, Any]:
     """Keycloak health check endpoint."""
     return await health_service.check_keycloak()
+
+
+@health_router.get("/health/seq")
+async def seq_health_check() -> dict[str, Any]:
+    """Seq logging health check endpoint."""
+    return await health_service.check_seq()

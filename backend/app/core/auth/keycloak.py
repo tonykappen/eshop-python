@@ -38,6 +38,24 @@ class KeycloakService:
     def _initialize_keycloak(self) -> None:
         """Initialize Keycloak connection lazily."""
         if not self._initialized:
+            # First check if configuration is available
+            if not self._check_config_available():
+                logger.warning("Keycloak configuration not available - authentication will be disabled")
+                self.keycloak = None
+                self._initialized = True
+                return
+            
+            # Additional safety check - ensure all values are valid strings
+            if (not isinstance(settings.keycloak_server_url, str) or 
+                not isinstance(settings.keycloak_client_id, str) or 
+                not isinstance(settings.keycloak_client_secret, str) or 
+                not isinstance(settings.keycloak_realm, str) or
+                not isinstance(settings.keycloak_callback_uri, str)):
+                logger.warning("Keycloak configuration contains invalid types - authentication will be disabled")
+                self.keycloak = None
+                self._initialized = True
+                return
+            
             try:
                 # Initialize without admin client secret for basic authentication
                 self.keycloak = FastAPIKeycloak(
@@ -46,8 +64,8 @@ class KeycloakService:
                     client_secret=settings.keycloak_client_secret,
                     realm=settings.keycloak_realm,
                     callback_uri=settings.keycloak_callback_uri,
-                    # Don't require admin access for basic functionality
-                    admin_client_secret=None,
+                    # Use empty string for admin client secret if not available
+                    admin_client_secret="",
                 )
                 self._initialized = True
                 logger.info("FastAPI Keycloak initialized successfully")
@@ -55,9 +73,45 @@ class KeycloakService:
                 logger.warning(f"Failed to initialize Keycloak: {e}")
                 # Create a minimal instance for basic functionality
                 self.keycloak = None
+                self._initialized = True
+
+    def is_available(self) -> bool:
+        """Check if Keycloak service is available."""
+        # Only initialize if we haven't tried yet
+        if not self._initialized:
+            self._initialize_keycloak()
+        return self.keycloak is not None
+
+    def force_initialize(self) -> None:
+        """Force initialization of the Keycloak service."""
+        if not self._initialized:
+            self._initialize_keycloak()
+
+    def _check_config_available(self) -> bool:
+        """Check if all required Keycloak configuration settings are present."""
+        logger.debug(f"Checking Keycloak config: server_url={settings.keycloak_server_url}, client_id={settings.keycloak_client_id}, client_secret={'***' if settings.keycloak_client_secret else 'None'}, realm={settings.keycloak_realm}")
+        
+        result = (
+            settings.keycloak_server_url is not None and
+            settings.keycloak_server_url != "" and
+            settings.keycloak_client_id is not None and
+            settings.keycloak_client_id != "" and
+            settings.keycloak_client_secret is not None and
+            settings.keycloak_client_secret != "" and
+            settings.keycloak_realm is not None and
+            settings.keycloak_realm != ""
+        )
+        
+        logger.debug(f"Keycloak config check result: {result}")
+        return result
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
+        # If Keycloak is not available, provide mock authentication for development
+        if not self.is_available():
+            logger.warning("Keycloak not available - using mock authentication")
+            return await self._verify_token_mock(token)
+            
         try:
             # For now, use a simple JWT decode approach
             import jwt
@@ -87,6 +141,27 @@ class KeycloakService:
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             ) from e
+
+    async def _verify_token_mock(self, token: str) -> dict[str, Any]:
+        """Mock token verification for development when Keycloak is not available."""
+        # For development, accept any non-empty token
+        if not token or token.strip() == "":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Empty token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Return mock user data
+        return {
+            "sub": "mock-user-id",
+            "email": "mock@example.com",
+            "name": "Mock User",
+            "preferred_username": "mockuser",
+            "realm_access": {
+                "roles": ["user", "admin"]
+            }
+        }
 
     async def get_user_info(self, token: str) -> KeycloakUser:
         """Get user information from token."""
@@ -150,8 +225,18 @@ class KeycloakService:
         return self.keycloak.require_roles(required_role)
 
 
-# Global instance
-keycloak_service = KeycloakService()
+# Global instance - will be initialized lazily
+_keycloak_service_instance: KeycloakService | None = None
+
+def get_keycloak_service() -> KeycloakService:
+    """Get the Keycloak service instance, creating it if needed."""
+    global _keycloak_service_instance
+    if _keycloak_service_instance is None:
+        _keycloak_service_instance = KeycloakService()
+    return _keycloak_service_instance
+
+# For backward compatibility
+keycloak_service = get_keycloak_service()
 
 
 async def get_current_user(

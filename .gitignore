@@ -179,6 +179,7 @@ logs/
 
 # Reference materials (not to be committed)
 just_for_reference_do_not_commit/
+*.dotnet/*
 
 # Temporary files
 *.tmp

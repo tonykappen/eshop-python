@@ -9,13 +9,13 @@ from typing import Any
 import structlog
 from structlog.stdlib import LoggerFactory
 
-# Try to import seqlog for SEQ logging support
+# Try to import httpx for SEQ HTTP transport
 try:
-    import seqlog
+    import httpx
 
-    SEQ_AVAILABLE = True
+    HTTPX_AVAILABLE = True
 except ImportError:
-    SEQ_AVAILABLE = False
+    HTTPX_AVAILABLE = False
 
 
 def configure_logging(
@@ -119,43 +119,75 @@ def configure_logging(
         uvicorn_access_logger.propagate = False
 
     # Configure SEQ logging if enabled and available
-    if enable_seq and SEQ_AVAILABLE and seq_url:
+    if enable_seq and HTTPX_AVAILABLE and seq_url:
         try:
-            seqlog.configure_from_dict(
-                {
-                    "version": 1,
-                    "disable_existing_loggers": False,
-                    "formatters": {
-                        "seq": {
-                            "()": seqlog.StructuredLogFormatter,
-                            "format": "%(asctime)s %(name)s %(levelname)s %(message)s",
+            # Create a custom handler for Seq HTTP transport
+            class SeqHTTPHandler(logging.Handler):
+                """Custom handler for sending logs to Seq via HTTP."""
+
+                def __init__(self, seq_url: str, api_key: str | None = None):
+                    super().__init__()
+                    self.seq_url = seq_url.rstrip("/")
+                    self.api_key = api_key
+                    self.client = httpx.AsyncClient(timeout=5.0)
+
+                def emit(self, record: logging.LogRecord) -> None:
+                    """Emit a log record to Seq."""
+                    try:
+                        # Create log entry for Seq
+                        log_entry = {
+                            "@mt": record.getMessage(),
+                            "@l": record.levelname,
+                            "@t": record.created,
+                            "@x": record.exc_info[2] if record.exc_info else None,
                         }
-                    },
-                    "handlers": {
-                        "seq": {
-                            "class": "seqlog.structured_logging.StructuredLogHandler",
-                            "formatter": "seq",
-                            "url": seq_url,
-                            "api_key": seq_api_key or "",
-                            "batch_size": 100,
-                            "auto_flush_timeout": 1.0,
-                        }
-                    },
-                    "loggers": {
-                        "": {
-                            "handlers": ["seq"],
-                            "level": log_level.upper(),
-                            "propagate": False,
-                        }
-                    },
-                }
-            )
+
+                        # Add extra fields from record
+                        if hasattr(record, "structlog"):
+                            log_entry.update(record.structlog)
+
+                        # Add standard fields
+                        log_entry.update({
+                            "logger": record.name,
+                            "level": record.levelname,
+                            "timestamp": record.created,
+                        })
+
+                        # Send to Seq asynchronously
+                        asyncio.create_task(self._send_to_seq(log_entry))
+
+                    except Exception as e:
+                        # Fallback to console if Seq fails
+                        print(f"Failed to send log to Seq: {e}")
+
+                async def _send_to_seq(self, log_entry: dict) -> None:
+                    """Send log entry to Seq."""
+                    try:
+                        headers = {"Content-Type": "application/json"}
+                        if self.api_key:
+                            headers["X-Seq-ApiKey"] = self.api_key
+
+                        await self.client.post(
+                            f"{self.seq_url}/api/events/raw",
+                            json=[log_entry],
+                            headers=headers,
+                        )
+                    except Exception as e:
+                        # Silently fail to avoid log loops
+                        pass
+
+            # Add Seq handler to root logger
+            seq_handler = SeqHTTPHandler(seq_url, seq_api_key)
+            seq_handler.setLevel(getattr(logging, log_level.upper()))
+            logging.getLogger().addHandler(seq_handler)
+
+            get_logger(__name__).info(f"✅ SEQ logging configured successfully at {seq_url}")
         except Exception as e:
             # Fallback to console logging if SEQ configuration fails
             get_logger(__name__).warning(f"Failed to configure SEQ logging: {e}")
-    elif enable_seq and not SEQ_AVAILABLE:
+    elif enable_seq and not HTTPX_AVAILABLE:
         get_logger(__name__).warning(
-            "SEQ logging requested but seqlog package not available"
+            "SEQ logging requested but httpx package not available"
         )
 
 

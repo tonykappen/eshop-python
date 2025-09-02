@@ -128,6 +128,32 @@ class HealthService:
         """Check Keycloak connectivity."""
         return await keycloak_service.health_check()
 
+    async def check_seq(self) -> dict[str, Any]:
+        """Check Seq logging connectivity."""
+        try:
+            import httpx
+
+            # Test Seq API health endpoint
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f"{settings.seq_url}/health")
+                response.raise_for_status()
+
+            return {
+                "status": "healthy",
+                "service": "seq",
+                "url": settings.seq_url,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        except Exception as e:
+            logger.error(f"Seq health check failed: {e}")
+            return {
+                "status": "unhealthy",
+                "service": "seq",
+                "error": str(e),
+                "url": settings.seq_url,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+
     async def check_all_services(self) -> dict[str, Any]:
         """Check health of all services."""
         try:
@@ -137,6 +163,7 @@ class HealthService:
                 self.check_redis(),
                 self.check_rabbitmq(),
                 self.check_keycloak(),
+                self.check_seq(),
                 return_exceptions=True,
             )
 

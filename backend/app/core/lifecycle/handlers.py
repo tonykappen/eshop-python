@@ -171,10 +171,11 @@ class MessagingLifecycleHandler:
 class AuthenticationLifecycleHandler:
     """Handles authentication service lifecycle."""
 
-    def __init__(self) -> None:
+    def __init__(self, app: Any | None = None) -> None:
         """Initialize authentication lifecycle handler."""
         self.keycloak_client: Any | None = None
         self.is_initialized: bool = False
+        self.app = app
 
     async def startup(self) -> None:
         """Initialize authentication services."""
@@ -186,6 +187,10 @@ class AuthenticationLifecycleHandler:
                 setup_success = await setup_keycloak_async()
                 if setup_success:
                     logger.info("✅ Keycloak setup completed successfully")
+                    # Now that Keycloak is set up, force initialize the service
+                    await self._force_initialize_keycloak()
+                    # Now that Keycloak is set up, add the authentication routes
+                    await self._add_keycloak_routes()
                 else:
                     logger.warning("⚠️ Keycloak setup failed or incomplete - continuing anyway")
             except Exception as e:
@@ -223,6 +228,33 @@ class AuthenticationLifecycleHandler:
         logger.debug("Verifying authentication service connectivity...")
         await asyncio.sleep(0.1)  # Simulate connectivity check
         logger.debug("Authentication service connectivity verified")
+
+    async def _force_initialize_keycloak(self) -> None:
+        """Force initialize the Keycloak service after setup is complete."""
+        try:
+            from app.core.auth.keycloak import keycloak_service
+            
+            logger.info("🔧 Force initializing Keycloak service...")
+            keycloak_service.force_initialize()
+            
+            logger.info("✅ Keycloak service initialized successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to force initialize Keycloak service: {e}")
+
+    async def _add_keycloak_routes(self) -> None:
+        """Add Keycloak authentication routes after setup is complete."""
+        if not self.app:
+            logger.warning("⚠️ No app instance available - skipping Keycloak routes")
+            return
+            
+        try:
+            from app.core.auth.keycloak import add_keycloak_routes
+            
+            logger.info("🔧 Adding Keycloak authentication routes...")
+            add_keycloak_routes(self.app)
+            logger.info("✅ Keycloak authentication routes added successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to add Keycloak routes: {e}")
 
 
 class HealthCheckLifecycleHandler:
@@ -281,5 +313,10 @@ class HealthCheckLifecycleHandler:
 database_handler = DatabaseLifecycleHandler()
 cache_handler = CacheLifecycleHandler()
 messaging_handler = MessagingLifecycleHandler()
-auth_handler = AuthenticationLifecycleHandler()
+auth_handler = AuthenticationLifecycleHandler()  # Will be updated with app instance
 health_handler = HealthCheckLifecycleHandler()
+
+def set_app_instance(app_instance: Any) -> None:
+    """Set the app instance for lifecycle handlers that need it."""
+    global auth_handler
+    auth_handler = AuthenticationLifecycleHandler(app_instance)

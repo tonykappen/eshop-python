@@ -59,6 +59,37 @@ services:
     networks:
       - eshop-network
 
+  seq:
+    image: datalust/seq:latest
+    container_name: eshop-seq
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_ADMINPASSWORD: "admin123"
+      SEQ_API_KEY: "your-seq-api-key-change-in-production"
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "false"
+    ports:
+      - "5341:80"
+      - "5342:5341"
+    volumes:
+      - seq_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    networks:
+      - eshop-network
+
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: eshop-keycloak
@@ -100,6 +131,7 @@ volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  seq_data:
 
 networks:
   eshop-network:

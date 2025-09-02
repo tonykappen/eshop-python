@@ -1,5 +1,5 @@
 """Catalog module router."""
-
+from typing import Any
 from fastapi import APIRouter
 
 from app.modules.catalog.api.endpoints import products
@@ -23,23 +23,6 @@ async def test_rbac() -> dict[str, str]:
         "message": "RBAC test endpoint - UPDATED",
         "description": "This endpoint tests RBAC functionality",
         "status": "working",
-    }
-
-
-# Add a test products endpoint that doesn't require authentication
-@router.get("/products-test")
-async def test_products() -> dict[str, Any]:
-    """Test endpoint to verify products functionality without authentication."""
-    return {
-        "message": "Products API is working!",
-        "description": "This endpoint tests products functionality without RBAC",
-        "status": "working",
-        "note": "This is a test endpoint - real products endpoints require authentication",
-        "available_endpoints": [
-            "GET /api/v1/products/ - Get all products (requires auth)",
-            "GET /api/v1/products/{id} - Get product by ID (requires auth)",
-            "POST /api/v1/products/ - Create product (requires auth)"
-        ]
     }
 
 

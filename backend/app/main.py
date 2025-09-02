@@ -83,6 +83,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Set the app instance for lifecycle handlers that need it
+from app.core.lifecycle.handlers import set_app_instance
+set_app_instance(app)
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -92,11 +96,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add Keycloak authentication routes
-add_keycloak_routes(app)
-
 # Add authentication middleware
 add_auth_middleware(app)
+
+# Note: Keycloak routes will be added lazily after Keycloak setup is complete
+# This prevents the race condition where routes are added before the realm exists
 
 # Add pagination support
 add_pagination(app)
@@ -116,17 +120,9 @@ if settings.log_enable_request_logging:
 # from app.modules.basket.api.router import router as basket_router
 # from app.modules.ordering.api.router import router as ordering_router
 
-print("🔧 Including catalog router...")
 app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
-print("✅ Catalog router included successfully - RBAC ready!")
-
-print("🔧 Including auth proxy router...")
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
-print("✅ Auth proxy router included successfully!")
-
-print("🔧 Including health endpoints...")
 app.include_router(health_router)
-print("✅ Health endpoints included successfully!")
 
 # app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
 # app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])

@@ -66,7 +66,7 @@ services:
       LOG_LEVEL: "INFO"
       SEQ_URL: "http://localhost:5341"
       LOG_ENABLE_CONSOLE: "true"
-      LOG_ENABLE_SEQ: "false"
+      LOG_ENABLE_SEQ: "true"
       LOG_ENABLE_FILE: "true"
       LOG_DIRECTORY: "logs"
       LOG_SEPARATE_SERVER_LOGS: "true"
@@ -85,8 +85,10 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-     keycloak:
-       condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      seq:
+        condition: service_healthy
     volumes:
       - ./backend/logs:/app/logs
     healthcheck:

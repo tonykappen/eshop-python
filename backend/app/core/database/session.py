@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.config.settings import settings
 from app.core.exceptions.base import DatabaseError
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 # Create async engine with optimized connection pool
 engine = create_async_engine(

@@ -11,9 +11,9 @@ from sqlalchemy import text
 
 from app.config.settings import settings
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:

@@ -6,11 +6,11 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
-from structlog import get_logger
+from app.core.logging.base_logger import BaseLogger
 
 from app.config.settings import settings
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class KeycloakSetup:
@@ -26,7 +26,15 @@ class KeycloakSetup:
 
     def _check_config_available(self) -> bool:
         """Check if all required Keycloak configuration settings are present."""
-        logger.debug(f"Checking Keycloak config: base_url={self.base_url}, client_id={self.client_id}, client_secret={'***' if self.client_secret else 'None'}, realm={self.realm}")
+        logger.log_debug_with_context(
+            "Checking Keycloak config",
+            context={
+                "base_url": self.base_url,
+                "client_id": self.client_id,
+                "client_secret": "***" if self.client_secret else "None",
+                "realm": self.realm
+            }
+        )
         
         result = (
             self.base_url is not None and
@@ -39,52 +47,55 @@ class KeycloakSetup:
             self.realm != ""
         )
         
-        logger.debug(f"Keycloak config check result: {result}")
+        logger.log_debug_with_context(
+            "Keycloak config check result",
+            context={"result": result}
+        )
         return result
 
     async def setup_keycloak(self) -> bool:
         """Complete Keycloak setup process."""
         try:
-            logger.info("🔧 Starting Keycloak setup...")
+            logger.log_with_context("🔧 Starting Keycloak setup...", "info")
             
             # Check if configuration is available
             if not self._check_config_available():
-                logger.warning("⚠️ Keycloak configuration not available - skipping setup")
+                logger.log_warning_with_context("⚠️ Keycloak configuration not available - skipping setup")
                 return False
             
             # Wait for Keycloak to be ready
-            logger.info("⏳ Waiting for Keycloak to be ready...")
+            logger.log_with_context("⏳ Waiting for Keycloak to be ready...", "info")
             await asyncio.sleep(10)  # Wait for Keycloak to fully start
 
             # Check if Keycloak is accessible
             if not await self._check_keycloak_accessible():
-                logger.error("❌ Keycloak is not accessible")
+                logger.log_error_with_context("❌ Keycloak is not accessible")
                 return False
 
             # Get master admin token (for all operations)
             if not await self._get_master_admin_token():
-                logger.error("❌ Failed to get master admin token")
+                logger.log_error_with_context("❌ Failed to get master admin token")
                 return False
 
             # Create realm
             if not await self._create_realm():
-                logger.warning("⚠️ Realm creation failed or already exists")
+                logger.log_warning_with_context("⚠️ Realm creation failed or already exists")
 
             # Create client
             if not await self._create_client():
-                logger.warning("⚠️ Client creation failed or already exists")
+                logger.log_warning_with_context("⚠️ Client creation failed or already exists")
 
             # Create realm admin user
             if not await self._create_realm_admin():
-                logger.warning("⚠️ Realm admin creation failed or already exists")
+                logger.log_warning_with_context("⚠️ Realm admin creation failed or already exists")
 
             # Create roles using master admin (full permissions)
             if not await self._create_roles():
-                logger.warning("⚠️ Role creation failed or already exists")
+                logger.log_warning_with_context("⚠️ Role creation failed or already exists")
 
             # Create users using master admin (full permissions)
             if not await self._create_users():
-                logger.warning("⚠️ User creation failed or already exists")
+                logger.log_warning_with_context("⚠️ User creation failed or already exists")
 
             # Setup role hierarchy using master admin (full permissions)
             await self._setup_role_hierarchy()
@@ -92,11 +103,14 @@ class KeycloakSetup:
             # Verify setup using master admin (full permissions)
             await self._verify_setup()
 
-            logger.info("✅ Keycloak setup completed successfully")
+            logger.log_with_context("✅ Keycloak setup completed successfully", "info")
             return True
 
         except Exception as e:
-            logger.error(f"❌ Keycloak setup failed: {e}")
+            logger.log_error_with_context(
+                "❌ Keycloak setup failed",
+                error=e
+            )
             return False
 
     async def _check_keycloak_accessible(self) -> bool:

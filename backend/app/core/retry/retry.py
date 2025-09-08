@@ -12,9 +12,9 @@ from tenacity import (
     wait_exponential,
 )
 
-from ..logging.logger import get_logger
+from ..logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class RetryConfig:
@@ -56,10 +56,12 @@ def retry_operation(
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
-                logger.warning(
-                    f"Retrying {operation_name} due to error: {str(e)}",
-                    operation=operation_name,
-                    error=str(e),
+                logger.log_warning_with_context(
+                    "Retrying operation due to error",
+                    context={
+                        "operation": operation_name,
+                        "error": str(e)
+                    }
                 )
                 raise
 
@@ -75,10 +77,12 @@ def retry_operation(
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                logger.warning(
-                    f"Retrying {operation_name} due to error: {str(e)}",
-                    operation=operation_name,
-                    error=str(e),
+                logger.log_warning_with_context(
+                    "Retrying operation due to error",
+                    context={
+                        "operation": operation_name,
+                        "error": str(e)
+                    }
                 )
                 raise
 

@@ -11,9 +11,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class DatabaseInitializer:
@@ -27,12 +27,15 @@ class DatabaseInitializer:
 
     async def initialize_database(self) -> None:
         """Main initialization method."""
-        logger.info("🔧 Initializing eShop database...")
+        logger.log_with_context("🔧 Initializing eShop database...", "info")
 
         try:
             # Ensure we're in the correct directory
             os.chdir(self.project_root)
-            logger.debug(f"Working directory: {self.project_root}")
+            logger.log_debug_with_context(
+                "Working directory",
+                context={"working_directory": str(self.project_root)}
+            )
 
             # Create migrations directory if it doesn't exist
             await self._ensure_migrations_directory()
@@ -46,26 +49,29 @@ class DatabaseInitializer:
             # Run migrations
             await self._run_migrations()
 
-            logger.info("✅ Database initialization completed successfully!")
+            logger.log_with_context("✅ Database initialization completed successfully!", "info")
 
         except Exception as e:
-            logger.error(f"❌ Database initialization failed: {e}")
+            logger.log_error_with_context(
+                "❌ Database initialization failed",
+                error=e
+            )
             raise
 
     async def _ensure_migrations_directory(self) -> None:
         """Ensure migrations directory structure exists."""
         if not self.migrations_dir.exists():
-            logger.info("📁 Creating migrations directory...")
+            logger.log_with_context("📁 Creating migrations directory...", "info")
             self.migrations_dir.mkdir(parents=True, exist_ok=True)
 
         if not self.versions_dir.exists():
-            logger.info("📁 Creating versions directory...")
+            logger.log_with_context("📁 Creating versions directory...", "info")
             self.versions_dir.mkdir(parents=True, exist_ok=True)
 
     async def _ensure_alembic_config(self) -> None:
         """Ensure alembic.ini exists."""
         if not self.alembic_ini.exists():
-            logger.info("📝 Creating alembic.ini...")
+            logger.log_with_context("📝 Creating alembic.ini...", "info")
             await self._run_command(["poetry", "run", "alembic", "init", "migrations"])
 
     async def _create_initial_migration(self) -> None:
@@ -74,23 +80,30 @@ class DatabaseInitializer:
         migration_files = list(self.versions_dir.glob("*.py"))
         
         if not migration_files:
-            logger.info("📝 Creating initial migration...")
+            logger.log_with_context("📝 Creating initial migration...", "info")
             await self._run_command([
                 "poetry", "run", "alembic", "revision", 
                 "--autogenerate", "-m", "Initial migration"
             ])
         else:
-            logger.info(f"📝 Found {len(migration_files)} existing migration(s)")
+            logger.log_with_context(
+                "📝 Found existing migrations",
+                "info",
+                context={"migration_count": len(migration_files)}
+            )
 
     async def _run_migrations(self) -> None:
         """Run all pending migrations."""
-        logger.info("🔄 Running database migrations...")
+        logger.log_with_context("🔄 Running database migrations...", "info")
         await self._run_command(["poetry", "run", "alembic", "upgrade", "head"])
 
     async def _run_command(self, command: list[str]) -> None:
         """Run a shell command and handle errors."""
         try:
-            logger.debug(f"Running command: {' '.join(command)}")
+            logger.log_debug_with_context(
+                "Running command",
+                context={"command": " ".join(command)}
+            )
             result = subprocess.run(
                 command,
                 capture_output=True,
@@ -100,11 +113,20 @@ class DatabaseInitializer:
             )
             
             if result.stdout:
-                logger.debug(f"Command output: {result.stdout}")
+                logger.log_debug_with_context(
+                    "Command output",
+                    context={"output": result.stdout}
+                )
                 
         except subprocess.CalledProcessError as e:
-            logger.error(f"Command failed: {' '.join(command)}")
-            logger.error(f"Error output: {e.stderr}")
+            logger.log_error_with_context(
+                "Command failed",
+                error=e,
+                context={
+                    "command": " ".join(command),
+                    "error_output": e.stderr
+                }
+            )
             raise RuntimeError(f"Command execution failed: {e.stderr}")
 
     async def check_database_status(self) -> None:

@@ -6,7 +6,7 @@ import sys
 import inspect
 from pathlib import Path
 from typing import Any, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -143,56 +143,72 @@ def configure_logging(
                     super().__init__()
                     self.seq_url = seq_url.rstrip("/")
                     self.api_key = api_key
-                    self.client = httpx.AsyncClient(timeout=5.0)
+                    # Use synchronous client for logging handler
+                    self.client = httpx.Client(timeout=5.0)
 
                 def emit(self, record: logging.LogRecord) -> None:
                     """Emit a log record to Seq."""
                     try:
-                        # Create log entry for Seq
+                        # Create log entry for Seq in proper format
                         log_entry = {
-                            "@mt": record.getMessage(),
+                            "@t": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
                             "@l": record.levelname,
-                            "@t": record.created,
-                            "@x": record.exc_info[2] if record.exc_info else None,
+                            "MessageTemplate": record.getMessage(),
+                            "Timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
+                            "Logger": record.name,
+                            "Level": record.levelname,
                         }
+
+                        # Add exception info if present
+                        if record.exc_info:
+                            log_entry["@x"] = record.exc_text
 
                         # Add extra fields from record
                         if hasattr(record, "structlog"):
                             log_entry.update(record.structlog)
 
-                        # Add standard fields
-                        log_entry.update({
-                            "logger": record.name,
-                            "level": record.levelname,
-                            "timestamp": record.created,
-                        })
-
-                        # Send to Seq asynchronously
-                        asyncio.create_task(self._send_to_seq(log_entry))
+                        # Send to Seq synchronously
+                        self._send_to_seq(log_entry)
 
                     except Exception as e:
                         # Fallback to console if Seq fails
                         print(f"Failed to send log to Seq: {e}")
 
-                async def _send_to_seq(self, log_entry: dict) -> None:
+                def _send_to_seq(self, log_entry: dict) -> None:
                     """Send log entry to Seq."""
                     try:
                         headers = {"Content-Type": "application/json"}
                         if self.api_key:
                             headers["X-Seq-ApiKey"] = self.api_key
 
-                        await self.client.post(
+                        # Seq expects an array of events
+                        payload = {"Events": [log_entry]}
+                        
+                        response = self.client.post(
                             f"{self.seq_url}/api/events/raw",
-                            json=[log_entry],
+                            json=payload,
                             headers=headers,
                         )
+                        response.raise_for_status()
                     except Exception as e:
                         # Silently fail to avoid log loops
                         pass
 
-            # Add Seq handler to root logger
+            # Add Seq handler to root logger with filter to exclude HTTP request logs
             seq_handler = SeqHTTPHandler(seq_url, seq_api_key)
             seq_handler.setLevel(getattr(logging, log_level.upper()))
+            
+            # Add filter to exclude HTTP request logs from httpx
+            def filter_http_logs(record):
+                # Exclude HTTP request logs from httpx
+                if hasattr(record, 'name') and 'httpx' in record.name:
+                    return False
+                # Exclude HTTP request logs in the message
+                if hasattr(record, 'getMessage') and 'HTTP Request:' in record.getMessage():
+                    return False
+                return True
+            
+            seq_handler.addFilter(filter_http_logs)
             logging.getLogger().addHandler(seq_handler)
 
             get_logger(__name__).info(f"✅ SEQ logging configured successfully at {seq_url}")

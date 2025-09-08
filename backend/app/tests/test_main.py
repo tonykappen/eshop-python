@@ -51,29 +51,29 @@ class TestMainApplication:
         )
 
     @patch("app.main.settings")
-    @patch("app.main.get_logger")
+    @patch("app.core.initialization.BaseLogger")
     @patch("app.main.configure_logging")
     @pytest.mark.asyncio
     async def test_configure_application_startup(
         self,
         mock_configure_logging: MagicMock,
-        mock_get_logger: MagicMock,
+        mock_base_logger: MagicMock,
         mock_settings: MagicMock,  # noqa: ARG002
     ) -> None:
         """Test application startup configuration."""
         from app.main import configure_application_startup
 
         mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
+        mock_base_logger.return_value = mock_logger
 
         await configure_application_startup()
 
-        mock_get_logger.assert_called_once_with("main")
-        mock_logger.info.assert_called()
+        mock_base_logger.assert_called_once_with("initialization")
+        mock_logger.log_info.assert_called()
         mock_configure_logging.assert_called_once()
 
     @patch("app.main.settings")
-    @patch("app.main.get_logger")
+    @patch("app.core.initialization.BaseLogger")
     @patch("app.main.create_container")
     @patch("app.main.scan_assemblies")
     @patch("app.main.wire_container")
@@ -83,65 +83,65 @@ class TestMainApplication:
         mock_wire_container: MagicMock,
         mock_scan_assemblies: MagicMock,
         mock_create_container: MagicMock,
-        mock_get_logger: MagicMock,
+        mock_base_logger: MagicMock,
         mock_settings: MagicMock,  # noqa: ARG002
     ) -> None:
         """Test dependency injection initialization."""
         from app.main import initialize_dependency_injection
 
         mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
+        mock_base_logger.return_value = mock_logger
         mock_container = MagicMock()
         mock_create_container.return_value = mock_container
 
         await initialize_dependency_injection()
 
-        mock_get_logger.assert_called_once_with("main")
-        mock_logger.info.assert_called()
+        mock_base_logger.assert_called_once_with("initialization")
+        mock_logger.log_info.assert_called()
         mock_create_container.assert_called_once()
         mock_container.config.from_dict.assert_called_once()
         mock_scan_assemblies.assert_called_once()
         mock_wire_container.assert_called_once()
 
-    @patch("app.main.get_logger")
+    @patch("app.core.initialization.BaseLogger")
     @patch("app.main.configure_mediator")
     @pytest.mark.asyncio
     async def test_initialize_mediator(
         self,
         mock_configure_mediator: MagicMock,
-        mock_get_logger: MagicMock,
+        mock_base_logger: MagicMock,
     ) -> None:
         """Test mediator initialization."""
         from app.main import initialize_mediator
 
         mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
+        mock_base_logger.return_value = mock_logger
 
         await initialize_mediator()
 
-        mock_get_logger.assert_called_once_with("main")
-        mock_logger.info.assert_called()
+        mock_base_logger.assert_called_once_with("initialization")
+        mock_logger.log_info.assert_called()
         mock_configure_mediator.assert_called_once()
 
-    @patch("app.main.get_logger")
+    @patch("app.core.initialization.BaseLogger")
     @pytest.mark.asyncio
     async def test_cleanup_dependency_injection(
         self,
-        mock_get_logger: MagicMock,
+        mock_base_logger: MagicMock,
     ) -> None:
         """Test dependency injection cleanup."""
         from app.main import cleanup_dependency_injection
 
         mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
+        mock_base_logger.return_value = mock_logger
 
         # Test with container set
         container_mock = MagicMock()
         with patch("app.main._app_container", container_mock):
             await cleanup_dependency_injection()
 
-        mock_get_logger.assert_called_once_with("main")
-        mock_logger.info.assert_called()
+        mock_base_logger.assert_called_once_with("initialization")
+        mock_logger.log_info.assert_called()
 
     @patch("app.main.lifecycle_manager")
     @pytest.mark.asyncio

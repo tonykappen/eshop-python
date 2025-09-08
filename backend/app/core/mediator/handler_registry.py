@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 
 TRequest = TypeVar("TRequest")
@@ -26,7 +26,7 @@ class HandlerRegistry:
 
     def __init__(self) -> None:
         self.handlers: dict[type[Any], IRequestHandler[Any, Any]] = {}
-        self.logger = get_logger(__name__)
+        self.logger = BaseLogger(__name__)
 
     def register_handler(
         self, request_type: type[Any], handler: IRequestHandler[Any, Any]

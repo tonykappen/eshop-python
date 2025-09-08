@@ -6,12 +6,12 @@ from app.core.database.seeding import (
     ensure_schema_exists,
 )
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 from app.core.mapping.orm_mapper import ORMMapper
 from app.modules.catalog.infrastructure.orm_models import ProductORM
 from app.modules.catalog.infrastructure.seed.initial_data import InitialData
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CatalogDataSeeder(IDataSeeder):
@@ -19,20 +19,20 @@ class CatalogDataSeeder(IDataSeeder):
 
     async def seed_all_async(self) -> None:
         """Seed all catalog data - matches .NET SeedAllAsync()."""
-        logger.info("🔄 Seeding catalog data...")
+        logger.log_with_context("🔄 Seeding catalog data...", "info")
 
         # Ensure catalog schema exists
         await ensure_schema_exists("catalog")
 
         # Check if products already exist
         if await check_if_data_exists("products", "catalog"):
-            logger.info("✅ Catalog products already exist, skipping seeding")
+            logger.log_with_context("✅ Catalog products already exist, skipping seeding", "info")
             return
 
         # Seed products
         await self._seed_products()
 
-        logger.info("✅ Catalog data seeding completed")
+        logger.log_with_context("✅ Catalog data seeding completed", "info")
 
     async def _seed_products(self) -> None:
         """Seed products data."""
@@ -53,9 +53,16 @@ class CatalogDataSeeder(IDataSeeder):
                 # Commit changes
                 await session.commit()
 
-                logger.info(f"✅ Seeded {len(products)} products")
+                logger.log_with_context(
+                    "✅ Seeded products",
+                    "info",
+                    context={"product_count": len(products)}
+                )
 
             except Exception as e:
-                logger.error(f"❌ Failed to seed products: {e}")
+                logger.log_error_with_context(
+                    "❌ Failed to seed products",
+                    error=e
+                )
                 await session.rollback()
                 raise

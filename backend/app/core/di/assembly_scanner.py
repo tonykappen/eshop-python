@@ -8,9 +8,9 @@ from typing import Any
 
 from dependency_injector import containers, providers
 
-from ..logging.logger import get_logger
+from ..logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class AssemblyScanner:

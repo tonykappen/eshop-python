@@ -35,7 +35,7 @@ class BaseLogger:
             
         return log_entry
 
-    def log_error(
+    def log_error_with_context(
         self,
         message: str,
         error: Optional[Exception] = None,
@@ -43,7 +43,7 @@ class BaseLogger:
         context: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> None:
-        """Log an error with standardized structure."""
+        """Log an error with structured context and error details."""
         log_entry = self._create_log_entry(
             message=message,
             level="error",
@@ -64,83 +64,55 @@ class BaseLogger:
             **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
         )
 
-    def log_warning(
+    def log_warning_with_context(
         self,
         message: str,
         context: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> None:
-        """Log a warning with standardized structure."""
+        """Log a warning with structured context."""
+        self.log_with_context(message, "warning", context, **kwargs)
+
+    def log_with_context(
+        self,
+        message: str,
+        level: str = "info",
+        context: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
+    ) -> None:
+        """Log a message with structured context and standardized format."""
         log_entry = self._create_log_entry(
             message=message,
-            level="warning",
+            level=level,
             **kwargs
         )
         
         if context:
             log_entry["context"] = context
             
-        self.logger.warning(
-            "Warning: %s, Time of occurrence %s",
-            message,
-            log_entry["timestamp"],
+        log_func = getattr(self.logger, level.lower())
+        log_func(
+            f"{level.title()}: {message}, Time of occurrence {log_entry['timestamp']}",
             **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
         )
 
-    def log_info(
+    def log_debug_with_context(
         self,
         message: str,
         context: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> None:
-        """Log an info message with standardized structure."""
-        log_entry = self._create_log_entry(
-            message=message,
-            level="info",
-            **kwargs
-        )
-        
-        if context:
-            log_entry["context"] = context
-            
-        self.logger.info(
-            "Info: %s, Time of occurrence %s",
-            message,
-            log_entry["timestamp"],
-            **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
-        )
+        """Log a debug message with structured context."""
+        self.log_with_context(message, "debug", context, **kwargs)
 
-    def log_debug(
-        self,
-        message: str,
-        context: Optional[Dict[str, Any]] = None,
-        **kwargs: Any
-    ) -> None:
-        """Log a debug message with standardized structure."""
-        log_entry = self._create_log_entry(
-            message=message,
-            level="debug",
-            **kwargs
-        )
-        
-        if context:
-            log_entry["context"] = context
-            
-        self.logger.debug(
-            "Debug: %s, Time of occurrence %s",
-            message,
-            log_entry["timestamp"],
-            **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
-        )
-
-    def log_exception(
+    def log_exception_detailed(
         self,
         message: str,
         exception: Exception,
         context: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> None:
-        """Log an exception with standardized structure."""
+        """Log an exception with detailed error information and context."""
         log_entry = self._create_log_entry(
             message=message,
             level="error",
@@ -164,7 +136,7 @@ class BaseLogger:
             **{k: v for k, v in log_entry.items() if k not in ["message", "error", "timestamp"]}
         )
 
-    def log_security_event(
+    def log_security_audit(
         self,
         event_type: str,
         user_id: Optional[str] = None,
@@ -176,7 +148,7 @@ class BaseLogger:
         status_code: Optional[int] = None,
         **kwargs: Any
     ) -> None:
-        """Log a security event with standardized structure."""
+        """Log a security event for audit trail and monitoring."""
         log_entry = self._create_log_entry(
             message=f"Security Event: {event_type}",
             level="info",
@@ -215,33 +187,33 @@ class BaseLogger:
         if args:
             # Handle format string style: logger.info("User %s logged in", username)
             formatted_message = message % args if args else message
-            self.log_info(formatted_message, **kwargs)
+            self.log_with_context(formatted_message, "info", **kwargs)
         else:
-            self.log_info(message, **kwargs)
+            self.log_with_context(message, "info", **kwargs)
 
     def error(self, message: str, *args, **kwargs) -> None:
         """Standard error method for easy migration."""
         if args:
             # Handle format string style: logger.error("Failed: %s", error)
             formatted_message = message % args if args else message
-            self.log_error(formatted_message, **kwargs)
+            self.log_error_with_context(formatted_message, **kwargs)
         else:
-            self.log_error(message, **kwargs)
+            self.log_error_with_context(message, **kwargs)
 
     def warning(self, message: str, *args, **kwargs) -> None:
         """Standard warning method for easy migration."""
         if args:
             # Handle format string style: logger.warning("Warning: %s", issue)
             formatted_message = message % args if args else message
-            self.log_warning(formatted_message, **kwargs)
+            self.log_warning_with_context(formatted_message, **kwargs)
         else:
-            self.log_warning(message, **kwargs)
+            self.log_warning_with_context(message, **kwargs)
 
     def debug(self, message: str, *args, **kwargs) -> None:
         """Standard debug method for easy migration."""
         if args:
             # Handle format string style: logger.debug("Debug: %s", data)
             formatted_message = message % args if args else message
-            self.log_debug(formatted_message, **kwargs)
+            self.log_debug_with_context(formatted_message, **kwargs)
         else:
-            self.log_debug(message, **kwargs)
+            self.log_debug_with_context(message, **kwargs)

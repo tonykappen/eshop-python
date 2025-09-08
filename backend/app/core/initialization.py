@@ -4,14 +4,15 @@ from typing import Any
 
 from app.config.settings import settings
 from app.core.di.container import create_container, scan_assemblies, wire_container
-from app.core.logging.logger import configure_logging, get_logger
+from app.core.logging.logger import configure_logging
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.fastapi_integration import configure_mediator
 
 
 async def configure_application_startup() -> None:
     """Configure application startup sequence."""
-    logger = get_logger("initialization")
-    logger.info("Configuring eShop Modular Monolith application")
+    logger = BaseLogger("initialization")
+    logger.log_with_context("Configuring eShop Modular Monolith application", "info")
 
     # Configure logging first
     configure_logging(
@@ -27,13 +28,13 @@ async def configure_application_startup() -> None:
         environment=settings.environment,
     )
 
-    logger.info("Logging configuration completed")
+    logger.log_with_context("Logging configuration completed", "info")
 
 
 async def initialize_dependency_injection() -> None:
     """Initialize dependency injection container."""
-    logger = get_logger("initialization")
-    logger.info("Initializing dependency injection container")
+    logger = BaseLogger("initialization")
+    logger.log_with_context("Initializing dependency injection container", "info")
 
     # Initialize DI container
     container = create_container()
@@ -64,14 +65,14 @@ async def initialize_dependency_injection() -> None:
             ["app.modules.catalog", "app.modules.basket", "app.modules.ordering"],
         )
     except Exception as e:
-        logger.warning(f"Container wiring failed (non-critical): {e}")
+        logger.log_warning("Container wiring failed (non-critical)", context={"error": str(e)})
         # Continue without wiring - services can still be accessed directly
 
     # Store container in global variable for access in main.py
     global _app_container
     _app_container = container
 
-    logger.info("Dependency injection container initialized")
+    logger.log_with_context("Dependency injection container initialized", "info")
 
 
 # Global container reference for lifecycle management
@@ -85,22 +86,22 @@ def get_app_container():
 
 async def initialize_mediator() -> None:
     """Initialize mediator pattern - matches .NET AddMediatRWithAssemblies()."""
-    logger = get_logger("initialization")
-    logger.info("Initializing mediator pattern")
+    logger = BaseLogger("initialization")
+    logger.log_with_context("Initializing mediator pattern", "info")
 
     # Configure mediator (matches .NET Program.cs configuration)
     configure_mediator()
 
-    logger.info("Mediator pattern initialized")
+    logger.log_with_context("Mediator pattern initialized", "info")
 
 
 async def cleanup_dependency_injection() -> None:
     """Cleanup dependency injection container."""
-    logger = get_logger("initialization")
-    logger.info("Cleaning up dependency injection container")
+    logger = BaseLogger("initialization")
+    logger.log_with_context("Cleaning up dependency injection container", "info")
 
     global _app_container
     if _app_container:
         # Perform any necessary cleanup
         # container.unwire()
-        logger.info("Dependency injection container cleanup completed")
+        logger.log_with_context("Dependency injection container cleanup completed", "info")

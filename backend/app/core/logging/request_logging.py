@@ -7,9 +7,10 @@ from typing import Any, Optional
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .logger import get_logger, log_security_event, _sanitize_log_data
+from .base_logger import BaseLogger
+from .logger import _sanitize_log_data
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -99,8 +100,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 request_info["body_error"] = str(e)
 
         # Log incoming request as security event
-        await log_security_event(
-            logger=logger,
+        logger.log_security_event(
             event_type="http_request",
             user_id=user_id,
             session_id=session_id,
@@ -154,8 +154,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     response_info["body_error"] = str(e)
 
             # Log response as security event
-            await log_security_event(
-                logger=logger,
+            logger.log_security_event(
                 event_type="http_response",
                 user_id=user_id,
                 session_id=session_id,
@@ -172,8 +171,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             processing_time = time.time() - start_time
 
             # Log error as security event
-            await log_security_event(
-                logger=logger,
+            logger.log_security_event(
                 event_type="http_request_failed",
                 user_id=user_id,
                 session_id=session_id,

@@ -4,11 +4,11 @@ from typing import Any
 
 from dependency_injector import containers, providers
 
-from ..logging.logger import get_logger
+from ..logging.base_logger import BaseLogger
 from .assembly_scanner import AssemblyScanner
 from ...config.settings import settings
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class Container(containers.DeclarativeContainer):
@@ -18,7 +18,7 @@ class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
 
     # Core services
-    logger = providers.Singleton(lambda: get_logger("eshop"))
+    logger = providers.Singleton(lambda: BaseLogger("eshop"))
 
     # Assembly scanner - will be set after container creation
     assembly_scanner = providers.Singleton(AssemblyScanner, container=None)

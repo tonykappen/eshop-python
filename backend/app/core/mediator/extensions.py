@@ -3,7 +3,7 @@
 import inspect
 from typing import Any
 
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
 from .handler_registry import HandlerRegistry
 from .mediator import Mediator
@@ -20,14 +20,17 @@ def add_mediator_with_assemblies(services: Any, *assemblies: Any) -> Any:
     Returns:
         Service collection with mediator registered
     """
-    logger = get_logger(__name__)
+    logger = BaseLogger(__name__)
 
     # Create handler registry
     handler_registry = HandlerRegistry()
 
     # Scan assemblies for handlers
     for assembly in assemblies:
-        logger.debug(f"Scanning assembly {assembly.__name__} for handlers")
+        logger.log_debug_with_context(
+            "Scanning assembly for handlers",
+            context={"assembly_name": assembly.__name__}
+        )
         _register_handlers_from_assembly(handler_registry, assembly)
 
     # Create mediator
@@ -38,8 +41,10 @@ def add_mediator_with_assemblies(services: Any, *assemblies: Any) -> Any:
     services["mediator"] = mediator
     services["handler_registry"] = handler_registry
 
-    logger.info(
-        f"Registered mediator with {len(handler_registry.get_registered_types())} handlers"
+    logger.log_with_context(
+        "Registered mediator with handlers",
+        "info",
+        context={"handler_count": len(handler_registry.get_registered_types())}
     )
 
     return services
@@ -49,7 +54,7 @@ def _register_handlers_from_assembly(
     handler_registry: HandlerRegistry, assembly: Any
 ) -> None:
     """Register all handlers from an assembly - matches .NET RegisterServicesFromAssemblies()."""
-    logger = get_logger(__name__)
+    logger = BaseLogger(__name__)
 
     try:
         # Get all classes from the assembly
@@ -60,11 +65,21 @@ def _register_handlers_from_assembly(
                 if request_type:
                     handler_instance = obj()
                     handler_registry.register_handler(request_type, handler_instance)
-                    logger.debug(
-                        f"Registered handler {name} for request {request_type.__name__}"
+                    logger.log_debug_with_context(
+                        "Registered handler for request",
+                        context={
+                            "handler_name": name,
+                            "request_type": request_type.__name__
+                        }
                     )
     except Exception as e:
-        logger.warning(f"Failed to scan assembly {assembly.__name__}: {e}")
+        logger.log_warning_with_context(
+            "Failed to scan assembly",
+            context={
+                "assembly_name": assembly.__name__,
+                "error": str(e)
+            }
+        )
 
 
 def _is_request_handler(cls: type[Any]) -> bool:

@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 from sqlalchemy import text
 
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class IDataSeeder(ABC):
@@ -24,7 +24,7 @@ class DataSeederManager:
 
     def __init__(self) -> None:
         self.seeders: list[type[IDataSeeder]] = []
-        self.logger = get_logger(__name__)
+        self.logger = BaseLogger(__name__)
 
     def register_seeder(self, seeder_class: type[IDataSeeder]) -> None:
         """Register a seeder class."""

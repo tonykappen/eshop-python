@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import Request
 
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
 
 class CancellationToken:
@@ -16,7 +16,7 @@ class CancellationToken:
         """Initialize cancellation token."""
         self._request = request
         self._cancelled = False
-        self._logger = get_logger(__name__)
+        self._logger = BaseLogger(__name__)
         self._monitor_task: asyncio.Task[None] | None = None
 
         # Create a task to monitor request disconnection
@@ -34,13 +34,17 @@ class CancellationToken:
             while not self._cancelled and self._request is not None:
                 if await self._request.is_disconnected():
                     self._cancelled = True
-                    self._logger.debug(
+                    self._logger.log_debug_with_context(
                         "Request disconnected, cancellation token triggered"
                     )
                     break
                 await asyncio.sleep(0.1)  # Check every 100ms
         except Exception as e:
-            self._logger.error(f"Error monitoring request disconnection: {e}")
+            self._logger.log_error_with_context(
+                "Error monitoring request disconnection",
+                error=e,
+                context={"operation": "monitor_disconnection"}
+            )
             self._cancelled = True
 
     @property
@@ -61,7 +65,7 @@ class CancellationToken:
     def cancel(self) -> None:
         """Manually cancel the token."""
         self._cancelled = True
-        self._logger.debug("Cancellation token manually cancelled")
+        self._logger.log_debug_with_context("Cancellation token manually cancelled")
 
     async def cleanup(self) -> None:
         """Clean up monitoring task."""

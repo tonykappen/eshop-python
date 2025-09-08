@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from typing import Any, Generic, TypeVar
 
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
 from .cancellation import CancellationToken
 
@@ -50,7 +50,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
     """Validation behavior - matches .NET ValidationBehavior<TRequest, TResponse>."""
 
     def __init__(self) -> None:
-        self.logger = get_logger(__name__)
+        self.logger = BaseLogger(__name__)
 
     async def handle(
         self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
@@ -63,8 +63,10 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
                 # Validate the request using Pydantic
                 request.model_validate(request.model_dump())
             except Exception as validation_error:
-                self.logger.error(
-                    f"Validation failed for {type(request).__name__}: {validation_error}"
+                self.logger.log_error(
+                    "Validation failed for request",
+                    error=validation_error,
+                    context={"request_type": type(request).__name__}
                 )
                 raise ValueError(
                     f"Validation failed: {validation_error}"
@@ -78,7 +80,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
     """Logging behavior - matches .NET LoggingBehavior<TRequest, TResponse>."""
 
     def __init__(self) -> None:
-        self.logger = get_logger(__name__)
+        self.logger = BaseLogger(__name__)
 
     async def handle(
         self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
@@ -92,12 +94,14 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         # Generate or get trace_id for this operation
         trace_id = str(uuid.uuid4())
 
-        self.logger.info(
-            "[START] Handle request=%s - Response=%s - RequestData=%s",
-            request_type,
-            response_type,
-            str(request),
-            trace_id=trace_id,
+        self.logger.log_info(
+            "Starting request handling",
+            context={
+                "request_type": request_type,
+                "response_type": response_type,
+                "request_data": str(request),
+                "trace_id": trace_id
+            }
         )
 
         start_time = time.time()
@@ -109,28 +113,34 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
 
             # Log performance warning if request takes more than 3 seconds
             if elapsed_time > 3:
-                self.logger.warning(
-                    "[PERFORMANCE] The request %s took %.2f seconds.",
-                    request_type,
-                    elapsed_time,
-                    trace_id=trace_id,
+                self.logger.log_warning(
+                    "Request performance warning",
+                    context={
+                        "request_type": request_type,
+                        "elapsed_time": elapsed_time,
+                        "trace_id": trace_id
+                    }
                 )
 
-            self.logger.info(
-                "[END] Handled %s with %s",
-                request_type,
-                response_type,
-                trace_id=trace_id,
+            self.logger.log_info(
+                "Request handling completed",
+                context={
+                    "request_type": request_type,
+                    "response_type": response_type,
+                    "trace_id": trace_id
+                }
             )
 
             return response
 
         except Exception as e:
-            self.logger.error(
-                "[ERROR] Failed to handle %s: %s",
-                request_type,
-                str(e),
-                trace_id=trace_id,
+            self.logger.log_error(
+                "Request handling failed",
+                error=e,
+                context={
+                    "request_type": request_type,
+                    "trace_id": trace_id
+                }
             )
             raise
 

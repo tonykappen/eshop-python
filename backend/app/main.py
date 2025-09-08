@@ -32,7 +32,7 @@ from app.core.lifecycle.manager import (
     register_shutdown_callback,
     register_startup_callback,
 )
-from app.core.logging.logger import get_logger
+
 from app.core.logging.request_logging import add_request_logging_middleware
 from app.core.middleware.auth_middleware import add_auth_middleware
 from app.modules.catalog.api.router import router as catalog_router

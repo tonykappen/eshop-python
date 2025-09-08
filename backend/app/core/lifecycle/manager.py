@@ -9,9 +9,9 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 # Type alias for async lifecycle callbacks
 LifecycleCallback = Callable[[], Awaitable[None]]
@@ -31,57 +31,84 @@ class LifecycleManager:
     def add_startup_callback(self, callback: LifecycleCallback) -> None:
         """Add a callback to be executed during startup."""
         self.startup_callbacks.append(callback)
-        logger.debug(f"Added startup callback: {callback.__name__}")
+        logger.log_debug_with_context(
+            "Added startup callback",
+            context={"callback_name": callback.__name__}
+        )
 
     def add_shutdown_callback(self, callback: LifecycleCallback) -> None:
         """Add a callback to be executed during shutdown."""
         self.shutdown_callbacks.append(callback)
-        logger.debug(f"Added shutdown callback: {callback.__name__}")
+        logger.log_debug_with_context(
+            "Added shutdown callback",
+            context={"callback_name": callback.__name__}
+        )
 
     def set_shutdown_timeout(self, timeout: float) -> None:
         """Set the timeout for graceful shutdown in seconds."""
         self.shutdown_timeout = timeout
-        logger.debug(f"Shutdown timeout set to {timeout} seconds")
+        logger.log_debug_with_context(
+            "Shutdown timeout set",
+            context={"timeout_seconds": timeout}
+        )
 
     async def startup(self) -> None:
         """Execute all startup callbacks in sequence."""
-        logger.info("🚀 Starting application lifecycle...")
+        logger.log_with_context("🚀 Starting application lifecycle...", "info")
 
         for i, callback in enumerate(self.startup_callbacks):
             try:
-                logger.info(
-                    f"Executing startup callback {i+1}/{len(self.startup_callbacks)}: {callback.__name__}"
+                logger.log_with_context(
+                    "Executing startup callback",
+                    "info",
+                    context={
+                        "callback_index": i+1,
+                        "total_callbacks": len(self.startup_callbacks),
+                        "callback_name": callback.__name__
+                    }
                 )
                 await callback()
-                logger.info(
-                    f"✅ Startup callback {callback.__name__} completed successfully"
+                logger.log_with_context(
+                    "✅ Startup callback completed successfully",
+                    "info",
+                    context={"callback_name": callback.__name__}
                 )
             except Exception as e:
-                logger.error(f"❌ Startup callback {callback.__name__} failed: {e}")
+                logger.log_error_with_context(
+                    "❌ Startup callback failed",
+                    error=e,
+                    context={"callback_name": callback.__name__}
+                )
                 # Re-raise to prevent application from starting with failed dependencies
                 raise RuntimeError(
                     f"Startup failed in callback {callback.__name__}: {e}"
                 ) from e
 
-        logger.info("✅ Application startup completed successfully")
+        logger.log_with_context("✅ Application startup completed successfully", "info")
 
     async def shutdown(self) -> None:
         """Execute all shutdown callbacks in sequence with timeout protection."""
         if self.is_shutting_down:
-            logger.warning(
+            logger.log_warning_with_context(
                 "Shutdown already in progress, ignoring duplicate shutdown request"
             )
             return
 
         self.is_shutting_down = True
-        logger.info("🛑 Starting graceful shutdown...")
+        logger.log_with_context("🛑 Starting graceful shutdown...", "info")
 
         # Execute shutdown callbacks in reverse order (LIFO)
         shutdown_tasks = []
         for i, callback in enumerate(reversed(self.shutdown_callbacks)):
             callback_name = callback.__name__
-            logger.info(
-                f"Executing shutdown callback {i+1}/{len(self.shutdown_callbacks)}: {callback_name}"
+            logger.log_with_context(
+                "Executing shutdown callback",
+                "info",
+                context={
+                    "callback_index": i+1,
+                    "total_callbacks": len(self.shutdown_callbacks),
+                    "callback_name": callback_name
+                }
             )
 
             try:
@@ -94,15 +121,19 @@ class LifecycleManager:
                 )
                 shutdown_tasks.append((callback_name, shutdown_task))
             except Exception as e:
-                logger.error(
-                    f"❌ Failed to create shutdown task for {callback_name}: {e}"
+                logger.log_error_with_context(
+                    "❌ Failed to create shutdown task",
+                    error=e,
+                    context={"callback_name": callback_name}
                 )
 
         # Wait for all shutdown tasks with overall timeout
         if shutdown_tasks:
             try:
-                logger.info(
-                    f"Waiting for {len(shutdown_tasks)} shutdown tasks to complete..."
+                logger.log_with_context(
+                    "Waiting for shutdown tasks to complete",
+                    "info",
+                    context={"task_count": len(shutdown_tasks)}
                 )
                 await asyncio.wait_for(
                     self._execute_shutdown_tasks(shutdown_tasks),
@@ -134,13 +165,17 @@ class LifecycleManager:
             except asyncio.CancelledError:
                 logger.warning(f"⚠️ Shutdown callback {callback_name} was cancelled")
             except Exception as e:
-                logger.error(f"❌ Shutdown callback {callback_name} failed: {e}")
+                logger.log_error_with_context(
+                    "❌ Shutdown callback failed",
+                    error=e,
+                    context={"callback_name": callback_name}
+                )
                 # Continue with other shutdown tasks even if one fails
 
     def setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
         if sys.platform == "win32":
-            logger.warning("Signal handlers not fully supported on Windows")
+            logger.log_warning_with_context("Signal handlers not fully supported on Windows")
             return
 
         self._shutdown_event = asyncio.Event()
@@ -148,8 +183,13 @@ class LifecycleManager:
         def signal_handler(signum: int, frame: Any) -> None:  # noqa: ARG001
             """Handle shutdown signals."""
             signal_name = signal.Signals(signum).name
-            logger.info(
-                f"📡 Received signal {signal_name} ({signum}), initiating graceful shutdown..."
+            logger.log_with_context(
+                "📡 Received signal, initiating graceful shutdown",
+                "info",
+                context={
+                    "signal_name": signal_name,
+                    "signal_number": signum
+                }
             )
 
             if self._shutdown_event:
@@ -159,12 +199,17 @@ class LifecycleManager:
         for sig in [signal.SIGTERM, signal.SIGINT]:
             try:
                 signal.signal(sig, signal_handler)
-                logger.debug(
-                    f"Registered signal handler for {signal.Signals(sig).name}"
+                logger.log_debug_with_context(
+                    "Registered signal handler",
+                    context={"signal_name": signal.Signals(sig).name}
                 )
             except (OSError, ValueError) as e:
-                logger.warning(
-                    f"Could not register signal handler for {signal.Signals(sig).name}: {e}"
+                logger.log_warning_with_context(
+                    "Could not register signal handler",
+                    context={
+                        "signal_name": signal.Signals(sig).name,
+                        "error": str(e)
+                    }
                 )
 
     @asynccontextmanager
@@ -182,7 +227,7 @@ class LifecycleManager:
             # Execute startup sequence
             await self.startup()
 
-            logger.info("🎯 Application is ready to serve requests")
+            logger.log_with_context("🎯 Application is ready to serve requests", "info")
 
             # Create background task to monitor for shutdown signals
             if self._shutdown_event:
@@ -191,7 +236,10 @@ class LifecycleManager:
             yield
 
         except Exception as e:
-            logger.error(f"💥 Error during application startup: {e}")
+            logger.log_error_with_context(
+                "💥 Error during application startup",
+                error=e
+            )
             raise
         finally:
             # Cancel shutdown monitoring task
@@ -208,11 +256,12 @@ class LifecycleManager:
         if self._shutdown_event:
             try:
                 await self._shutdown_event.wait()
-                logger.info(
-                    "🔄 Shutdown signal received, starting graceful shutdown..."
+                logger.log_with_context(
+                    "🔄 Shutdown signal received, starting graceful shutdown",
+                    "info"
                 )
             except asyncio.CancelledError:
-                logger.debug("Shutdown signal monitoring task was cancelled")
+                logger.log_debug_with_context("Shutdown signal monitoring task was cancelled")
 
 
 # Global lifecycle manager instance

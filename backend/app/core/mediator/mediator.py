@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
 from app.core.contracts.cqrs import ICommand, IQuery
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
 from .behaviors import LoggingBehavior, ValidationBehavior
 from .cancellation import CancellationToken
@@ -31,7 +31,7 @@ class Mediator(IMediator):
 
     def __init__(self, handler_registry: HandlerRegistry) -> None:
         self.handler_registry = handler_registry
-        self.logger = get_logger(__name__)
+        self.logger = BaseLogger(__name__)
 
         # Pipeline behaviors (matches .NET MediatR behaviors)
         self.behaviors: list[Any] = [ValidationBehavior(), LoggingBehavior()]
@@ -47,7 +47,10 @@ class Mediator(IMediator):
         Matches .NET ISender.Send<TResponse>(IRequest<TResponse> request)
         """
         request_type = type(request)
-        self.logger.debug(f"Mediator processing request: {request_type.__name__}")
+        self.logger.log_debug_with_context(
+            "Mediator processing request",
+            context={"request_type": request_type.__name__}
+        )
 
         # Get handler from registry
         handler = self.handler_registry.get_handler(request_type)
@@ -59,7 +62,10 @@ class Mediator(IMediator):
         # Execute through pipeline behaviors
         result = await self._execute_pipeline(request, handler, cancellation_token)
 
-        self.logger.debug(f"Mediator completed request: {request_type.__name__}")
+        self.logger.log_debug_with_context(
+            "Mediator completed request",
+            context={"request_type": request_type.__name__}
+        )
         return result  # type: ignore
 
     async def send_command(

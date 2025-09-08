@@ -195,4 +195,4 @@ def add_exception_handlers(app: Any) -> None:
     # Register general exception handler for unhandled exceptions
     app.add_exception_handler(Exception, handler.handle_exception)
 
-    logger.log_info("Custom exception handlers registered")
+    logger.log_with_context("Custom exception handlers registered", "info")

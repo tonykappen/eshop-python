@@ -41,7 +41,7 @@ class KeycloakService:
         if not self._initialized:
             # First check if configuration is available
             if not self._check_config_available():
-                logger.log_warning("Keycloak configuration not available - authentication will be disabled")
+                logger.log_warning_with_context("Keycloak configuration not available - authentication will be disabled")
                 self.keycloak = None
                 self._initialized = True
                 return
@@ -69,7 +69,7 @@ class KeycloakService:
                     admin_client_secret="",
                 )
                 self._initialized = True
-                logger.log_info("FastAPI Keycloak initialized successfully")
+                logger.log_with_context("FastAPI Keycloak initialized successfully", "info")
             except Exception as e:
                 logger.log_exception("Failed to initialize Keycloak", exception=e)
                 # Create a minimal instance for basic functionality
@@ -90,7 +90,7 @@ class KeycloakService:
 
     def _check_config_available(self) -> bool:
         """Check if all required Keycloak configuration settings are present."""
-        logger.log_debug(
+        logger.log_debug_with_context(
             "Checking Keycloak configuration",
             context={
                 "server_url": settings.keycloak_server_url,
@@ -111,14 +111,14 @@ class KeycloakService:
             settings.keycloak_realm != ""
         )
         
-        logger.log_debug("Keycloak configuration check completed", context={"result": result})
+        logger.log_debug_with_context("Keycloak configuration check completed", context={"result": result})
         return result
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
         # If Keycloak is not available, provide mock authentication for development
         if not self.is_available():
-            logger.log_warning("Keycloak not available - using mock authentication")
+            logger.log_warning_with_context("Keycloak not available - using mock authentication")
             return await self._verify_token_mock(token)
             
         try:
@@ -286,7 +286,7 @@ async def get_current_user_optional(
     try:
         return await keycloak_service.get_user_info(credentials.credentials)
     except Exception as e:
-        logger.log_warning("Authentication failed", context={"error": str(e)})
+        logger.log_warning_with_context("Authentication failed", context={"error": str(e)})
         return None
 
 

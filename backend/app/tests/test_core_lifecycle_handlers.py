@@ -29,12 +29,14 @@ class TestDatabaseLifecycleHandler:
         assert handler.is_connected is False
 
     @patch("app.core.lifecycle.handlers.create_db_engine")
+    @patch("app.core.lifecycle.handlers.wait_for_database")
     @patch("app.core.lifecycle.handlers.run_migrations")
     @patch("app.core.lifecycle.handlers.run_seeding")
     async def test_startup_success(
         self,
         mock_run_seeding: AsyncMock,
-        mock_run_migrations: MagicMock,
+        mock_run_migrations: AsyncMock,
+        mock_wait_for_database: AsyncMock,
         mock_create_db_engine: AsyncMock,
     ) -> None:
         """Test successful database startup."""
@@ -43,6 +45,7 @@ class TestDatabaseLifecycleHandler:
         await handler.startup()
 
         mock_create_db_engine.assert_called_once()
+        mock_wait_for_database.assert_called_once()
         mock_run_migrations.assert_called_once()
         mock_run_seeding.assert_called_once()
         assert handler.is_connected is True
@@ -451,6 +454,7 @@ class TestLifecycleHandlersIntegration:
     """Integration tests for lifecycle handlers."""
 
     @patch("app.core.lifecycle.handlers.create_db_engine")
+    @patch("app.core.lifecycle.handlers.wait_for_database")
     @patch("app.core.lifecycle.handlers.run_migrations")
     @patch("app.core.lifecycle.handlers.run_seeding")
     @patch("app.core.lifecycle.handlers.health_service")
@@ -458,7 +462,8 @@ class TestLifecycleHandlersIntegration:
         self,
         mock_health_service: MagicMock,  # noqa: ARG002
         mock_run_seeding: AsyncMock,  # noqa: ARG002
-        mock_run_migrations: MagicMock,  # noqa: ARG002
+        mock_run_migrations: AsyncMock,  # noqa: ARG002
+        mock_wait_for_database: AsyncMock,  # noqa: ARG002
         mock_create_db_engine: AsyncMock,  # noqa: ARG002
     ) -> None:
         """Test complete lifecycle flow for all handlers."""
@@ -511,6 +516,7 @@ class TestLifecycleHandlersIntegration:
         # Start all handlers concurrently
         with (
             patch("app.core.lifecycle.handlers.create_db_engine"),
+            patch("app.core.lifecycle.handlers.wait_for_database"),
             patch("app.core.lifecycle.handlers.run_migrations"),
             patch("app.core.lifecycle.handlers.run_seeding"),
             patch("app.core.lifecycle.handlers.health_service"),

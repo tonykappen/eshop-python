@@ -83,7 +83,7 @@ def require_command_access(
                 user_roles=current_user.roles,
                 required_roles=rbac_config.command_roles,
             )
-            logger.log_warning(
+            logger.log_warning_with_context(
                 "User attempted command access without required roles",
                 context={
                     "username": current_user.preferred_username,
@@ -133,8 +133,7 @@ def require_query_access(
         """Check if user has query access."""
         if not current_user:
             # Log authentication failure for query access
-            await log_security_event(
-                logger=logger,
+            logger.log_security_event(
                 event_type="authentication_failure",
                 authentication_method="bearer_token",
                 authorization_outcome="failure",
@@ -170,7 +169,7 @@ def require_query_access(
                 user_roles=current_user.roles,
                 required_roles=rbac_config.query_roles,
             )
-            logger.log_warning(
+            logger.log_warning_with_context(
                 "User attempted query access without required roles",
                 context={
                     "username": current_user.preferred_username,
@@ -195,7 +194,7 @@ def require_query_access(
             user_roles=current_user.roles,
             required_roles=rbac_config.query_roles,
         )
-        logger.log_debug(
+        logger.log_debug_with_context(
             "User granted query access",
             context={
                 "username": current_user.preferred_username,
@@ -226,7 +225,7 @@ def require_specific_role(required_role: str) -> Callable[[KeycloakUser], Any]:
             )
 
         if required_role not in current_user.roles:
-            logger.log_warning(
+            logger.log_warning_with_context(
                 "User attempted access without required role",
                 context={
                     "username": current_user.preferred_username,
@@ -239,7 +238,7 @@ def require_specific_role(required_role: str) -> Callable[[KeycloakUser], Any]:
                 detail=f"Role '{required_role}' required",
             )
 
-        logger.log_info(
+        logger.log_with_context(
             "User granted access with required role",
             context={
                 "username": current_user.preferred_username,
@@ -272,7 +271,7 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
         has_required_role = any(role in current_user.roles for role in required_roles)
 
         if not has_required_role:
-            logger.log_warning(
+            logger.log_warning_with_context(
                 "User attempted access without required roles",
                 context={
                     "username": current_user.preferred_username,
@@ -285,7 +284,7 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
                 detail=f"Access requires one of: {', '.join(required_roles)}",
             )
 
-        logger.log_info(
+        logger.log_with_context(
             "User granted access with required roles",
             context={
                 "username": current_user.preferred_username,

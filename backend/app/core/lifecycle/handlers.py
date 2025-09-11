@@ -32,7 +32,7 @@ class DatabaseLifecycleHandler:
             await wait_for_database()
 
             # Run migrations
-            run_migrations()
+            await run_migrations()
 
             # Run seeding
             await run_seeding()

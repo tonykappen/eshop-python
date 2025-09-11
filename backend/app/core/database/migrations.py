@@ -35,7 +35,7 @@ async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:
                 raise
 
 
-def run_migrations() -> None:
+async def run_migrations() -> None:
     """Run database migrations using Alembic - matches .NET Entity Framework migrations."""
     try:
         logger.info("🔄 Running database migrations...")
@@ -55,9 +55,20 @@ def run_migrations() -> None:
         # Check if initial migration exists, create if needed
         _create_initial_migration_if_needed()
 
-        # Run migrations using Alembic command
-        alembic_cfg = Config("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
+        # Run migrations using Alembic command asynchronously
+        process = await asyncio.create_subprocess_exec(
+            "poetry", "run", "alembic", "upgrade", "head",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=Path.cwd()
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode != 0:
+            error_msg = stderr.decode() if stderr else "Unknown error"
+            logger.error(f"❌ Migration execution failed: {error_msg}")
+            raise RuntimeError(f"Migration execution failed: {error_msg}")
         
         logger.info("✅ Database migrations completed successfully")
 

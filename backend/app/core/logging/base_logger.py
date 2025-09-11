@@ -177,6 +177,44 @@ class BaseLogger:
             **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
         )
 
+    def log_security_event(
+        self,
+        event_type: str,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        authentication_method: Optional[str] = None,
+        authorization_outcome: Optional[str] = None,
+        source_ip: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        status_code: Optional[int] = None,
+        **kwargs: Any
+    ) -> None:
+        """Log a security event (alias for log_security_audit for compatibility)."""
+        self.log_security_audit(
+            event_type=event_type,
+            user_id=user_id,
+            session_id=session_id,
+            authentication_method=authentication_method,
+            authorization_outcome=authorization_outcome,
+            source_ip=source_ip,
+            user_agent=user_agent,
+            status_code=status_code,
+            **kwargs
+        )
+
+    def log_exception(
+        self,
+        message: str,
+        exception: Optional[Exception] = None,
+        context: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
+    ) -> None:
+        """Log an exception (alias for log_exception_detailed for compatibility)."""
+        if exception:
+            self.log_exception_detailed(message, exception, context, **kwargs)
+        else:
+            self.log_error_with_context(message, context=context, **kwargs)
+
     def get_logger(self) -> structlog.stdlib.BoundLogger:
         """Get the underlying structlog logger."""
         return self.logger

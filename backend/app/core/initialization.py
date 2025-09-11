@@ -65,7 +65,7 @@ async def initialize_dependency_injection() -> None:
             ["app.modules.catalog", "app.modules.basket", "app.modules.ordering"],
         )
     except Exception as e:
-        logger.log_warning("Container wiring failed (non-critical)", context={"error": str(e)})
+        logger.log_warning_with_context("Container wiring failed (non-critical)", context={"error": str(e)})
         # Continue without wiring - services can still be accessed directly
 
     # Store container in global variable for access in main.py

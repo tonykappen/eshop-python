@@ -63,7 +63,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
                 # Validate the request using Pydantic
                 request.model_validate(request.model_dump())
             except Exception as validation_error:
-                self.logger.log_error(
+                self.logger.log_error_with_context(
                     "Validation failed for request",
                     error=validation_error,
                     context={"request_type": type(request).__name__}
@@ -94,7 +94,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         # Generate or get trace_id for this operation
         trace_id = str(uuid.uuid4())
 
-        self.logger.log_info(
+        self.logger.log_with_context(
             "Starting request handling",
             context={
                 "request_type": request_type,
@@ -113,7 +113,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
 
             # Log performance warning if request takes more than 3 seconds
             if elapsed_time > 3:
-                self.logger.log_warning(
+                self.logger.log_warning_with_context(
                     "Request performance warning",
                     context={
                         "request_type": request_type,
@@ -122,7 +122,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                     }
                 )
 
-            self.logger.log_info(
+            self.logger.log_with_context(
                 "Request handling completed",
                 context={
                     "request_type": request_type,
@@ -134,7 +134,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
             return response
 
         except Exception as e:
-            self.logger.log_error(
+            self.logger.log_error_with_context(
                 "Request handling failed",
                 error=e,
                 context={

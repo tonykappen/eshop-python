@@ -31,7 +31,9 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/backend",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/backend"
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "SEQ_URL": "http://localhost:5341",
+                "SEQ_API_KEY": "l6obaob16J6292tGOfnc"
             },
             "justMyCode": false,
             "stopOnEntry": false

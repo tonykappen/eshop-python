@@ -133,7 +133,7 @@ class TestKeycloakService:
         """Test that initialization is idempotent."""
         mock_keycloak_instance = MagicMock()
         mock_fastapi_keycloak.return_value = mock_keycloak_instance
-        
+
         # Mock settings to return valid string values
         mock_settings.keycloak_server_url = "http://localhost:8080"
         mock_settings.keycloak_client_id = "eshop-api"

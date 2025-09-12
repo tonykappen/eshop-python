@@ -1,7 +1,8 @@
 """Comprehensive tests for main.py application entry point."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -22,6 +23,7 @@ class TestMainApplication:
         # Check that CORS middleware is present
         middleware_types = [type(middleware.cls) for middleware in app.user_middleware]
         from fastapi.middleware.cors import CORSMiddleware
+
         assert CORSMiddleware in middleware_types
 
     def test_app_has_health_router(self):
@@ -56,23 +58,25 @@ class TestMainApplication:
         """Test that pagination is added to the app."""
         # Check that pagination is configured
         # This is harder to test directly, but we can check if the app has the expected structure
-        assert hasattr(app, 'state')
+        assert hasattr(app, "state")
 
     @pytest.mark.asyncio
     async def test_lifespan_startup_initializes_services(self):
         """Test that lifespan startup initializes all required services."""
-        with patch('app.main.initialize_logging') as mock_logging, \
-             patch('app.main.initialize_dependency_injection') as mock_di, \
-             patch('app.main.initialize_database') as mock_db, \
-             patch('app.main.initialize_cache') as mock_cache, \
-             patch('app.main.initialize_messaging') as mock_messaging, \
-             patch('app.main.initialize_auth') as mock_auth, \
-             patch('app.main.initialize_health') as mock_health:
-            
+        with (
+            patch("app.main.initialize_logging") as mock_logging,
+            patch("app.main.initialize_dependency_injection") as mock_di,
+            patch("app.main.initialize_database") as mock_db,
+            patch("app.main.initialize_cache") as mock_cache,
+            patch("app.main.initialize_messaging") as mock_messaging,
+            patch("app.main.initialize_auth") as mock_auth,
+            patch("app.main.initialize_health") as mock_health,
+        ):
+
             # Test the lifespan startup
             async with lifespan(app):
                 pass
-            
+
             # Verify all initialization functions were called
             mock_logging.assert_called_once()
             mock_di.assert_called_once()
@@ -85,24 +89,26 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_lifespan_shutdown_cleans_up_services(self):
         """Test that lifespan shutdown cleans up all services."""
-        with patch('app.main.cleanup_dependency_injection') as mock_di_cleanup, \
-             patch('app.main.database_handler') as mock_db_handler, \
-             patch('app.main.cache_handler') as mock_cache_handler, \
-             patch('app.main.messaging_handler') as mock_messaging_handler, \
-             patch('app.main.auth_handler') as mock_auth_handler, \
-             patch('app.main.health_handler') as mock_health_handler:
-            
+        with (
+            patch("app.main.cleanup_dependency_injection") as mock_di_cleanup,
+            patch("app.main.database_handler") as mock_db_handler,
+            patch("app.main.cache_handler") as mock_cache_handler,
+            patch("app.main.messaging_handler") as mock_messaging_handler,
+            patch("app.main.auth_handler") as mock_auth_handler,
+            patch("app.main.health_handler") as mock_health_handler,
+        ):
+
             # Mock the shutdown methods
             mock_db_handler.shutdown = AsyncMock()
             mock_cache_handler.shutdown = AsyncMock()
             mock_messaging_handler.shutdown = AsyncMock()
             mock_auth_handler.shutdown = AsyncMock()
             mock_health_handler.shutdown = AsyncMock()
-            
+
             # Test the lifespan shutdown
             async with lifespan(app):
                 pass
-            
+
             # Verify all cleanup functions were called
             mock_di_cleanup.assert_called_once()
             mock_db_handler.shutdown.assert_called_once()
@@ -118,18 +124,19 @@ class TestMainApplicationIntegration:
     def test_app_has_proper_middleware_order(self):
         """Test that the app has middleware in the correct order."""
         middleware_types = [type(middleware.cls) for middleware in app.user_middleware]
-        
+
         # CORS should be first
         from fastapi.middleware.cors import CORSMiddleware
+
         assert CORSMiddleware in middleware_types
-        
+
         # Check that we have the expected number of middleware
         assert len(middleware_types) >= 1
 
     def test_app_has_exception_handlers(self):
         """Test that the app has exception handlers configured."""
         # Check that exception handlers are registered
-        assert hasattr(app, 'exception_handlers')
+        assert hasattr(app, "exception_handlers")
         assert len(app.exception_handlers) > 0
 
     def test_app_has_request_logging_middleware(self):
@@ -149,12 +156,12 @@ class TestMainApplicationIntegration:
     def test_app_routes_are_properly_configured(self):
         """Test that all routes are properly configured."""
         route_paths = [route.path for route in app.routes]
-        
+
         # Check for essential routes
         assert "/" in route_paths
         assert "/health" in route_paths
         assert "/api/v1/auth/me" in route_paths
-        
+
         # Check for API routes
         api_routes = [path for path in route_paths if path.startswith("/api/v1")]
         assert len(api_routes) > 0
@@ -163,7 +170,7 @@ class TestMainApplicationIntegration:
         """Test that the app has proper tags for API documentation."""
         # Check that routers have tags
         for route in app.routes:
-            if hasattr(route, 'tags') and route.tags:
+            if hasattr(route, "tags") and route.tags:
                 assert isinstance(route.tags, list)
                 assert len(route.tags) > 0
 
@@ -180,11 +187,11 @@ class TestMainApplicationIntegration:
     @pytest.mark.asyncio
     async def test_lifespan_handles_errors_gracefully(self):
         """Test that lifespan handles errors gracefully."""
-        with patch('app.main.initialize_logging') as mock_logging:
+        with patch("app.main.initialize_logging") as mock_logging:
             mock_logging.side_effect = Exception("Initialization failed")
-            
+
             # The lifespan should handle the error gracefully
-            with pytest.raises(Exception):
+            with pytest.raises(RuntimeError):
                 async with lifespan(app):
                     pass
 
@@ -215,13 +222,13 @@ class TestMainApplicationIntegration:
         # Check CORS middleware configuration
         cors_middleware = None
         for middleware in app.user_middleware:
-            if middleware.cls.__name__ == 'CORSMiddleware':
+            if middleware.cls.__name__ == "CORSMiddleware":
                 cors_middleware = middleware
                 break
-        
+
         assert cors_middleware is not None
         # Check CORS options
-        assert cors_middleware.options.get('allow_origins') == ["*"]
-        assert cors_middleware.options.get('allow_credentials') is True
-        assert cors_middleware.options.get('allow_methods') == ["*"]
-        assert cors_middleware.options.get('allow_headers') == ["*"]
+        assert cors_middleware.options.get("allow_origins") == ["*"]
+        assert cors_middleware.options.get("allow_credentials") is True
+        assert cors_middleware.options.get("allow_methods") == ["*"]
+        assert cors_middleware.options.get("allow_headers") == ["*"]

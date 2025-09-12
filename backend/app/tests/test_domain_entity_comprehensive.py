@@ -1,11 +1,12 @@
 """Comprehensive tests for domain entity classes."""
 
-import pytest
 from datetime import datetime
 from uuid import UUID, uuid4
+
+import pytest
 from pydantic import ValidationError
 
-from app.core.domain.entity import DomainEvent, Entity, Aggregate, ValueObject
+from app.core.domain.entity import Aggregate, DomainEvent, Entity, ValueObject
 
 
 class TestDomainEvent:
@@ -43,13 +44,14 @@ class TestDomainEvent:
 
     def test_domain_event_with_arbitrary_types(self):
         """Test domain event with arbitrary types."""
+
         class CustomData:
             def __init__(self, value):
                 self.value = value
 
         custom_data = CustomData("test")
         event = DomainEvent(event_type="TestEvent")
-        
+
         # DomainEvent doesn't allow arbitrary attributes by default
         with pytest.raises(ValueError):
             event.custom_data = custom_data
@@ -68,7 +70,7 @@ class TestDomainEvent:
         data = {
             "event_id": str(event_id),
             "event_type": "TestEvent",
-            "occurred_on": "123456789"
+            "occurred_on": "123456789",
         }
         event = DomainEvent.model_validate(data)
         assert event.event_id == event_id
@@ -102,7 +104,7 @@ class TestEntity:
             created_at=now,
             created_by="test_user",
             last_modified=now,
-            last_modified_by="test_user"
+            last_modified_by="test_user",
         )
         assert entity.created_at == now
         assert entity.created_by == "test_user"
@@ -113,7 +115,7 @@ class TestEntity:
         """Test adding domain events to entity."""
         entity = Entity()
         event = DomainEvent(event_type="TestEvent")
-        
+
         entity.add_domain_event(event)
         assert len(entity.domain_events) == 1
         assert entity.domain_events[0] == event
@@ -123,11 +125,11 @@ class TestEntity:
         entity = Entity()
         event1 = DomainEvent(event_type="TestEvent1")
         event2 = DomainEvent(event_type="TestEvent2")
-        
+
         entity.add_domain_event(event1)
         entity.add_domain_event(event2)
         assert len(entity.domain_events) == 2
-        
+
         entity.clear_domain_events()
         assert len(entity.domain_events) == 0
 
@@ -136,11 +138,11 @@ class TestEntity:
         entity = Entity()
         event = DomainEvent(event_type="TestEvent")
         entity.add_domain_event(event)
-        
+
         events_copy = entity.domain_events_copy
         assert len(events_copy) == 1
         assert events_copy[0] == event
-        
+
         # Modify the copy shouldn't affect original
         events_copy.append(DomainEvent(event_type="AnotherEvent"))
         assert len(entity.domain_events) == 1
@@ -151,7 +153,7 @@ class TestEntity:
         entity1 = Entity(id=entity_id)
         entity2 = Entity(id=entity_id)
         entity3 = Entity()
-        
+
         assert entity1 == entity2
         assert entity1 != entity3
 
@@ -164,7 +166,7 @@ class TestEntity:
     def test_entity_with_custom_attributes(self):
         """Test entity with custom attributes."""
         entity = Entity()
-        
+
         # Entity doesn't allow arbitrary attributes by default
         with pytest.raises(ValueError):
             entity.custom_field = "test_value"
@@ -174,7 +176,7 @@ class TestEntity:
         entity = Entity()
         event = DomainEvent(event_type="TestEvent")
         entity.add_domain_event(event)
-        
+
         data = entity.model_dump()
         assert "domain_events" not in data
 
@@ -197,7 +199,7 @@ class TestEntity:
             "created_at": now.isoformat(),
             "created_by": "test_user",
             "last_modified": now.isoformat(),
-            "last_modified_by": "test_user"
+            "last_modified_by": "test_user",
         }
         entity = Entity.model_validate(data)
         assert entity.id == entity_id
@@ -217,10 +219,10 @@ class TestAggregate:
         """Test aggregate version increment."""
         aggregate = Aggregate()
         assert aggregate.version == 1
-        
+
         aggregate.increment_version()
         assert aggregate.version == 2
-        
+
         aggregate.increment_version()
         assert aggregate.version == 3
 
@@ -228,9 +230,9 @@ class TestAggregate:
         """Test that aggregate inherits from entity."""
         aggregate = Aggregate()
         assert isinstance(aggregate, Entity)
-        assert hasattr(aggregate, 'add_domain_event')
-        assert hasattr(aggregate, 'clear_domain_events')
-        assert hasattr(aggregate, 'domain_events_copy')
+        assert hasattr(aggregate, "add_domain_event")
+        assert hasattr(aggregate, "clear_domain_events")
+        assert hasattr(aggregate, "domain_events_copy")
 
     def test_aggregate_with_custom_version(self):
         """Test aggregate creation with custom version."""
@@ -250,6 +252,7 @@ class TestValueObject:
 
     def test_value_object_creation(self):
         """Test value object creation."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
@@ -258,18 +261,20 @@ class TestValueObject:
 
     def test_value_object_equality(self):
         """Test value object equality."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
         vo1 = TestValueObject(some_field="test")
         vo2 = TestValueObject(some_field="test")
         vo3 = TestValueObject(some_field="different")
-        
+
         assert vo1 == vo2
         assert vo1 != vo3
 
     def test_value_object_hash(self):
         """Test value object hashing."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
@@ -278,17 +283,19 @@ class TestValueObject:
 
     def test_value_object_immutability(self):
         """Test value object immutability."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
         vo = TestValueObject(some_field="test")
-        
+
         # ValueObject is frozen, so attributes can't be modified
         with pytest.raises(ValidationError):
             vo.some_field = "new_value"
 
     def test_value_object_serialization(self):
         """Test value object serialization."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
@@ -298,6 +305,7 @@ class TestValueObject:
 
     def test_value_object_deserialization(self):
         """Test value object deserialization."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
@@ -307,6 +315,7 @@ class TestValueObject:
 
     def test_value_object_with_multiple_fields(self):
         """Test value object with multiple fields."""
+
         class TestValueObject(ValueObject):
             field1: str
             field2: int
@@ -319,11 +328,12 @@ class TestValueObject:
 
     def test_value_object_hash_consistency(self):
         """Test that value object hash is consistent."""
+
         class TestValueObject(ValueObject):
             some_field: str
 
         vo1 = TestValueObject(some_field="test")
         vo2 = TestValueObject(some_field="test")
-        
+
         assert hash(vo1) == hash(vo2)
         assert hash(vo1) == hash(vo1)  # Should be consistent across calls

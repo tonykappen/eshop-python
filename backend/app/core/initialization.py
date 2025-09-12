@@ -1,6 +1,5 @@
 """Application initialization functions for eShop Modular Monolith."""
 
-
 from app.config.settings import settings
 from app.core.di.container import create_container, scan_assemblies, wire_container
 from app.core.logging.base_logger import BaseLogger

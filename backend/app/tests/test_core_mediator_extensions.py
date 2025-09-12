@@ -459,15 +459,11 @@ class TestMediatorExtensionsIntegration:
         # Create a real assembly-like object
         class TestAssembly:
             class RealCommandHandler:
-                async def handle(
-                    self, _request: MockCommand
-                ) -> MockResult:
+                async def handle(self, _request: MockCommand) -> MockResult:
                     return MockResult()
 
             class RealQueryHandler:
-                async def handle(
-                    self, _request: MockQuery
-                ) -> MockResult:
+                async def handle(self, _request: MockQuery) -> MockResult:
                     return MockResult()
 
         # Add mediator with the test assembly

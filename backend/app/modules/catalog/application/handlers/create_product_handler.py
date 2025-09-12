@@ -43,13 +43,19 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
         Args:
             command: The command to handle
+            cancellation_token: Cancellation token
 
         Returns:
             CreateProductResult containing the created product ID
         """
-        # Create Product entity from command object
-        # save to database
-        # return result
+        # Validate command first
+        from app.modules.catalog.application.validators.product_validators import validate_create_product_command
+        
+        validation_result = validate_create_product_command(command)
+        if not validation_result.is_valid:
+            raise ProductValidationError(
+                f"Command validation failed: {', '.join(validation_result.errors)}"
+            )
 
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()

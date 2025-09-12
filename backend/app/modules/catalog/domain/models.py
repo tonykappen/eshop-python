@@ -33,6 +33,34 @@ class Product(Aggregate):
             raise ValueError("Product price must be positive")
         return v
 
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: str) -> str:
+        """Validate description is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Product description cannot be empty")
+        return v.strip()
+
+    @field_validator("image_file")
+    @classmethod
+    def validate_image_file(cls, v: str) -> str:
+        """Validate image file is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Product image file cannot be empty")
+        return v.strip()
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: list[str]) -> list[str]:
+        """Validate category list is not empty."""
+        if not v:
+            raise ValueError("Product must have at least one category")
+        # Filter out empty strings and strip whitespace
+        cleaned_categories = [cat.strip() for cat in v if cat and cat.strip()]
+        if not cleaned_categories:
+            raise ValueError("Product must have at least one valid category")
+        return cleaned_categories
+
     @classmethod
     def create(
         cls,
@@ -43,7 +71,23 @@ class Product(Aggregate):
         image_file: str,
         price: Decimal,
     ) -> "Product":
-        """Create a new product, matching .NET Product.Create static method."""
+        """
+        Create a new product, matching .NET Product.Create static method.
+        
+        Args:
+            product_id: Unique identifier for the product
+            name: Product name (validated)
+            category: List of categories (validated)
+            description: Product description (validated)
+            image_file: Image file path (validated)
+            price: Product price (validated)
+            
+        Returns:
+            Created Product instance with domain events
+            
+        Raises:
+            ValueError: If any validation fails
+        """
         # Validation happens in Pydantic validators
         product = cls(
             id=product_id,
@@ -69,11 +113,23 @@ class Product(Aggregate):
         image_file: str,
         price: Decimal,
     ) -> None:
-        """Update product details, matching .NET Product.Update method."""
+        """
+        Update product details, matching .NET Product.Update method.
+        
+        Args:
+            name: New product name (validated)
+            category: New categories list (validated)
+            description: New description (validated)
+            image_file: New image file path (validated)
+            price: New price (validated)
+            
+        Raises:
+            ValueError: If any validation fails
+        """
         # Store old price for comparison
         old_price = self.price
 
-        # Update fields
+        # Update fields (validation happens in Pydantic validators)
         self.name = name
         self.category = category
         self.description = description
@@ -88,3 +144,84 @@ class Product(Aggregate):
             from app.modules.catalog.domain.events import ProductPriceChangedEvent
 
             self.add_domain_event(ProductPriceChangedEvent(product=self))
+
+    def change_price(self, new_price: Decimal) -> None:
+        """
+        Change product price with domain event.
+        
+        Args:
+            new_price: New price (validated)
+            
+        Raises:
+            ValueError: If price validation fails
+        """
+        if new_price <= 0:
+            raise ValueError("Product price must be positive")
+            
+        old_price = self.price
+        self.price = new_price
+        self.increment_version()
+
+        # Add domain event for price change
+        if old_price != new_price:
+            from app.modules.catalog.domain.events import ProductPriceChangedEvent
+            self.add_domain_event(ProductPriceChangedEvent(product=self))
+
+    def add_category(self, category: str) -> None:
+        """
+        Add a category to the product.
+        
+        Args:
+            category: Category to add (validated)
+            
+        Raises:
+            ValueError: If category is invalid
+        """
+        if not category or not category.strip():
+            raise ValueError("Category cannot be empty")
+            
+        cleaned_category = category.strip()
+        if cleaned_category not in self.category:
+            self.category.append(cleaned_category)
+            self.increment_version()
+
+    def remove_category(self, category: str) -> None:
+        """
+        Remove a category from the product.
+        
+        Args:
+            category: Category to remove
+            
+        Raises:
+            ValueError: If trying to remove the last category
+        """
+        if not category or not category.strip():
+            raise ValueError("Category cannot be empty")
+            
+        cleaned_category = category.strip()
+        if cleaned_category in self.category:
+            if len(self.category) <= 1:
+                raise ValueError("Product must have at least one category")
+            self.category.remove(cleaned_category)
+            self.increment_version()
+
+    def update_categories(self, categories: list[str]) -> None:
+        """
+        Update all categories for the product.
+        
+        Args:
+            categories: New list of categories (validated)
+            
+        Raises:
+            ValueError: If validation fails
+        """
+        if not categories:
+            raise ValueError("Product must have at least one category")
+            
+        # Clean and validate categories
+        cleaned_categories = [cat.strip() for cat in categories if cat and cat.strip()]
+        if not cleaned_categories:
+            raise ValueError("Product must have at least one valid category")
+            
+        self.category = cleaned_categories
+        self.increment_version()

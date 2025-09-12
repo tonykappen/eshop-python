@@ -9,12 +9,20 @@ def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
         CreateProductCommand,
         CreateProductHandler,
     )
+    from app.modules.catalog.application.handlers.delete_product_handler import (
+        DeleteProductCommand,
+        DeleteProductHandler,
+    )
     from app.modules.catalog.application.handlers.get_product_by_id_handler import (
         GetProductByIdHandler,
     )
     from app.modules.catalog.application.handlers.get_products_handler import (
         GetProductsHandler,
         GetProductsQuery,
+    )
+    from app.modules.catalog.application.handlers.update_product_handler import (
+        UpdateProductCommand,
+        UpdateProductHandler,
     )
     from app.modules.catalog.contracts.products.features.get_product_by_id import (
         GetProductByIdQuery,
@@ -24,3 +32,5 @@ def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
     handler_registry.register_handler(GetProductByIdQuery, GetProductByIdHandler(None))
     handler_registry.register_handler(GetProductsQuery, GetProductsHandler(None))
     handler_registry.register_handler(CreateProductCommand, CreateProductHandler(None))
+    handler_registry.register_handler(UpdateProductCommand, UpdateProductHandler(None))
+    handler_registry.register_handler(DeleteProductCommand, DeleteProductHandler(None))

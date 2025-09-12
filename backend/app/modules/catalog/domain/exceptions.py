@@ -52,3 +52,13 @@ class ProductDeletionError(Exception):
         self.message = message
         self.details = details
         super().__init__(self.message)
+
+
+class ProductDeleteError(Exception):
+    """Exception for product delete errors - matches .NET naming."""
+
+    def __init__(self, message: str, details: str | None = None) -> None:
+        """Initialize product delete error."""
+        self.message = message
+        self.details = details
+        super().__init__(self.message)

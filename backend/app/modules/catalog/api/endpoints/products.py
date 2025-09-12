@@ -48,6 +48,16 @@ class CreateProductRequest(BaseRequest):
     picture_url: str = Field(..., description="Product picture URL")
 
 
+class UpdateProductRequest(BaseRequest):
+    """HTTP request for updating an existing product."""
+
+    name: str = Field(..., description="Product name")
+    description: str = Field(..., description="Product description")
+    price: float = Field(..., gt=0, description="Product price")
+    image_file: str = Field(..., description="Product image file path")
+    category: list[str] = Field(..., description="Product categories")
+
+
 class GetProductsRequest(PaginatedRequest):
     """HTTP request for getting products with pagination."""
 
@@ -76,6 +86,23 @@ class CreateProductCommand(ICommand[dict]):
     description: str
     price: float
     image_file: str  # Changed from picture_url to match domain model
+
+
+class UpdateProductCommand(ICommand[dict]):
+    """Command to update an existing product."""
+
+    id: UUID
+    name: str
+    description: str
+    price: float
+    image_file: str
+    category: list[str]
+
+
+class DeleteProductCommand(ICommand[dict]):
+    """Command to delete a product."""
+
+    product_id: UUID
 
 
 # Dependency for mediator - matches .NET ISender dependency injection
@@ -189,6 +216,66 @@ async def get_products(
 
     # Execute the REPR pattern flow
     response = await endpoint.execute(http_request, request)
+
+    return response  # type: ignore
+
+
+@router.put("/{product_id}", response_model=ProductResponse)
+async def update_product(
+    product_id: UUID,
+    request: UpdateProductRequest,
+    http_request: Request,
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Command access required (admin, manager only)
+    _: Any = Depends(require_command_access()),
+) -> ProductResponse:
+    """
+    Update an existing product.
+
+    Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
+    RBAC: Requires command access (admin, manager roles only)
+    """
+    # Create command endpoint using factory
+    endpoint: Any = factory.create_command_endpoint(
+        command_factory=UpdateProductCommand,
+        result_mapper=None,  # Will use default response mapper
+    )
+
+    # Add product ID to the request
+    request_dict = request.model_dump()
+    request_dict["id"] = product_id
+
+    # Execute the REPR pattern flow
+    response = await endpoint.execute(http_request, request_dict)
+
+    return response  # type: ignore
+
+
+@router.delete("/{product_id}", response_model=dict)
+async def delete_product(
+    product_id: UUID,
+    http_request: Request,
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Command access required (admin only)
+    _: Any = Depends(require_command_access()),
+) -> dict:
+    """
+    Delete a product.
+
+    Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
+    RBAC: Requires command access (admin role only)
+    """
+    # Create command endpoint using factory
+    endpoint: Any = factory.create_command_endpoint(
+        command_factory=DeleteProductCommand,
+        result_mapper=None,  # Will use default response mapper
+    )
+
+    # Create command data
+    command_data = {"product_id": product_id}
+
+    # Execute the REPR pattern flow
+    response = await endpoint.execute(http_request, command_data)
 
     return response  # type: ignore
 

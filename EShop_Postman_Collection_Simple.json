@@ -542,12 +542,47 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Premium Laptop\",\n    \"description\": \"High-performance laptop for professionals\",\n    \"price\": 1299.99,\n    \"category\": \"Electronics\",\n    \"stock_quantity\": 50,\n    \"picture_url\": \"https://example.com/laptop.jpg\"\n}"
+							"raw": "{\n    \"name\": \"Premium Laptop\",\n    \"description\": \"High-performance laptop for professionals\",\n    \"price\": 1299.99,\n    \"picture_url\": \"https://example.com/laptop.jpg\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/products/",
 							"host": ["{{base_url}}"],
 							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product (Manager/Admin Only)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Premium Laptop\",\n    \"description\": \"Updated high-performance laptop for professionals\",\n    \"price\": 1399.99,\n    \"image_file\": \"https://example.com/updated-laptop.jpg\",\n    \"category\": [\"Electronics\", \"Computers\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/123e4567-e89b-12d3-a456-426614174000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "123e4567-e89b-12d3-a456-426614174000"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product (Admin Only)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/123e4567-e89b-12d3-a456-426614174000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "123e4567-e89b-12d3-a456-426614174000"]
 						}
 					},
 					"response": []
@@ -661,12 +696,91 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"RBAC Test Product\",\n    \"description\": \"Testing RBAC permissions\",\n    \"price\": 49.99,\n    \"category\": \"Test\",\n    \"stock_quantity\": 50,\n    \"picture_url\": \"https://example.com/test.jpg\"\n}"
+							"raw": "{\n    \"name\": \"RBAC Test Product\",\n    \"description\": \"Testing RBAC permissions\",\n    \"price\": 49.99,\n    \"picture_url\": \"https://example.com/test.jpg\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/products/",
 							"host": ["{{base_url}}"],
 							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Update Product (Manager/Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const currentUser = pm.collectionVariables.get('current_user');",
+									"console.log('Testing product update for user: ' + currentUser);",
+									"",
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Product update successful for ' + currentUser);",
+									"} else if (pm.response.code === 401) {",
+									"    console.log('❌ Unauthorized access for ' + currentUser);",
+									"} else if (pm.response.code === 403) {",
+									"    console.log('🚫 Forbidden: ' + currentUser + ' cannot update products (User role only)');",
+									"} else {",
+									"    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated RBAC Test Product\",\n    \"description\": \"Updated testing RBAC permissions\",\n    \"price\": 59.99,\n    \"image_file\": \"https://example.com/updated-test.jpg\",\n    \"category\": [\"Test\", \"Updated\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/123e4567-e89b-12d3-a456-426614174000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "123e4567-e89b-12d3-a456-426614174000"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Delete Product (Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const currentUser = pm.collectionVariables.get('current_user');",
+									"console.log('Testing product deletion for user: ' + currentUser);",
+									"",
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Product deletion successful for ' + currentUser);",
+									"} else if (pm.response.code === 401) {",
+									"    console.log('❌ Unauthorized access for ' + currentUser);",
+									"} else if (pm.response.code === 403) {",
+									"    console.log('🚫 Forbidden: ' + currentUser + ' cannot delete products (Manager/User role only)');",
+									"} else {",
+									"    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/123e4567-e89b-12d3-a456-426614174000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "123e4567-e89b-12d3-a456-426614174000"]
 						}
 					},
 					"response": []

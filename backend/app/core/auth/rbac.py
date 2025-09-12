@@ -1,11 +1,10 @@
 """Role-Based Access Control (RBAC) for eShop application."""
 
-import logging
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from app.core.auth.keycloak import KeycloakUser, get_current_user_optional
@@ -88,8 +87,8 @@ def require_command_access(
                 context={
                     "username": current_user.preferred_username,
                     "user_roles": current_user.roles,
-                    "required_roles": rbac_config.command_roles
-                }
+                    "required_roles": rbac_config.command_roles,
+                },
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -174,8 +173,8 @@ def require_query_access(
                 context={
                     "username": current_user.preferred_username,
                     "user_roles": current_user.roles,
-                    "required_roles": rbac_config.query_roles
-                }
+                    "required_roles": rbac_config.query_roles,
+                },
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -198,8 +197,8 @@ def require_query_access(
             "User granted query access",
             context={
                 "username": current_user.preferred_username,
-                "user_roles": current_user.roles
-            }
+                "user_roles": current_user.roles,
+            },
         )
         return current_user
 
@@ -230,8 +229,8 @@ def require_specific_role(required_role: str) -> Callable[[KeycloakUser], Any]:
                 context={
                     "username": current_user.preferred_username,
                     "required_role": required_role,
-                    "user_roles": current_user.roles
-                }
+                    "user_roles": current_user.roles,
+                },
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -242,8 +241,8 @@ def require_specific_role(required_role: str) -> Callable[[KeycloakUser], Any]:
             "User granted access with required role",
             context={
                 "username": current_user.preferred_username,
-                "required_role": required_role
-            }
+                "required_role": required_role,
+            },
         )
         return current_user
 
@@ -276,8 +275,8 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
                 context={
                     "username": current_user.preferred_username,
                     "user_roles": current_user.roles,
-                    "required_roles": required_roles
-                }
+                    "required_roles": required_roles,
+                },
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -288,8 +287,8 @@ def require_any_role(required_roles: list[str]) -> Callable[[KeycloakUser], Any]
             "User granted access with required roles",
             context={
                 "username": current_user.preferred_username,
-                "user_roles": current_user.roles
-            }
+                "user_roles": current_user.roles,
+            },
         )
         return current_user
 

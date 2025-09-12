@@ -58,10 +58,7 @@ def retry_operation(
             except Exception as e:
                 logger.log_warning_with_context(
                     "Retrying operation due to error",
-                    context={
-                        "operation": operation_name,
-                        "error": str(e)
-                    }
+                    context={"operation": operation_name, "error": str(e)},
                 )
                 raise
 
@@ -79,10 +76,7 @@ def retry_operation(
             except Exception as e:
                 logger.log_warning_with_context(
                     "Retrying operation due to error",
-                    context={
-                        "operation": operation_name,
-                        "error": str(e)
-                    }
+                    context={"operation": operation_name, "error": str(e)},
                 )
                 raise
 

@@ -18,7 +18,7 @@ from app.core.logging.request_logging import (
     RequestLoggingMiddleware,
     add_request_logging_middleware,
 )
-from tests.utils.mocks import (
+from app.tests.utils.mocks import (
     create_mock_logger,
     create_mock_request,
     create_mock_response,

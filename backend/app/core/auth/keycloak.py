@@ -1,6 +1,5 @@
 """Keycloak authentication integration using fastapi-keycloak."""
 
-import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -41,22 +40,28 @@ class KeycloakService:
         if not self._initialized:
             # First check if configuration is available
             if not self._check_config_available():
-                logger.log_warning_with_context("Keycloak configuration not available - authentication will be disabled")
+                logger.log_warning_with_context(
+                    "Keycloak configuration not available - authentication will be disabled"
+                )
                 self.keycloak = None
                 self._initialized = True
                 return
-            
+
             # Additional safety check - ensure all values are valid strings
-            if (not isinstance(settings.keycloak_server_url, str) or 
-                not isinstance(settings.keycloak_client_id, str) or 
-                not isinstance(settings.keycloak_client_secret, str) or 
-                not isinstance(settings.keycloak_realm, str) or
-                not isinstance(settings.keycloak_callback_uri, str)):
-                logger.warning("Keycloak configuration contains invalid types - authentication will be disabled")
+            if (
+                not isinstance(settings.keycloak_server_url, str)
+                or not isinstance(settings.keycloak_client_id, str)
+                or not isinstance(settings.keycloak_client_secret, str)
+                or not isinstance(settings.keycloak_realm, str)
+                or not isinstance(settings.keycloak_callback_uri, str)
+            ):
+                logger.warning(
+                    "Keycloak configuration contains invalid types - authentication will be disabled"
+                )
                 self.keycloak = None
                 self._initialized = True
                 return
-            
+
             try:
                 # Initialize without admin client secret for basic authentication
                 self.keycloak = FastAPIKeycloak(
@@ -69,7 +74,9 @@ class KeycloakService:
                     admin_client_secret="",
                 )
                 self._initialized = True
-                logger.log_with_context("FastAPI Keycloak initialized successfully", "info")
+                logger.log_with_context(
+                    "FastAPI Keycloak initialized successfully", "info"
+                )
             except Exception as e:
                 logger.log_exception("Failed to initialize Keycloak", exception=e)
                 # Create a minimal instance for basic functionality
@@ -96,31 +103,35 @@ class KeycloakService:
                 "server_url": settings.keycloak_server_url,
                 "client_id": settings.keycloak_client_id,
                 "client_secret": "***" if settings.keycloak_client_secret else "None",
-                "realm": settings.keycloak_realm
-            }
+                "realm": settings.keycloak_realm,
+            },
         )
-        
+
         result = (
-            settings.keycloak_server_url is not None and
-            settings.keycloak_server_url != "" and
-            settings.keycloak_client_id is not None and
-            settings.keycloak_client_id != "" and
-            settings.keycloak_client_secret is not None and
-            settings.keycloak_client_secret != "" and
-            settings.keycloak_realm is not None and
-            settings.keycloak_realm != ""
+            settings.keycloak_server_url is not None
+            and settings.keycloak_server_url != ""
+            and settings.keycloak_client_id is not None
+            and settings.keycloak_client_id != ""
+            and settings.keycloak_client_secret is not None
+            and settings.keycloak_client_secret != ""
+            and settings.keycloak_realm is not None
+            and settings.keycloak_realm != ""
         )
-        
-        logger.log_debug_with_context("Keycloak configuration check completed", context={"result": result})
+
+        logger.log_debug_with_context(
+            "Keycloak configuration check completed", context={"result": result}
+        )
         return result
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
         # If Keycloak is not available, provide mock authentication for development
         if not self.is_available():
-            logger.log_warning_with_context("Keycloak not available - using mock authentication")
+            logger.log_warning_with_context(
+                "Keycloak not available - using mock authentication"
+            )
             return await self._verify_token_mock(token)
-            
+
         try:
             # For now, use a simple JWT decode approach
             import jwt
@@ -160,16 +171,14 @@ class KeycloakService:
                 detail="Empty token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # Return mock user data
         return {
             "sub": "mock-user-id",
             "email": "mock@example.com",
             "name": "Mock User",
             "preferred_username": "mockuser",
-            "realm_access": {
-                "roles": ["user", "admin"]
-            }
+            "realm_access": {"roles": ["user", "admin"]},
         }
 
     async def get_user_info(self, token: str) -> KeycloakUser:
@@ -237,12 +246,14 @@ class KeycloakService:
 # Global instance - will be initialized lazily
 _keycloak_service_instance: KeycloakService | None = None
 
+
 def get_keycloak_service() -> KeycloakService:
     """Get the Keycloak service instance, creating it if needed."""
     global _keycloak_service_instance
     if _keycloak_service_instance is None:
         _keycloak_service_instance = KeycloakService()
     return _keycloak_service_instance
+
 
 # For backward compatibility
 keycloak_service = get_keycloak_service()
@@ -286,7 +297,9 @@ async def get_current_user_optional(
     try:
         return await keycloak_service.get_user_info(credentials.credentials)
     except Exception as e:
-        logger.log_warning_with_context("Authentication failed", context={"error": str(e)})
+        logger.log_warning_with_context(
+            "Authentication failed", context={"error": str(e)}
+        )
         return None
 
 

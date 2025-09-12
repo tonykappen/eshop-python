@@ -26,7 +26,9 @@ class CatalogDataSeeder(IDataSeeder):
 
         # Check if products already exist
         if await check_if_data_exists("products", "catalog"):
-            logger.log_with_context("✅ Catalog products already exist, skipping seeding", "info")
+            logger.log_with_context(
+                "✅ Catalog products already exist, skipping seeding", "info"
+            )
             return
 
         # Seed products
@@ -56,13 +58,10 @@ class CatalogDataSeeder(IDataSeeder):
                 logger.log_with_context(
                     "✅ Seeded products",
                     "info",
-                    context={"product_count": len(products)}
+                    context={"product_count": len(products)},
                 )
 
             except Exception as e:
-                logger.log_error_with_context(
-                    "❌ Failed to seed products",
-                    error=e
-                )
+                logger.log_error_with_context("❌ Failed to seed products", error=e)
                 await session.rollback()
                 raise

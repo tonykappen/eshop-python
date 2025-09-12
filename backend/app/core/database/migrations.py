@@ -3,12 +3,11 @@
 import asyncio
 import subprocess
 from pathlib import Path
-from typing import Optional
+
+from sqlalchemy import text
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
-
 from app.config.settings import settings
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
@@ -19,7 +18,7 @@ logger = BaseLogger(__name__)
 async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:
     """Wait for database to be ready."""
     logger.info("⏳ Waiting for database to be ready...")
-    
+
     for attempt in range(max_retries):
         try:
             async with AsyncSessionLocal() as session:
@@ -28,10 +27,14 @@ async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:
                 return
         except Exception as e:
             if attempt < max_retries - 1:
-                logger.debug(f"Database not ready (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.debug(
+                    f"Database not ready (attempt {attempt + 1}/{max_retries}): {e}"
+                )
                 await asyncio.sleep(delay)
             else:
-                logger.error(f"❌ Database failed to become ready after {max_retries} attempts")
+                logger.error(
+                    f"❌ Database failed to become ready after {max_retries} attempts"
+                )
                 raise
 
 
@@ -57,19 +60,23 @@ async def run_migrations() -> None:
 
         # Run migrations using Alembic command asynchronously
         process = await asyncio.create_subprocess_exec(
-            "poetry", "run", "alembic", "upgrade", "head",
+            "poetry",
+            "run",
+            "alembic",
+            "upgrade",
+            "head",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=Path.cwd()
+            cwd=Path.cwd(),
         )
-        
+
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             error_msg = stderr.decode() if stderr else "Unknown error"
             logger.error(f"❌ Migration execution failed: {error_msg}")
             raise RuntimeError(f"Migration execution failed: {error_msg}")
-        
+
         logger.info("✅ Database migrations completed successfully")
 
     except Exception as e:
@@ -84,12 +91,10 @@ def _create_initial_migration_if_needed() -> None:
         if not versions_dir.exists() or not list(versions_dir.glob("*.py")):
             logger.info("📝 Creating initial migration...")
             alembic_cfg = Config("alembic.ini")
-            
+
             # Create the migration using autogenerate
             command.revision(
-                alembic_cfg,
-                autogenerate=True,
-                message="Initial migration"
+                alembic_cfg, autogenerate=True, message="Initial migration"
             )
             logger.info("✅ Initial migration created successfully")
         else:
@@ -323,7 +328,7 @@ def run_migrations_online() -> None:
     # Use sync version to avoid async issues
     from sqlalchemy import create_engine
     from alembic import context
-    
+
     engine = create_engine(config.get_main_option("sqlalchemy.url"))
     with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

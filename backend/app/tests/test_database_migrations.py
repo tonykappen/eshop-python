@@ -61,15 +61,17 @@ class TestDatabaseMigrations:
         assert "target_metadata = Base.metadata" in env_content
 
     @patch("asyncio.create_subprocess_exec")
-    async def test_run_migrations_success(self, mock_create_subprocess, tmp_path, monkeypatch):
+    async def test_run_migrations_success(
+        self, mock_create_subprocess, tmp_path, monkeypatch
+    ):
         """Test successful migration execution."""
         # Mock successful subprocess
         mock_process = MagicMock()
         mock_process.returncode = 0
-        
+
         async def mock_communicate():
             return (b"Migration completed successfully", b"")
-        
+
         mock_process.communicate = mock_communicate
         mock_create_subprocess.return_value = mock_process
 
@@ -85,22 +87,28 @@ class TestDatabaseMigrations:
 
         # Verify subprocess was called correctly
         mock_create_subprocess.assert_called_once_with(
-            "poetry", "run", "alembic", "upgrade", "head",
+            "poetry",
+            "run",
+            "alembic",
+            "upgrade",
+            "head",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=tmp_path,
         )
 
     @patch("asyncio.create_subprocess_exec")
-    async def test_run_migrations_failure(self, mock_create_subprocess, tmp_path, monkeypatch):
+    async def test_run_migrations_failure(
+        self, mock_create_subprocess, tmp_path, monkeypatch
+    ):
         """Test migration execution failure."""
         # Mock failed subprocess
         mock_process = MagicMock()
         mock_process.returncode = 1
-        
+
         async def mock_communicate():
             return (b"", b"Migration failed")
-        
+
         mock_process.communicate = mock_communicate
         mock_create_subprocess.return_value = mock_process
 
@@ -162,7 +170,9 @@ class TestDatabaseMigrations:
         with pytest.raises(RuntimeError, match="Migration creation failed"):
             create_initial_migration()
 
-    async def test_run_migrations_creates_config_if_missing(self, tmp_path, monkeypatch):
+    async def test_run_migrations_creates_config_if_missing(
+        self, tmp_path, monkeypatch
+    ):
         """Test that run_migrations creates config if missing."""
         # Change to temporary directory
         monkeypatch.chdir(tmp_path)
@@ -171,10 +181,10 @@ class TestDatabaseMigrations:
         with patch("asyncio.create_subprocess_exec") as mock_create_subprocess:
             mock_process = MagicMock()
             mock_process.returncode = 0
-            
+
             async def mock_communicate():
                 return (b"Migration completed", b"")
-            
+
             mock_process.communicate = mock_communicate
             mock_create_subprocess.return_value = mock_process
 

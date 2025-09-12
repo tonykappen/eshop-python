@@ -9,7 +9,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from app.core.logging.base_logger import BaseLogger
 
@@ -34,7 +33,7 @@ class DatabaseInitializer:
             os.chdir(self.project_root)
             logger.log_debug_with_context(
                 "Working directory",
-                context={"working_directory": str(self.project_root)}
+                context={"working_directory": str(self.project_root)},
             )
 
             # Create migrations directory if it doesn't exist
@@ -49,13 +48,12 @@ class DatabaseInitializer:
             # Run migrations
             await self._run_migrations()
 
-            logger.log_with_context("✅ Database initialization completed successfully!", "info")
+            logger.log_with_context(
+                "✅ Database initialization completed successfully!", "info"
+            )
 
         except Exception as e:
-            logger.log_error_with_context(
-                "❌ Database initialization failed",
-                error=e
-            )
+            logger.log_error_with_context("❌ Database initialization failed", error=e)
             raise
 
     async def _ensure_migrations_directory(self) -> None:
@@ -78,18 +76,25 @@ class DatabaseInitializer:
         """Create initial migration if none exist."""
         # Check if there are any migration files
         migration_files = list(self.versions_dir.glob("*.py"))
-        
+
         if not migration_files:
             logger.log_with_context("📝 Creating initial migration...", "info")
-            await self._run_command([
-                "poetry", "run", "alembic", "revision", 
-                "--autogenerate", "-m", "Initial migration"
-            ])
+            await self._run_command(
+                [
+                    "poetry",
+                    "run",
+                    "alembic",
+                    "revision",
+                    "--autogenerate",
+                    "-m",
+                    "Initial migration",
+                ]
+            )
         else:
             logger.log_with_context(
                 "📝 Found existing migrations",
                 "info",
-                context={"migration_count": len(migration_files)}
+                context={"migration_count": len(migration_files)},
             )
 
     async def _run_migrations(self) -> None:
@@ -101,70 +106,61 @@ class DatabaseInitializer:
         """Run a shell command and handle errors."""
         try:
             logger.log_debug_with_context(
-                "Running command",
-                context={"command": " ".join(command)}
+                "Running command", context={"command": " ".join(command)}
             )
             result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
                 cwd=self.project_root,
-                check=True
+                check=True,
             )
-            
+
             if result.stdout:
                 logger.log_debug_with_context(
-                    "Command output",
-                    context={"output": result.stdout}
+                    "Command output", context={"output": result.stdout}
                 )
-                
+
         except subprocess.CalledProcessError as e:
             logger.log_error_with_context(
                 "Command failed",
                 error=e,
-                context={
-                    "command": " ".join(command),
-                    "error_output": e.stderr
-                }
+                context={"command": " ".join(command), "error_output": e.stderr},
             )
-            raise RuntimeError(f"Command execution failed: {e.stderr}")
+            raise RuntimeError(f"Command execution failed: {e.stderr}") from e
 
     async def check_database_status(self) -> None:
         """Check the current database status."""
         logger.info("🔍 Checking database status...")
-        
+
         try:
             # Check if alembic version table exists
-            await self._run_command([
-                "poetry", "run", "alembic", "current"
-            ])
-            
+            await self._run_command(["poetry", "run", "alembic", "current"])
+
             logger.info("✅ Database status check completed")
-            
+
         except Exception as e:
             logger.warning(f"Database status check failed: {e}")
 
     async def reset_database(self) -> None:
         """Reset the database (WARNING: This will delete all data)."""
         logger.warning("⚠️  Resetting database - this will delete all data!")
-        
+
         try:
             # Drop all tables
-            await self._run_command([
-                "poetry", "run", "alembic", "downgrade", "base"
-            ])
-            
+            await self._run_command(["poetry", "run", "alembic", "downgrade", "base"])
+
             # Remove migration files
             for migration_file in self.versions_dir.glob("*.py"):
                 migration_file.unlink()
                 logger.debug(f"Removed migration file: {migration_file}")
-            
+
             # Recreate initial migration
             await self._create_initial_migration()
             await self._run_migrations()
-            
+
             logger.info("✅ Database reset completed")
-            
+
         except Exception as e:
             logger.error(f"❌ Database reset failed: {e}")
             raise
@@ -175,7 +171,7 @@ async def main():
     if len(sys.argv) > 1:
         command = sys.argv[1]
         initializer = DatabaseInitializer()
-        
+
         if command == "init":
             await initializer.initialize_database()
         elif command == "status":
@@ -194,5 +190,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-

@@ -49,7 +49,7 @@ class Mediator(IMediator):
         request_type = type(request)
         self.logger.log_debug_with_context(
             "Mediator processing request",
-            context={"request_type": request_type.__name__}
+            context={"request_type": request_type.__name__},
         )
 
         # Get handler from registry
@@ -64,7 +64,7 @@ class Mediator(IMediator):
 
         self.logger.log_debug_with_context(
             "Mediator completed request",
-            context={"request_type": request_type.__name__}
+            context={"request_type": request_type.__name__},
         )
         return result  # type: ignore
 

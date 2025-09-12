@@ -14,9 +14,9 @@ from app.core.exceptions.handler import add_exception_handlers
 from app.core.health.health_endpoints import health_router
 from app.core.initialization import (
     cleanup_dependency_injection,
-    initialize_logging,
     get_app_container,
     initialize_dependency_injection,
+    initialize_logging,
     initialize_mediator,
 )
 from app.core.lifecycle.handlers import (
@@ -25,13 +25,13 @@ from app.core.lifecycle.handlers import (
     database_handler,
     health_handler,
     messaging_handler,
+    set_app_instance,
 )
 from app.core.lifecycle.manager import (
     lifecycle_manager,
     register_shutdown_callback,
     register_startup_callback,
 )
-
 from app.core.logging.request_logging import add_request_logging_middleware
 from app.core.middleware.auth_middleware import add_auth_middleware
 from app.modules.catalog.api.router import router as catalog_router
@@ -80,7 +80,6 @@ app = FastAPI(
 )
 
 # Set the app instance for lifecycle handlers that need it
-from app.core.lifecycle.handlers import set_app_instance
 set_app_instance(app)
 
 # Add CORS middleware
@@ -132,9 +131,6 @@ async def root() -> dict[str, str]:
         "version": settings.version,
         "status": "running",
     }
-
-
-
 
 
 @app.get("/api/v1/auth/me")

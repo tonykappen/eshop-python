@@ -66,7 +66,7 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
                 self.logger.log_error_with_context(
                     "Validation failed for request",
                     error=validation_error,
-                    context={"request_type": type(request).__name__}
+                    context={"request_type": type(request).__name__},
                 )
                 raise ValueError(
                     f"Validation failed: {validation_error}"
@@ -100,8 +100,8 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                 "request_type": request_type,
                 "response_type": response_type,
                 "request_data": str(request),
-                "trace_id": trace_id
-            }
+                "trace_id": trace_id,
+            },
         )
 
         start_time = time.time()
@@ -118,8 +118,8 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                     context={
                         "request_type": request_type,
                         "elapsed_time": elapsed_time,
-                        "trace_id": trace_id
-                    }
+                        "trace_id": trace_id,
+                    },
                 )
 
             self.logger.log_with_context(
@@ -127,8 +127,8 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                 context={
                     "request_type": request_type,
                     "response_type": response_type,
-                    "trace_id": trace_id
-                }
+                    "trace_id": trace_id,
+                },
             )
 
             return response
@@ -137,10 +137,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
             self.logger.log_error_with_context(
                 "Request handling failed",
                 error=e,
-                context={
-                    "request_type": request_type,
-                    "trace_id": trace_id
-                }
+                context={"request_type": request_type, "trace_id": trace_id},
             )
             raise
 

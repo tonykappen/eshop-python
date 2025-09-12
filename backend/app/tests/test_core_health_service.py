@@ -261,6 +261,11 @@ class TestHealthService:
                 "check_keycloak",
                 return_value={"status": "healthy", "service": "keycloak"},
             ),
+            patch.object(
+                HealthService,
+                "check_seq",
+                return_value={"status": "healthy", "service": "seq"},
+            ),
         ):
             service = HealthService()
             result = await service.check_all_services()
@@ -476,22 +481,29 @@ class TestHealthService:
             await asyncio.sleep(0.1)  # Simulate some work
             return {"status": "healthy", "service": "keycloak"}
 
+        async def mock_check_seq() -> dict:
+            execution_order.append("seq")
+            await asyncio.sleep(0.1)  # Simulate some work
+            return {"status": "healthy", "service": "seq"}
+
         service = HealthService()
         service.check_database = mock_check_database
         service.check_redis = mock_check_redis
         service.check_rabbitmq = mock_check_rabbitmq
         service.check_keycloak = mock_check_keycloak
+        service.check_seq = mock_check_seq
 
         # Run health checks
         result = await service.check_all_services()
 
         # Verify all services were checked
         assert result["status"] == "healthy"
-        assert len(execution_order) == 4
+        assert len(execution_order) == 5
         assert "database" in execution_order
         assert "redis" in execution_order
         assert "rabbitmq" in execution_order
         assert "keycloak" in execution_order
+        assert "seq" in execution_order
 
         # Verify services in result
         services = result["services"]
@@ -499,6 +511,7 @@ class TestHealthService:
         assert services["redis"]["status"] == "healthy"
         assert services["rabbitmq"]["status"] == "healthy"
         assert services["keycloak"]["status"] == "healthy"
+        assert services["seq"]["status"] == "healthy"
 
 
 class TestGlobalHealthService:

@@ -1,14 +1,11 @@
 """Keycloak setup and configuration module."""
 
 import asyncio
-import json
-import logging
-from typing import Any, Dict, List, Optional
 
 import httpx
-from app.core.logging.base_logger import BaseLogger
 
 from app.config.settings import settings
+from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 
@@ -19,10 +16,10 @@ class KeycloakSetup:
     def __init__(self) -> None:
         """Initialize Keycloak setup."""
         self.base_url = settings.keycloak_server_url
-        self.realm = settings.keycloak_realm 
+        self.realm = settings.keycloak_realm
         self.client_id = settings.keycloak_client_id
         self.client_secret = settings.keycloak_client_secret
-        self.master_admin_token: Optional[str] = None
+        self.master_admin_token: str | None = None
 
     def _check_config_available(self) -> bool:
         """Check if all required Keycloak configuration settings are present."""
@@ -32,24 +29,23 @@ class KeycloakSetup:
                 "base_url": self.base_url,
                 "client_id": self.client_id,
                 "client_secret": "***" if self.client_secret else "None",
-                "realm": self.realm
-            }
+                "realm": self.realm,
+            },
         )
-        
+
         result = (
-            self.base_url is not None and
-            self.base_url != "" and
-            self.client_id is not None and
-            self.client_id != "" and
-            self.client_secret is not None and
-            self.client_secret != "" and
-            self.realm is not None and
-            self.realm != ""
+            self.base_url is not None
+            and self.base_url != ""
+            and self.client_id is not None
+            and self.client_id != ""
+            and self.client_secret is not None
+            and self.client_secret != ""
+            and self.realm is not None
+            and self.realm != ""
         )
-        
+
         logger.log_debug_with_context(
-            "Keycloak config check result",
-            context={"result": result}
+            "Keycloak config check result", context={"result": result}
         )
         return result
 
@@ -57,12 +53,14 @@ class KeycloakSetup:
         """Complete Keycloak setup process."""
         try:
             logger.log_with_context("🔧 Starting Keycloak setup...", "info")
-            
+
             # Check if configuration is available
             if not self._check_config_available():
-                logger.log_warning_with_context("⚠️ Keycloak configuration not available - skipping setup")
+                logger.log_warning_with_context(
+                    "⚠️ Keycloak configuration not available - skipping setup"
+                )
                 return False
-            
+
             # Wait for Keycloak to be ready
             logger.log_with_context("⏳ Waiting for Keycloak to be ready...", "info")
             await asyncio.sleep(10)  # Wait for Keycloak to fully start
@@ -79,23 +77,33 @@ class KeycloakSetup:
 
             # Create realm
             if not await self._create_realm():
-                logger.log_warning_with_context("⚠️ Realm creation failed or already exists")
+                logger.log_warning_with_context(
+                    "⚠️ Realm creation failed or already exists"
+                )
 
             # Create client
             if not await self._create_client():
-                logger.log_warning_with_context("⚠️ Client creation failed or already exists")
+                logger.log_warning_with_context(
+                    "⚠️ Client creation failed or already exists"
+                )
 
             # Create realm admin user
             if not await self._create_realm_admin():
-                logger.log_warning_with_context("⚠️ Realm admin creation failed or already exists")
+                logger.log_warning_with_context(
+                    "⚠️ Realm admin creation failed or already exists"
+                )
 
             # Create roles using master admin (full permissions)
             if not await self._create_roles():
-                logger.log_warning_with_context("⚠️ Role creation failed or already exists")
+                logger.log_warning_with_context(
+                    "⚠️ Role creation failed or already exists"
+                )
 
             # Create users using master admin (full permissions)
             if not await self._create_users():
-                logger.log_warning_with_context("⚠️ User creation failed or already exists")
+                logger.log_warning_with_context(
+                    "⚠️ User creation failed or already exists"
+                )
 
             # Setup role hierarchy using master admin (full permissions)
             await self._setup_role_hierarchy()
@@ -107,10 +115,7 @@ class KeycloakSetup:
             return True
 
         except Exception as e:
-            logger.log_error_with_context(
-                "❌ Keycloak setup failed",
-                error=e
-            )
+            logger.log_error_with_context("❌ Keycloak setup failed", error=e)
             return False
 
     async def _check_keycloak_accessible(self) -> bool:
@@ -123,7 +128,9 @@ class KeycloakSetup:
                     logger.info("✅ Keycloak is accessible")
                     return True
                 else:
-                    logger.error(f"❌ Keycloak returned status code: {response.status_code}")
+                    logger.error(
+                        f"❌ Keycloak returned status code: {response.status_code}"
+                    )
                     return False
         except Exception as e:
             logger.error(f"❌ Keycloak is not accessible: {e}")
@@ -263,7 +270,9 @@ class KeycloakSetup:
                     await self._assign_role_to_user(client, "realm-admin", "admin")
                     return True
                 else:
-                    logger.error(f"❌ Failed to create realm admin: {response.status_code}")
+                    logger.error(
+                        f"❌ Failed to create realm admin: {response.status_code}"
+                    )
                     return False
         except Exception as e:
             logger.error(f"❌ Realm admin creation failed: {e}")
@@ -273,8 +282,14 @@ class KeycloakSetup:
         """Create RBAC roles using master admin."""
         roles = [
             {"name": "user", "description": "Basic user role - can read data"},
-            {"name": "manager", "description": "Manager role - can read and write data"},
-            {"name": "admin", "description": "Admin role - full access to all operations"},
+            {
+                "name": "manager",
+                "description": "Manager role - can read and write data",
+            },
+            {
+                "name": "admin",
+                "description": "Admin role - full access to all operations",
+            },
         ]
 
         try:
@@ -293,7 +308,9 @@ class KeycloakSetup:
                     elif response.status_code == 409:
                         logger.info(f"ℹ️ Role '{role['name']}' already exists")
                     else:
-                        logger.warning(f"⚠️ Failed to create role '{role['name']}': {response.status_code}")
+                        logger.warning(
+                            f"⚠️ Failed to create role '{role['name']}': {response.status_code}"
+                        )
 
             return True
         except Exception as e:
@@ -345,7 +362,9 @@ class KeycloakSetup:
                         # Update password for existing user
                         await self._update_user_password(client, username)
                     else:
-                        logger.warning(f"⚠️ Failed to create user '{username}': {response.status_code}")
+                        logger.warning(
+                            f"⚠️ Failed to create user '{username}': {response.status_code}"
+                        )
                         continue
 
                     # Assign role to user with retry logic
@@ -356,7 +375,9 @@ class KeycloakSetup:
             logger.error(f"❌ User creation failed: {e}")
             return False
 
-    async def _update_user_password(self, client: httpx.AsyncClient, username: str) -> None:
+    async def _update_user_password(
+        self, client: httpx.AsyncClient, username: str
+    ) -> None:
         """Update password for existing user."""
         try:
             # Get user ID
@@ -387,30 +408,40 @@ class KeycloakSetup:
         except Exception as e:
             logger.warning(f"⚠️ Failed to update password for '{username}': {e}")
 
-    async def _assign_role_to_user_with_retry(self, client: httpx.AsyncClient, username: str, role_name: str) -> None:
+    async def _assign_role_to_user_with_retry(
+        self, client: httpx.AsyncClient, username: str, role_name: str
+    ) -> None:
         """Assign role to user with retry logic to handle timing issues."""
         max_retries = 3
         retry_delay = 2  # seconds
-        
+
         for attempt in range(max_retries):
             try:
                 success = await self._assign_role_to_user(client, username, role_name)
                 if success:
                     return
                 else:
-                    logger.warning(f"⚠️ Role assignment attempt {attempt + 1} failed for '{username}' -> '{role_name}'")
+                    logger.warning(
+                        f"⚠️ Role assignment attempt {attempt + 1} failed for '{username}' -> '{role_name}'"
+                    )
                     if attempt < max_retries - 1:
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2  # Exponential backoff
             except Exception as e:
-                logger.warning(f"⚠️ Role assignment attempt {attempt + 1} failed for '{username}' -> '{role_name}': {e}")
+                logger.warning(
+                    f"⚠️ Role assignment attempt {attempt + 1} failed for '{username}' -> '{role_name}': {e}"
+                )
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
-        
-        logger.error(f"❌ Failed to assign role '{role_name}' to '{username}' after {max_retries} attempts")
 
-    async def _assign_role_to_user(self, client: httpx.AsyncClient, username: str, role_name: str) -> bool:
+        logger.error(
+            f"❌ Failed to assign role '{role_name}' to '{username}' after {max_retries} attempts"
+        )
+
+    async def _assign_role_to_user(
+        self, client: httpx.AsyncClient, username: str, role_name: str
+    ) -> bool:
         """Assign role to user."""
         try:
             # Get user ID
@@ -444,7 +475,9 @@ class KeycloakSetup:
             if current_roles_response.status_code == 200:
                 current_roles = current_roles_response.json()
                 if any(role["name"] == role_name for role in current_roles):
-                    logger.info(f"ℹ️ Role '{role_name}' already assigned to user '{username}'")
+                    logger.info(
+                        f"ℹ️ Role '{role_name}' already assigned to user '{username}'"
+                    )
                     return True
 
             # Assign role with explicit role data
@@ -453,7 +486,7 @@ class KeycloakSetup:
                 "name": role_name,
                 "description": role_data.get("description", ""),
                 "composite": role_data.get("composite", False),
-                "clientRole": role_data.get("clientRole", False)
+                "clientRole": role_data.get("clientRole", False),
             }
 
             assign_response = await client.post(
@@ -467,7 +500,7 @@ class KeycloakSetup:
 
             if assign_response.status_code == 204:
                 logger.info(f"✅ Role '{role_name}' assigned to user '{username}'")
-                
+
                 # Verify the assignment was successful
                 await asyncio.sleep(1)  # Small delay to ensure assignment is processed
                 verify_response = await client.get(
@@ -477,16 +510,24 @@ class KeycloakSetup:
                 if verify_response.status_code == 200:
                     assigned_roles = verify_response.json()
                     if any(role["name"] == role_name for role in assigned_roles):
-                        logger.info(f"✅ Verified: Role '{role_name}' successfully assigned to '{username}'")
+                        logger.info(
+                            f"✅ Verified: Role '{role_name}' successfully assigned to '{username}'"
+                        )
                         return True
                     else:
-                        logger.error(f"❌ Role assignment verification failed for '{username}' -> '{role_name}'")
+                        logger.error(
+                            f"❌ Role assignment verification failed for '{username}' -> '{role_name}'"
+                        )
                         return False
                 else:
-                    logger.error(f"❌ Could not verify role assignment for '{username}' -> '{role_name}'")
+                    logger.error(
+                        f"❌ Could not verify role assignment for '{username}' -> '{role_name}'"
+                    )
                     return False
             else:
-                logger.error(f"❌ Failed to assign role '{role_name}' to '{username}': {assign_response.status_code} - {assign_response.text}")
+                logger.error(
+                    f"❌ Failed to assign role '{role_name}' to '{username}': {assign_response.status_code} - {assign_response.text}"
+                )
                 return False
 
         except Exception as e:
@@ -520,7 +561,9 @@ class KeycloakSetup:
                             {"id": role_ids["user"], "name": "user"},
                         ],
                     )
-                    logger.info("✅ Admin role configured as composite (includes manager and user)")
+                    logger.info(
+                        "✅ Admin role configured as composite (includes manager and user)"
+                    )
 
                 # Make manager role composite with user role
                 if "manager" in role_ids and "user" in role_ids:
@@ -532,7 +575,9 @@ class KeycloakSetup:
                         },
                         json=[{"id": role_ids["user"], "name": "user"}],
                     )
-                    logger.info("✅ Manager role configured as composite (includes user)")
+                    logger.info(
+                        "✅ Manager role configured as composite (includes user)"
+                    )
 
         except Exception as e:
             logger.warning(f"⚠️ Failed to setup role hierarchy: {e}")
@@ -552,18 +597,32 @@ class KeycloakSetup:
                 logger.info("🔍 Verifying Keycloak setup...")
                 for user in users:
                     username = user.get("username", "")
-                    if username in ["adminuser", "manager", "user", "testuser", "realm-admin"]:
+                    if username in [
+                        "adminuser",
+                        "manager",
+                        "user",
+                        "testuser",
+                        "realm-admin",
+                    ]:
                         # Get user roles
                         roles_response = await client.get(
                             f"{self.base_url}/admin/realms/{self.realm}/users/{user['id']}/role-mappings/realm",
-                            headers={"Authorization": f"Bearer {self.master_admin_token}"},
+                            headers={
+                                "Authorization": f"Bearer {self.master_admin_token}"
+                            },
                         )
                         if roles_response.status_code == 200:
                             roles = roles_response.json()
                             # Filter out default roles - use the actual realm name
-                            role_names = [role["name"] for role in roles if role["name"] not in [f"default-roles-{self.realm}"]]
-                            logger.info(f"✅ User '{username}' has roles: {', '.join(role_names)}")
-                            
+                            role_names = [
+                                role["name"]
+                                for role in roles
+                                if role["name"] not in [f"default-roles-{self.realm}"]
+                            ]
+                            logger.info(
+                                f"✅ User '{username}' has roles: {', '.join(role_names)}"
+                            )
+
                             # Test token generation for each user
                             await self._test_user_token(username)
 
@@ -577,19 +636,19 @@ class KeycloakSetup:
                 # Use admin-cli for realm-admin, eshop-api for others
                 client_id = "admin-cli" if username == "realm-admin" else self.client_id
                 client_secret = "" if username == "realm-admin" else self.client_secret
-                
+
                 token_data = {
                     "grant_type": "password",
                     "username": username,
                     "password": "password" if username != "realm-admin" else "admin123",
                 }
-                
+
                 if client_id == "admin-cli":
                     token_data["client_id"] = client_id
                 else:
                     token_data["client_id"] = client_id
                     token_data["client_secret"] = client_secret
-                
+
                 response = await client.post(
                     f"{self.base_url}/realms/{self.realm}/protocol/openid-connect/token",
                     data=token_data,
@@ -601,29 +660,50 @@ class KeycloakSetup:
                     if token:
                         # Decode token to check roles (basic check)
                         import jwt
+
                         try:
                             # Decode without verification to check payload
-                            decoded = jwt.decode(token, options={"verify_signature": False})
+                            decoded = jwt.decode(
+                                token, options={"verify_signature": False}
+                            )
                             roles = decoded.get("realm_access", {}).get("roles", [])
                             # Filter out default roles
-                            default_roles = ["offline_access", "uma_authorization", f"default-roles-{self.realm}"]
-                            user_roles = [role for role in roles if role not in default_roles]
-                            
+                            default_roles = [
+                                "offline_access",
+                                "uma_authorization",
+                                f"default-roles-{self.realm}",
+                            ]
+                            user_roles = [
+                                role for role in roles if role not in default_roles
+                            ]
+
                             # Special handling for realm-admin (admin-cli tokens don't include realm roles)
                             if username == "realm-admin":
                                 if user_roles:
-                                    logger.info(f"✅ User '{username}' token includes roles: {', '.join(user_roles)}")
+                                    logger.info(
+                                        f"✅ User '{username}' token includes roles: {', '.join(user_roles)}"
+                                    )
                                 else:
-                                    logger.info(f"ℹ️ User '{username}' token generated successfully (admin-cli tokens typically don't include realm roles)")
+                                    logger.info(
+                                        f"ℹ️ User '{username}' token generated successfully (admin-cli tokens typically don't include realm roles)"
+                                    )
                             else:
                                 if user_roles:
-                                    logger.info(f"✅ User '{username}' token includes roles: {', '.join(user_roles)}")
+                                    logger.info(
+                                        f"✅ User '{username}' token includes roles: {', '.join(user_roles)}"
+                                    )
                                 else:
-                                    logger.warning(f"⚠️ User '{username}' token missing expected roles")
+                                    logger.warning(
+                                        f"⚠️ User '{username}' token missing expected roles"
+                                    )
                         except Exception as e:
-                            logger.warning(f"⚠️ Could not decode token for '{username}': {e}")
+                            logger.warning(
+                                f"⚠️ Could not decode token for '{username}': {e}"
+                            )
                 else:
-                    logger.warning(f"⚠️ Could not generate token for '{username}': {response.status_code}")
+                    logger.warning(
+                        f"⚠️ Could not generate token for '{username}': {response.status_code}"
+                    )
         except Exception as e:
             logger.warning(f"⚠️ Token test failed for '{username}': {e}")
 
@@ -632,6 +712,3 @@ async def setup_keycloak_async() -> bool:
     """Async function to setup Keycloak."""
     setup = KeycloakSetup()
     return await setup.setup_keycloak()
-
-
-

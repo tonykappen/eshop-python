@@ -29,7 +29,7 @@ def add_mediator_with_assemblies(services: Any, *assemblies: Any) -> Any:
     for assembly in assemblies:
         logger.log_debug_with_context(
             "Scanning assembly for handlers",
-            context={"assembly_name": assembly.__name__}
+            context={"assembly_name": assembly.__name__},
         )
         _register_handlers_from_assembly(handler_registry, assembly)
 
@@ -44,7 +44,7 @@ def add_mediator_with_assemblies(services: Any, *assemblies: Any) -> Any:
     logger.log_with_context(
         "Registered mediator with handlers",
         "info",
-        context={"handler_count": len(handler_registry.get_registered_types())}
+        context={"handler_count": len(handler_registry.get_registered_types())},
     )
 
     return services
@@ -69,16 +69,13 @@ def _register_handlers_from_assembly(
                         "Registered handler for request",
                         context={
                             "handler_name": name,
-                            "request_type": request_type.__name__
-                        }
+                            "request_type": request_type.__name__,
+                        },
                     )
     except Exception as e:
         logger.log_warning_with_context(
             "Failed to scan assembly",
-            context={
-                "assembly_name": assembly.__name__,
-                "error": str(e)
-            }
+            context={"assembly_name": assembly.__name__, "error": str(e)},
         )
 
 

@@ -39,7 +39,7 @@ class CustomExceptionHandler:
                 "request_path": str(request.url.path),
                 "request_method": request.method,
                 "request_headers": dict(request.headers),
-            }
+            },
         )
 
         # Map exception to HTTP status code and response details

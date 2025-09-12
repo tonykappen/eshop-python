@@ -2,7 +2,7 @@
 
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -62,7 +62,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
 
         # Extract user information from request state
-        user = getattr(request.state, 'user', None)
+        user = getattr(request.state, "user", None)
         user_id = user.sub if user else None
         session_id = request_id  # Use request_id as session_id for now
 
@@ -130,7 +130,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "response_headers": self._sanitize_headers(dict(response.headers)),
                 "user_id": user_id,
                 "session_id": session_id[:6] if session_id else None,
-                "authorization_outcome": "success" if response.status_code < 400 else "failure",
+                "authorization_outcome": (
+                    "success" if response.status_code < 400 else "failure"
+                ),
             }
 
             # Log response body if enabled and small enough
@@ -142,7 +144,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                         # Only log JSON responses and limit size
                         body_size = len(response.body) if response.body else 0
                         if body_size < 10000:  # 10KB limit
-                            body_text = response.body.decode("utf-8") if response.body else None
+                            body_text = (
+                                response.body.decode("utf-8") if response.body else None
+                            )
                             # Sanitize sensitive data in response body
                             sanitized_body = _sanitize_log_data({"body": body_text})
                             response_info.update(sanitized_body)
@@ -200,10 +204,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         return "unknown"
 
-    def _get_auth_method(self, request: Request) -> Optional[str]:
+    def _get_auth_method(self, request: Request) -> str | None:
         """Determine authentication method used."""
         auth_header = request.headers.get("authorization", "")
-        
+
         if auth_header.startswith("Bearer "):
             return "bearer_token"
         elif auth_header.startswith("Basic "):
@@ -212,16 +216,20 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             return "session_cookie"
         elif request.headers.get("x-api-key"):
             return "api_key"
-        
+
         return None
 
     def _sanitize_headers(self, headers: dict) -> dict:
         """Remove sensitive information from headers."""
         sensitive_headers = [
-            'authorization', 'cookie', 'x-api-key', 'x-client-secret',
-            'x-auth-token', 'x-bearer-token'
+            "authorization",
+            "cookie",
+            "x-api-key",
+            "x-client-secret",
+            "x-auth-token",
+            "x-bearer-token",
         ]
-        
+
         sanitized = {}
         for key, value in headers.items():
             if any(sensitive in key.lower() for sensitive in sensitive_headers):
@@ -231,7 +239,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     sanitized[key] = "<REDACTED>"
             else:
                 sanitized[key] = value
-        
+
         return sanitized
 
 

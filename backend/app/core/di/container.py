@@ -4,9 +4,9 @@ from typing import Any
 
 from dependency_injector import containers, providers
 
+from ...config.settings import settings
 from ..logging.base_logger import BaseLogger
 from .assembly_scanner import AssemblyScanner
-from ...config.settings import settings
 
 logger = BaseLogger(__name__)
 

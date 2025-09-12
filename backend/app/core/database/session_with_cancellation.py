@@ -7,8 +7,11 @@ from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database.session import AsyncSessionLocal
-from app.core.mediator.cancellation import CancellationToken, get_cancellation_token_with_session
 from app.core.logging.base_logger import BaseLogger
+from app.core.mediator.cancellation import (
+    CancellationToken,
+    get_cancellation_token_with_session,
+)
 
 logger = BaseLogger(__name__)
 
@@ -20,14 +23,13 @@ async def get_db_session_with_cancellation(
     async with AsyncSessionLocal() as session:
         # Create cancellation token with session for automatic rollback
         cancellation_token = get_cancellation_token_with_session(request, session)
-        
+
         try:
             yield session, cancellation_token
         except Exception as e:
             # If any exception occurs, rollback the session
             logger.log_error_with_context(
-                "Database operation failed, rolling back transaction",
-                error=e
+                "Database operation failed, rolling back transaction", error=e
             )
             await session.rollback()
             raise
@@ -43,26 +45,29 @@ async def db_transaction_with_cancellation(
     """Database transaction context manager with cancellation token integration."""
     async with AsyncSessionLocal() as session:
         cancellation_token = get_cancellation_token_with_session(request, session)
-        
+
         try:
             # Begin transaction
             await session.begin()
             yield session, cancellation_token
-            
+
             # If we reach here without cancellation, commit
             if not cancellation_token.is_cancellation_requested:
                 await session.commit()
-                logger.log_debug_with_context("Database transaction committed successfully")
+                logger.log_debug_with_context(
+                    "Database transaction committed successfully"
+                )
             else:
                 # If cancelled, rollback
                 await session.rollback()
-                logger.log_debug_with_context("Database transaction rolled back due to cancellation")
-                
+                logger.log_debug_with_context(
+                    "Database transaction rolled back due to cancellation"
+                )
+
         except Exception as e:
             # Any exception triggers rollback
             logger.log_error_with_context(
-                "Database transaction failed, rolling back",
-                error=e
+                "Database transaction failed, rolling back", error=e
             )
             await session.rollback()
             raise

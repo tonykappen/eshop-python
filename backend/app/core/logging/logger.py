@@ -1,15 +1,16 @@
 """Structured logging configuration with SEQ support and auto-logging capabilities."""
 
 import asyncio
+import inspect
 import logging
 import sys
-import inspect
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
-from datetime import datetime, UTC
+from typing import Any
 
 import structlog
 from structlog.stdlib import LoggerFactory
+
 from app.core.logging.base_logger import LogFormatters
 
 # Try to import httpx for SEQ HTTP transport
@@ -55,7 +56,7 @@ def configure_logging(
     # Add source information in development mode
     if environment == "development":
         processors.append(_add_source_info)
-    
+
     # Add final renderer
     processors.append(
         structlog.processors.JSONRenderer()
@@ -144,10 +145,14 @@ def configure_logging(
                     try:
                         # Create log entry for Seq in proper format
                         log_entry = {
-                            "@t": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
+                            "@t": datetime.fromtimestamp(
+                                record.created, tz=UTC
+                            ).isoformat(),
                             "@l": record.levelname,
                             "MessageTemplate": record.getMessage(),
-                            "Timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
+                            "Timestamp": datetime.fromtimestamp(
+                                record.created, tz=UTC
+                            ).isoformat(),
                             "Logger": record.name,
                             "Level": record.levelname,
                         }
@@ -176,35 +181,40 @@ def configure_logging(
 
                         # Seq expects an array of events
                         payload = {"Events": [log_entry]}
-                        
+
                         response = self.client.post(
                             f"{self.seq_url}/api/events/raw",
                             json=payload,
                             headers=headers,
                         )
                         response.raise_for_status()
-                    except Exception as e:
+                    except Exception:
                         # Silently fail to avoid log loops
                         pass
 
             # Add Seq handler to root logger with filter to exclude HTTP request logs
             seq_handler = SeqHTTPHandler(seq_url, seq_api_key)
             seq_handler.setLevel(getattr(logging, log_level.upper()))
-            
+
             # Add filter to exclude HTTP request logs from httpx
             def filter_http_logs(record):
                 # Exclude HTTP request logs from httpx
-                if hasattr(record, 'name') and 'httpx' in record.name:
+                if hasattr(record, "name") and "httpx" in record.name:
                     return False
                 # Exclude HTTP request logs in the message
-                if hasattr(record, 'getMessage') and 'HTTP Request:' in record.getMessage():
+                if (
+                    hasattr(record, "getMessage")
+                    and "HTTP Request:" in record.getMessage()
+                ):
                     return False
                 return True
-            
+
             seq_handler.addFilter(filter_http_logs)
             logging.getLogger().addHandler(seq_handler)
 
-            get_logger(__name__).info(f"✅ SEQ logging configured successfully at {seq_url}")
+            get_logger(__name__).info(
+                f"✅ SEQ logging configured successfully at {seq_url}"
+            )
         except Exception as e:
             # Fallback to console logging if SEQ configuration fails
             get_logger(__name__).warning(f"Failed to configure SEQ logging: {e}")
@@ -214,7 +224,7 @@ def configure_logging(
         )
 
 
-def _add_source_info(logger: Any, method_name: str, event_dict: dict) -> dict:
+def _add_source_info(_logger: Any, _method_name: str, event_dict: dict) -> dict:
     """Add source information (file, module, line) to log entries in development mode."""
     try:
         # Get the caller's frame
@@ -223,20 +233,24 @@ def _add_source_info(logger: Any, method_name: str, event_dict: dict) -> dict:
             # Go up the call stack to find the actual caller
             for _ in range(10):  # Limit stack depth
                 frame = frame.f_back
-                if frame and frame.f_code.co_name != '_add_source_info':
+                if frame and frame.f_code.co_name != "_add_source_info":
                     break
-            
+
             if frame:
-                event_dict.update({
-                    "file": frame.f_code.co_filename.split("/")[-1],  # Just filename, not full path
-                    "module": frame.f_globals.get("__name__", "unknown"),
-                    "function": frame.f_code.co_name,
-                    "line": frame.f_lineno,
-                })
+                event_dict.update(
+                    {
+                        "file": frame.f_code.co_filename.split("/")[
+                            -1
+                        ],  # Just filename, not full path
+                        "module": frame.f_globals.get("__name__", "unknown"),
+                        "function": frame.f_code.co_name,
+                        "line": frame.f_lineno,
+                    }
+                )
     except Exception:
         # Silently fail if we can't get source info
         pass
-    
+
     return event_dict
 
 
@@ -258,20 +272,20 @@ class LoggerMixin:
 async def log_security_event(
     logger: structlog.stdlib.BoundLogger,
     event_type: str,
-    user_id: Optional[str] = None,
-    session_id: Optional[str] = None,
-    authentication_method: Optional[str] = None,
-    authorization_outcome: Optional[str] = None,
-    source_ip: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    status_code: Optional[int] = None,
-    **kwargs: Any
+    user_id: str | None = None,
+    session_id: str | None = None,
+    authentication_method: str | None = None,
+    authorization_outcome: str | None = None,
+    source_ip: str | None = None,
+    user_agent: str | None = None,
+    status_code: int | None = None,
+    **kwargs: Any,
 ) -> None:
     """Log a security event with comprehensive information."""
-    
+
     # Sanitize sensitive data
     sanitized_kwargs = _sanitize_log_data(kwargs)
-    
+
     log_entry = {
         "event_type": event_type,
         "timestamp": datetime.utcnow().isoformat(),
@@ -282,22 +296,30 @@ async def log_security_event(
         "source_ip": source_ip,
         "user_agent": user_agent,
         "status_code": status_code,
-        **sanitized_kwargs
+        **sanitized_kwargs,
     }
-    
+
     # Remove None values
     log_entry = {k: v for k, v in log_entry.items() if v is not None}
-    
+
     logger.info(f"Security Event: {event_type}", **log_entry)
 
 
 def _sanitize_log_data(data: dict) -> dict:
     """Remove sensitive information from log data."""
     sensitive_keys = [
-        'password', 'secret', 'token', 'key', 'authorization', 'cookie',
-        'client_secret', 'bearer_token', 'api_key', 'private_key'
+        "password",
+        "secret",
+        "token",
+        "key",
+        "authorization",
+        "cookie",
+        "client_secret",
+        "bearer_token",
+        "api_key",
+        "private_key",
     ]
-    
+
     sanitized = {}
     for key, value in data.items():
         if any(sensitive in key.lower() for sensitive in sensitive_keys):
@@ -307,7 +329,7 @@ def _sanitize_log_data(data: dict) -> dict:
                 sanitized[key] = "<REDACTED>"
         else:
             sanitized[key] = value
-    
+
     return sanitized
 
 

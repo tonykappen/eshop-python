@@ -21,7 +21,7 @@ from app.core.di.container import (
     scan_assemblies,
     wire_container,
 )
-from tests.utils.mocks import (
+from app.tests.utils.mocks import (
     MockModule,
     create_mock_container,
     create_mock_provider,
@@ -163,7 +163,7 @@ class TestAssemblyScanner:
 
         # Create a class with service pattern in name
         class TestService:
-            __module__ = "app.test.module"
+            __module__ = "eshop.test.module"
 
         assert scanner._is_service_class(TestService) is True
 
@@ -185,7 +185,7 @@ class TestAssemblyScanner:
 
         # Class with service annotation
         class TestClass:
-            __module__ = "app.test.module"
+            __module__ = "eshop.test.module"
             __service_name__ = "test_service"
 
         assert scanner._is_service_class(TestClass) is True
@@ -199,7 +199,7 @@ class TestAssemblyScanner:
         def test_service_function() -> str:
             return "test"
 
-        test_service_function.__module__ = "app.test.module"
+        test_service_function.__module__ = "eshop.test.module"
         test_service_function.__service_name__ = "test_service"  # Add annotation
 
         assert scanner._is_service_function(test_service_function) is True

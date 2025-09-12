@@ -1,5 +1,5 @@
 """Catalog module router."""
-from typing import Any
+
 from fastapi import APIRouter
 
 from app.modules.catalog.api.endpoints import products

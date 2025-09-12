@@ -309,7 +309,7 @@ class TestExtractRequestType:
         """Test extracting request type when no generic base exists."""
 
         class HandlerWithoutGenericBase:
-            async def handle(self, request: MockCommand) -> MockResult:  # noqa: ARG002
+            async def handle(self, _request: MockCommand) -> MockResult:
                 return MockResult()
 
         request_type = _extract_request_type(HandlerWithoutGenericBase)
@@ -347,7 +347,7 @@ class TestExtractRequestType:
         """Test extracting request type from method without annotation."""
 
         class HandlerWithoutAnnotation:
-            async def handle(self, request) -> MockResult:  # type: ignore, noqa: ARG002
+            async def handle(self, _request) -> MockResult:  # type: ignore[no-untyped-def]
                 return MockResult()
 
         request_type = _extract_request_type(HandlerWithoutAnnotation)
@@ -460,14 +460,14 @@ class TestMediatorExtensionsIntegration:
         class TestAssembly:
             class RealCommandHandler:
                 async def handle(
-                    self, request: MockCommand
-                ) -> MockResult:  # noqa: ARG002
+                    self, _request: MockCommand
+                ) -> MockResult:
                     return MockResult()
 
             class RealQueryHandler:
                 async def handle(
-                    self, request: MockQuery
-                ) -> MockResult:  # noqa: ARG002
+                    self, _request: MockQuery
+                ) -> MockResult:
                     return MockResult()
 
         # Add mediator with the test assembly

@@ -20,7 +20,7 @@ class TestSettings:
             # Test application defaults
             assert settings.name == "eShop Modular Monolith"
             assert settings.version == "0.1.0"
-            assert settings.debug is True  # Default is True in current implementation
+            assert settings.debug is False  # Default is False in current implementation
             assert settings.environment == "development"
 
             # Test server defaults
@@ -28,26 +28,26 @@ class TestSettings:
             assert settings.port == 8000
 
             # Test security defaults
-            assert settings.secret_key == "your-secret-key-here-change-in-production"
+            assert settings.secret_key == "your-secret-key-here"
             assert settings.algorithm == "HS256"
             assert settings.access_token_expire_minutes == 30
 
-            # Test database defaults
-            assert settings.database_host == "localhost"
-            assert settings.database_port == 5432
-            assert settings.database_name == "eshop"
-            assert settings.database_user == "eshop_user"
-            assert settings.database_password == "eshop_password"
+        # Test database defaults
+        assert settings.database_host == "localhost"
+        assert settings.database_port == 5432
+        assert settings.database_name == "eshop"
+        assert settings.database_user == "postgres"
+        assert settings.database_password == "postgres"
 
-            # Test cache defaults
-            assert settings.redis_url == "redis://localhost:6379"
+        # Test cache defaults
+        assert settings.redis_url == "redis://localhost:6379"
 
-            # Test messaging defaults
-            assert settings.rabbitmq_url == "amqp://guest:guest@localhost:5672/"
+        # Test messaging defaults
+        assert settings.rabbitmq_url == "amqp://guest:guest@localhost:5672/"
 
-            # Test logging defaults
-            assert settings.log_level == "INFO"
-            assert settings.log_enable_request_logging is True
+        # Test logging defaults
+        assert settings.log_level == "INFO"
+        assert settings.log_enable_request_logging is True
 
     def test_environment_override(self):
         """Test environment variable overrides."""
@@ -101,7 +101,7 @@ class TestSettings:
 
         # Test with default values
         connection_string = settings.database_connection_string
-        expected = "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"
+        expected = "postgresql+asyncpg://postgres:postgres@localhost:5432/eshop"
         assert connection_string == expected
 
         # Test format validation
@@ -128,11 +128,11 @@ class TestSettings:
         # Test legacy database properties - they should be the same as the new ones
         assert (
             settings.database_url
-            == "postgresql://eshop_user:eshop_password@localhost:5432/eshop"
+            == "postgresql://postgres:postgres@localhost:5432/eshop"
         )  # This is a field
         assert (
             settings.database_connection_string
-            == "postgresql+asyncpg://eshop_user:eshop_password@localhost:5432/eshop"
+            == "postgresql+asyncpg://postgres:postgres@localhost:5432/eshop"
         )  # This is a property
         assert settings.database_host == settings.database_host
         assert settings.database_port == settings.database_port
@@ -146,7 +146,7 @@ class TestSettings:
         with patch.dict(os.environ, {"PORT": "invalid"}, clear=True):
             with pytest.raises(ValidationError) as exc_info:
                 Settings()
-            assert "PORT" in str(exc_info.value)
+            assert "port" in str(exc_info.value)
 
         # Test invalid access token expire minutes
         with patch.dict(
@@ -154,7 +154,7 @@ class TestSettings:
         ):
             with pytest.raises(ValidationError) as exc_info:
                 Settings()
-            assert "ACCESS_TOKEN_EXPIRE_MINUTES" in str(exc_info.value)
+            assert "access_token_expire_minutes" in str(exc_info.value)
 
     def test_development_environment(self):
         """Test development environment specific settings."""

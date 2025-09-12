@@ -5,7 +5,11 @@ from typing import Any
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .cancellation import CancellationToken, get_cancellation_token, get_cancellation_token_with_session
+from .cancellation import (
+    CancellationToken,
+    get_cancellation_token,
+    get_cancellation_token_with_session,
+)
 from .handler_registry import HandlerRegistry
 from .mediator import Mediator
 
@@ -35,8 +39,9 @@ def _register_module_handlers(handler_registry: HandlerRegistry) -> None:
     from app.modules.catalog.application.handlers.catalog_handler_registration import (
         register_catalog_handlers,
     )
+
     register_catalog_handlers(handler_registry)
-    
+
     # TODO: Register other module handlers as they are implemented
     # from app.modules.basket.application.handlers.basket_handler_registration import register_basket_handlers
     # from app.modules.ordering.application.handlers.ordering_handler_registration import register_ordering_handlers

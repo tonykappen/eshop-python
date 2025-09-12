@@ -1,6 +1,5 @@
 """Authentication middleware for Keycloak integration."""
 
-import logging
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
@@ -53,7 +52,9 @@ async def get_current_user_optional_from_request(
             error=str(e),
             error_type=type(e).__name__,
         )
-        logger.log_warning_with_context("Authentication failed", context={"error": str(e)})
+        logger.log_warning_with_context(
+            "Authentication failed", context={"error": str(e)}
+        )
         return None
 
 
@@ -93,7 +94,9 @@ async def get_current_user_required(
             error=str(e),
             error_type=type(e).__name__,
         )
-        logger.log_error_with_context("Authentication failed", error=e, error_type=type(e).__name__)
+        logger.log_error_with_context(
+            "Authentication failed", error=e, error_type=type(e).__name__
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",

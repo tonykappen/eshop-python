@@ -163,6 +163,6 @@ class GetProductsHandler(
             name=product.name,
             category=product.category,  # Keep as list[str] for DTO
             description=product.description,
-            image_file=product.image_file,
+            picture_url=product.image_file,  # Map image_file to picture_url
             price=product.price,  # Keep as Decimal for DTO
         )

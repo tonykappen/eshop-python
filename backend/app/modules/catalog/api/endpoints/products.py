@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from app.core.auth.rbac import require_command_access, require_query_access
 from app.core.contracts.cqrs import ICommand
@@ -40,12 +40,13 @@ class GetProductRequest(BaseRequest):
 
 
 class CreateProductRequest(BaseRequest):
-    """HTTP request for creating a new product."""
+    """HTTP request for creating a new product - matches .NET CreateProductRequest."""
 
     name: str = Field(..., description="Product name")
     description: str = Field(..., description="Product description")
     price: float = Field(..., gt=0, description="Product price")
     picture_url: str = Field(..., description="Product picture URL")
+    category: list[str] = Field(..., description="Product categories")
 
 
 class UpdateProductRequest(BaseRequest):
@@ -54,7 +55,7 @@ class UpdateProductRequest(BaseRequest):
     name: str = Field(..., description="Product name")
     description: str = Field(..., description="Product description")
     price: float = Field(..., gt=0, description="Product price")
-    image_file: str = Field(..., description="Product image file path")
+    picture_url: str = Field(..., description="Product picture URL")
     category: list[str] = Field(..., description="Product categories")
 
 
@@ -72,6 +73,12 @@ class ProductResponse(DataResponse[ProductDto]):
     pass
 
 
+class CreateProductResponse(BaseModel):
+    """HTTP response for product creation - matches .NET CreateProductResponse."""
+
+    id: UUID = Field(..., description="Created product ID")
+
+
 class ProductsResponse(PaginatedResponse[ProductDto]):
     """HTTP response containing multiple products with pagination."""
 
@@ -79,30 +86,13 @@ class ProductsResponse(PaginatedResponse[ProductDto]):
 
 
 # Commands (CQRS layer - will be implemented)
-class CreateProductCommand(ICommand[dict]):
-    """Command to create a new product."""
-
-    name: str
-    description: str
-    price: float
-    image_file: str  # Changed from picture_url to match domain model
+# Import the actual command from the handler
+from app.modules.catalog.application.handlers.create_product_handler import CreateProductCommand
 
 
-class UpdateProductCommand(ICommand[dict]):
-    """Command to update an existing product."""
-
-    id: UUID
-    name: str
-    description: str
-    price: float
-    image_file: str
-    category: list[str]
-
-
-class DeleteProductCommand(ICommand[dict]):
-    """Command to delete a product."""
-
-    product_id: UUID
+# Import the actual commands from the handlers
+from app.modules.catalog.application.handlers.update_product_handler import UpdateProductCommand
+from app.modules.catalog.application.handlers.delete_product_handler import DeleteProductCommand
 
 
 # Dependency for mediator - matches .NET ISender dependency injection
@@ -143,45 +133,62 @@ async def get_product_by_id(
     Demonstrates: HTTP Request -> Query -> Result -> HTTP Response
     RBAC: Requires query access (admin, manager, user roles)
     """
-    # Create the HTTP request model
-    request_model = GetProductRequest(product_id=product_id)
+    # Create the query directly
+    query = GetProductByIdQuery(id=product_id)
 
     # Create query endpoint using factory
     endpoint: Any = factory.create_query_endpoint(
-        query_factory=GetProductByIdQuery,
+        query_factory=lambda: query,
         result_mapper=None,  # Will use default DataResponse mapper
     )
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(request, request_model)
+    response = await endpoint.execute(request, query)
 
     return response  # type: ignore
 
 
-@router.post("/", response_model=ProductResponse)
+@router.post("/", response_model=CreateProductResponse, status_code=201)
 async def create_product(
     request: CreateProductRequest,
     http_request: Request,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Command access required (admin, manager only)
     _: Any = Depends(require_command_access()),
-) -> ProductResponse:
+) -> CreateProductResponse:
     """
-    Create a new product.
+    Create a new product - matches .NET CreateProductEndpoint.
 
     Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
     RBAC: Requires command access (admin, manager roles only)
     """
+    # Create ProductDto from request
+    from app.modules.catalog.contracts.products.dtos import ProductDto
+    from decimal import Decimal
+    
+    product_dto = ProductDto(
+        name=request.name,
+        description=request.description,
+        price=Decimal(str(request.price)),
+        picture_url=request.picture_url,
+        category=request.category
+    )
+    
+    # Create command with the product DTO
+    command = CreateProductCommand(product=product_dto)
+    
     # Create command endpoint using factory
     endpoint: Any = factory.create_command_endpoint(
-        command_factory=CreateProductCommand,
+        command_factory=lambda: command,
         result_mapper=None,  # Will use default response mapper
     )
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(http_request, request)
+    response = await endpoint.execute(http_request, command)
 
-    return response  # type: ignore
+    # Extract the result and return CreateProductResponse
+    result = response.data  # This will be CreateProductResult
+    return CreateProductResponse(id=result.id)
 
 
 @router.get("/", response_model=ProductsResponse)
@@ -235,18 +242,25 @@ async def update_product(
     Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
     RBAC: Requires command access (admin, manager roles only)
     """
+    # Create the command with the product_id from the path
+    from app.modules.catalog.application.handlers.update_product_handler import UpdateProductCommand
+    command = UpdateProductCommand(
+        id=product_id,
+        name=request.name,
+        description=request.description,
+        price=request.price,
+        picture_url=request.picture_url,
+        category=request.category
+    )
+
     # Create command endpoint using factory
     endpoint: Any = factory.create_command_endpoint(
-        command_factory=UpdateProductCommand,
+        command_factory=lambda: command,
         result_mapper=None,  # Will use default response mapper
     )
 
-    # Add product ID to the request
-    request_dict = request.model_dump()
-    request_dict["id"] = product_id
-
     # Execute the REPR pattern flow
-    response = await endpoint.execute(http_request, request_dict)
+    response = await endpoint.execute(http_request, command)
 
     return response  # type: ignore
 
@@ -265,17 +279,18 @@ async def delete_product(
     Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
     RBAC: Requires command access (admin role only)
     """
+    # Create the command with the product_id from the path
+    from app.modules.catalog.application.handlers.delete_product_handler import DeleteProductCommand
+    command = DeleteProductCommand(product_id=product_id)
+
     # Create command endpoint using factory
     endpoint: Any = factory.create_command_endpoint(
-        command_factory=DeleteProductCommand,
+        command_factory=lambda: command,
         result_mapper=None,  # Will use default response mapper
     )
 
-    # Create command data
-    command_data = {"product_id": product_id}
-
     # Execute the REPR pattern flow
-    response = await endpoint.execute(http_request, command_data)
+    response = await endpoint.execute(http_request, command)
 
     return response  # type: ignore
 
@@ -300,3 +315,42 @@ class CustomGetProductRequestMapper:
             pass
 
         return query
+
+
+# Test endpoint without authentication for debugging
+@router.post("/test-create", response_model=CreateProductResponse, status_code=201)
+async def test_create_product(
+    request: CreateProductRequest,
+    http_request: Request,
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+) -> CreateProductResponse:
+    """
+    Test endpoint for creating a product without authentication.
+    """
+    # Create ProductDto from request
+    from app.modules.catalog.contracts.products.dtos import ProductDto
+    from decimal import Decimal
+    
+    product_dto = ProductDto(
+        name=request.name,
+        description=request.description,
+        price=Decimal(str(request.price)),
+        picture_url=request.picture_url,
+        category=request.category
+    )
+    
+    # Create command with the product DTO
+    command = CreateProductCommand(product=product_dto)
+    
+    # Create command endpoint using factory
+    endpoint: Any = factory.create_command_endpoint(
+        command_factory=lambda: command,
+        result_mapper=None,  # Will use default response mapper
+    )
+
+    # Execute the REPR pattern flow
+    response = await endpoint.execute(http_request, command)
+
+    # Extract the result and return CreateProductResponse
+    result = response.data  # This will be CreateProductResult
+    return CreateProductResponse(id=result.id)

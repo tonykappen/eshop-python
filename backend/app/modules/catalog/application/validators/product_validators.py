@@ -17,11 +17,13 @@ class CreateProductCommandValidator(AbstractValidator[CreateProductCommand]):
         self._setup_rules()
 
     def _setup_rules(self) -> None:
-        """Setup validation rules for CreateProductCommand."""
+        """Setup validation rules for CreateProductCommand - matches .NET validation rules."""
         self.rule_for("product").not_empty("Product is required")
-        
-        # Note: In a real implementation, we'd validate the ProductDto fields
-        # For now, we'll validate the command structure
+        self.rule_for("product.name").not_empty("Product name is required")
+        self.rule_for("product.description").not_empty("Product description is required")
+        self.rule_for("product.price").greater_than(0, "Product price must be greater than 0")
+        self.rule_for("product.picture_url").not_empty("Product picture URL is required")
+        self.rule_for("product.category").not_empty("Product category is required")
 
 
 class UpdateProductCommandValidator(AbstractValidator[UpdateProductCommand]):
@@ -34,10 +36,12 @@ class UpdateProductCommandValidator(AbstractValidator[UpdateProductCommand]):
 
     def _setup_rules(self) -> None:
         """Setup validation rules for UpdateProductCommand."""
-        self.rule_for("product").not_empty("Product is required")
-        
-        # Note: In a real implementation, we'd validate the ProductDto fields
-        # For now, we'll validate the command structure
+        self.rule_for("id").not_empty("Id is required")
+        self.rule_for("name").not_empty("Name is required")
+        self.rule_for("description").not_empty("Description is required")
+        self.rule_for("price").greater_than(0, "Price must be greater than 0")
+        self.rule_for("picture_url").not_empty("Picture URL is required")
+        self.rule_for("category").not_empty("Category is required")
 
 
 class DeleteProductCommandValidator(AbstractValidator[DeleteProductCommand]):

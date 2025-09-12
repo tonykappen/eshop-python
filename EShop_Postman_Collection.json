@@ -483,12 +483,61 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product\",\n    \"price\": 99.99,\n    \"category\": \"Electronics\",\n    \"stock_quantity\": 100\n}"
+							"raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product\",\n    \"price\": 99.99,\n    \"picture_url\": \"https://example.com/image.jpg\",\n    \"category\": [\"Electronics\"]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/products/",
 							"host": ["{{base_url}}"],
 							"path": ["api", "v1", "products", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Product\",\n    \"description\": \"An updated test product\",\n    \"price\": 149.99,\n    \"picture_url\": \"https://example.com/updated-image.jpg\",\n    \"category\": [\"Electronics\", \"Updated\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{product_id}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{product_id}"],
+							"variable": [
+								{
+									"key": "product_id",
+									"value": "123e4567-e89b-12d3-a456-426614174000",
+									"description": "Product ID to update"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{product_id}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{product_id}"],
+							"variable": [
+								{
+									"key": "product_id",
+									"value": "123e4567-e89b-12d3-a456-426614174000",
+									"description": "Product ID to delete"
+								}
+							]
 						}
 					},
 					"response": []
@@ -571,7 +620,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"RBAC Test Product\",\n    \"description\": \"Testing RBAC permissions\",\n    \"price\": 49.99,\n    \"category\": \"Test\",\n    \"stock_quantity\": 50\n}"
+							"raw": "{\n    \"name\": \"RBAC Test Product\",\n    \"description\": \"Testing RBAC permissions\",\n    \"price\": 49.99,\n    \"picture_url\": \"https://example.com/rbac-test.jpg\",\n    \"category\": [\"Test\"]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/products/",

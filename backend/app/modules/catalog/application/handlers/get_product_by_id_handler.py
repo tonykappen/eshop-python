@@ -52,7 +52,7 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
             name=product.name,
             category=product.category,
             description=product.description,
-            image_file=product.image_file,
+            picture_url=product.image_file,  # Map image_file to picture_url
             price=product.price,
         )
 

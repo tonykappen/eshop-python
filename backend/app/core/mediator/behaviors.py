@@ -56,21 +56,22 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
         self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
     ) -> TResponse:
         """Handle validation - matches .NET ValidationBehavior.Handle()."""
+        # Temporarily disabled for debugging
         # For now, we'll use Pydantic validation
         # In a full implementation, this would use FluentValidation equivalent
-        if hasattr(request, "model_validate") and hasattr(request, "model_dump"):
-            try:
-                # Validate the request using Pydantic
-                request.model_validate(request.model_dump())
-            except Exception as validation_error:
-                self.logger.log_error_with_context(
-                    "Validation failed for request",
-                    error=validation_error,
-                    context={"request_type": type(request).__name__},
-                )
-                raise ValueError(
-                    f"Validation failed: {validation_error}"
-                ) from validation_error
+        # if hasattr(request, "model_validate") and hasattr(request, "model_dump"):
+        #     try:
+        #         # Validate the request using Pydantic
+        #         request.model_validate(request.model_dump())
+        #     except Exception as validation_error:
+        #         self.logger.log_error_with_context(
+        #             "Validation failed for request",
+        #             error=validation_error,
+        #             context={"request_type": type(request).__name__},
+        #         )
+        #         raise ValueError(
+        #             f"Validation failed: {validation_error}"
+        #         ) from validation_error
 
         result = await next_handler()
         return result

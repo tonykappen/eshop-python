@@ -18,8 +18,13 @@ from app.modules.catalog.domain.models import Product
 class UpdateProductCommand:
     """Command to update an existing product - matches .NET UpdateProductCommand."""
 
-    def __init__(self, product: ProductDto) -> None:
-        self.product = product
+    def __init__(self, id: UUID, name: str, description: str, price: float, picture_url: str, category: list[str]) -> None:
+        self.id = id
+        self.name = name
+        self.description = description
+        self.price = price
+        self.picture_url = picture_url
+        self.category = category
 
 
 class UpdateProductResult:
@@ -44,22 +49,22 @@ class UpdateProductCommandValidator:
         """
         errors = []
         
-        if not command.product.id:
+        if not command.id:
             errors.append("Id is required")
             
-        if not command.product.name or not command.product.name.strip():
+        if not command.name or not command.name.strip():
             errors.append("Name is required")
             
-        if command.product.price <= 0:
+        if command.price <= 0:
             errors.append("Price must be greater than 0")
             
-        if not command.product.description or not command.product.description.strip():
+        if not command.description or not command.description.strip():
             errors.append("Description is required")
             
-        if not command.product.image_file or not command.product.image_file.strip():
-            errors.append("Image file is required")
+        if not command.picture_url or not command.picture_url.strip():
+            errors.append("Picture URL is required")
             
-        if not command.product.category:
+        if not command.category:
             errors.append("At least one category is required")
             
         return errors
@@ -102,13 +107,13 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
         cancellation_token.throw_if_cancellation_requested()
 
         # Find the product
-        product = await self._find_product_by_id(command.product.id, cancellation_token)
+        product = await self._find_product_by_id(command.id, cancellation_token)
         
         if product is None:
-            raise ProductNotFoundError(command.product.id)
+            raise ProductNotFoundError(command.id)
 
         # Update product with new values
-        self._update_product_with_new_values(product, command.product)
+        self._update_product_with_new_values(product, command)
 
         # Save to database
         await self._save_to_database(product, cancellation_token)
@@ -149,21 +154,21 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 message="Failed to find product in database", details=str(e)
             ) from e
 
-    def _update_product_with_new_values(self, product: Product, product_dto: ProductDto) -> None:
+    def _update_product_with_new_values(self, product: Product, command: UpdateProductCommand) -> None:
         """
         Update product with new values - matches .NET UpdateProductWithNewValues method.
         
         Args:
             product: Product entity to update
-            product_dto: DTO with new values
+            command: Update command with new values
         """
         try:
             product.update(
-                name=product_dto.name,
-                category=product_dto.category,
-                description=product_dto.description,
-                image_file=product_dto.image_file,
-                price=product_dto.price,
+                name=command.name,
+                category=command.category,
+                description=command.description,
+                image_file=command.picture_url,  # Map picture_url to image_file for domain model
+                price=command.price,
             )
         except Exception as e:
             raise ProductValidationError(f"Failed to update product: {str(e)}") from e

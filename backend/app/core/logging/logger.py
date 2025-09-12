@@ -10,6 +10,7 @@ from datetime import datetime, UTC
 
 import structlog
 from structlog.stdlib import LoggerFactory
+from app.core.logging.base_logger import LogFormatters
 
 # Try to import httpx for SEQ HTTP transport
 try:
@@ -77,29 +78,25 @@ def configure_logging(
     # Console handler (enabled by default)
     if enable_console:
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(logging.Formatter("%(message)s"))
+        console_handler.setFormatter(LogFormatters.get_console_formatter())
         handlers.append(console_handler)
 
     # File handlers if enabled
     if enable_file_logging:
         # Application logs
         app_handler = logging.FileHandler(f"{log_directory}/app.log")
-        app_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
+        app_handler.setFormatter(LogFormatters.get_standard_formatter())
 
         # Error logs
         error_handler = logging.FileHandler(f"{log_directory}/error.log")
         error_handler.setLevel(logging.ERROR)
-        error_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
+        error_handler.setFormatter(LogFormatters.get_standard_formatter())
 
         handlers.extend([app_handler, error_handler])
 
     # Configure standard library logging
     logging.basicConfig(
-        format="%(message)s",
+        format=LogFormatters.CONSOLE,
         level=getattr(logging, log_level.upper()),
         handlers=handlers,
     )
@@ -110,16 +107,12 @@ def configure_logging(
         uvicorn_access_handler = logging.FileHandler(
             f"{log_directory}/uvicorn_access.log"
         )
-        uvicorn_access_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        )
+        uvicorn_access_handler.setFormatter(LogFormatters.get_uvicorn_formatter())
 
         uvicorn_error_handler = logging.FileHandler(
             f"{log_directory}/uvicorn_error.log"
         )
-        uvicorn_error_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        )
+        uvicorn_error_handler.setFormatter(LogFormatters.get_uvicorn_formatter())
 
         # Configure uvicorn loggers
         uvicorn_access_logger = logging.getLogger("uvicorn.access")

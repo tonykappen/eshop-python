@@ -9,10 +9,10 @@ from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.fastapi_integration import configure_mediator
 
 
-async def configure_application_startup() -> None:
-    """Configure application startup sequence."""
+async def initialize_logging() -> None:
+    """Initialize and configure application logging."""
     logger = BaseLogger("initialization")
-    logger.log_with_context("Configuring eShop Modular Monolith application", "info")
+    logger.log_with_context("Initializing logging configuration", "info")
 
     # Configure logging first
     configure_logging(
@@ -96,12 +96,45 @@ async def initialize_mediator() -> None:
 
 
 async def cleanup_dependency_injection() -> None:
-    """Cleanup dependency injection container."""
+    """Cleanup dependency injection container and associated resources."""
     logger = BaseLogger("initialization")
     logger.log_with_context("Cleaning up dependency injection container", "info")
 
     global _app_container
     if _app_container:
-        # Perform any necessary cleanup
-        # container.unwire()
-        logger.log_with_context("Dependency injection container cleanup completed", "info")
+        try:
+            # Unwire the container to release any wired dependencies
+            _app_container.unwire()
+            logger.log_with_context("Container unwired successfully", "info")
+            
+            # Clear any cached instances in providers
+            for provider_name, provider in _app_container.providers.items():
+                if hasattr(provider, 'reset'):
+                    provider.reset()
+                    logger.log_debug_with_context(f"Reset provider: {provider_name}")
+            
+            # Clear the global container reference
+            _app_container = None
+            logger.log_with_context("Dependency injection container cleanup completed", "info")
+            
+        except Exception as e:
+            logger.log_error_with_context(
+                "Error during container cleanup",
+                error=e,
+                context={"container_available": _app_container is not None}
+            )
+            # Still clear the reference even if cleanup fails
+            _app_container = None
+    else:
+        logger.log_with_context("No container to cleanup", "info")
+    
+    # Cleanup database resources
+    try:
+        from app.core.database.session import close_db_engine
+        await close_db_engine()
+        logger.log_with_context("Database engine closed successfully", "info")
+    except Exception as e:
+        logger.log_error_with_context(
+            "Error during database cleanup",
+            error=e
+        )

@@ -140,17 +140,17 @@ class LifecycleManager:
                     timeout=self.shutdown_timeout,
                 )
             except TimeoutError:
-                logger.error(
+                logger.log_error_with_context(
                     f"⏰ Shutdown timeout ({self.shutdown_timeout}s) exceeded, forcing exit"
                 )
                 for callback_name, task in shutdown_tasks:
                     if not task.done():
-                        logger.warning(
+                        logger.log_warning_with_context(
                             f"Force cancelling shutdown task: {callback_name}"
                         )
                         task.cancel()
 
-        logger.info("✅ Graceful shutdown completed")
+        logger.log_with_context("✅ Graceful shutdown completed", "info")
 
     async def _execute_shutdown_tasks(
         self, shutdown_tasks: list[tuple[str, asyncio.Task[None]]]
@@ -159,11 +159,12 @@ class LifecycleManager:
         for callback_name, task in shutdown_tasks:
             try:
                 await task
-                logger.info(
-                    f"✅ Shutdown callback {callback_name} completed successfully"
+                logger.log_with_context(
+                    f"✅ Shutdown callback {callback_name} completed successfully",
+                    "info"
                 )
             except asyncio.CancelledError:
-                logger.warning(f"⚠️ Shutdown callback {callback_name} was cancelled")
+                logger.log_warning_with_context(f"⚠️ Shutdown callback {callback_name} was cancelled")
             except Exception as e:
                 logger.log_error_with_context(
                     "❌ Shutdown callback failed",

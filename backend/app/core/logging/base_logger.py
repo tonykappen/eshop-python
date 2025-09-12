@@ -7,6 +7,34 @@ from typing import Any, Dict, Optional
 import structlog
 
 
+class LogFormatters:
+    """Standardized log formatters for consistent logging across the application."""
+    
+    # Standard formatter with timestamp, logger name, level, and message
+    STANDARD = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # Simplified formatter for uvicorn logs (no logger name)
+    UVICORN = "%(asctime)s - %(levelname)s - %(message)s"
+    
+    # Console formatter (message only)
+    CONSOLE = "%(message)s"
+    
+    @classmethod
+    def get_standard_formatter(cls) -> logging.Formatter:
+        """Get a standard formatter instance."""
+        return logging.Formatter(cls.STANDARD)
+    
+    @classmethod
+    def get_uvicorn_formatter(cls) -> logging.Formatter:
+        """Get a uvicorn formatter instance."""
+        return logging.Formatter(cls.UVICORN)
+    
+    @classmethod
+    def get_console_formatter(cls) -> logging.Formatter:
+        """Get a console formatter instance."""
+        return logging.Formatter(cls.CONSOLE)
+
+
 class BaseLogger:
     """Base class providing standardized logging methods and structures."""
 

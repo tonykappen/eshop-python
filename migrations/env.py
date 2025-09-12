@@ -2,18 +2,25 @@
 
 import asyncio
 from logging.config import fileConfig
-
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from alembic import context
 
 # Import all models to ensure they are registered with SQLAlchemy
-from app.core.database.base import Base
-from app.modules.catalog.infrastructure.orm_models import *
+from backend.app.core.database.base import Base
+
+# Import catalog models
+from backend.app.modules.catalog.infrastructure.orm_models import (
+    ProductORM,
+    CatalogItemORM,
+    CatalogCategoryORM,
+    CatalogBrandORM,
+)
+
 # TODO: Add basket and ordering ORM models when implemented
-# from app.modules.basket.infrastructure.orm_models import *
-# from app.modules.ordering.infrastructure.orm_models import *
+# from backend.app.modules.basket.infrastructure.orm_models import *
+# from backend.app.modules.ordering.infrastructure.orm_models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -91,7 +98,15 @@ def run_migrations_online() -> None:
 
     """
 
-    asyncio.run(run_async_migrations())
+    # Use sync version to avoid async issues
+    from sqlalchemy import create_engine
+    from alembic import context
+    
+    engine = create_engine(config.get_main_option("sqlalchemy.url"))
+    with engine.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 if context.is_offline_mode():

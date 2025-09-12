@@ -2,7 +2,6 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,12 +9,12 @@ from fastapi_pagination import add_pagination
 
 from app.api.auth_proxy import router as auth_proxy_router
 from app.config.settings import settings
-from app.core.auth.keycloak import KeycloakUser, add_keycloak_routes, get_current_user
+from app.core.auth.keycloak import KeycloakUser, get_current_user
 from app.core.exceptions.handler import add_exception_handlers
 from app.core.health.health_endpoints import health_router
 from app.core.initialization import (
     cleanup_dependency_injection,
-    configure_application_startup,
+    initialize_logging,
     get_app_container,
     initialize_dependency_injection,
     initialize_mediator,
@@ -38,9 +37,6 @@ from app.core.middleware.auth_middleware import add_auth_middleware
 from app.modules.catalog.api.router import router as catalog_router
 
 
-
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager with graceful startup and shutdown."""
@@ -58,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 # Register lifecycle callbacks for graceful startup and shutdown
-register_startup_callback(configure_application_startup)
+register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)
 register_startup_callback(initialize_mediator)
 register_startup_callback(database_handler.startup)

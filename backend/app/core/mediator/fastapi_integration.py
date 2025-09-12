@@ -17,9 +17,8 @@ def configure_mediator() -> None:
     # Create handler registry
     handler_registry = HandlerRegistry()
 
-    # Register catalog handlers manually for now
-    # TODO: Implement automatic handler discovery
-    _register_catalog_handlers(handler_registry)
+    # Register module handlers
+    _register_module_handlers(handler_registry)
 
     # Create mediator
     mediator = Mediator(handler_registry)
@@ -29,27 +28,19 @@ def configure_mediator() -> None:
     _services["handler_registry"] = handler_registry
 
 
-def _register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
-    """Register catalog module handlers manually."""
-    from app.modules.catalog.application.handlers.create_product_handler import (
-        CreateProductCommand,
-        CreateProductHandler,
+def _register_module_handlers(handler_registry: HandlerRegistry) -> None:
+    """Register all module handlers."""
+    # Register catalog module handlers
+    from app.modules.catalog.application.handlers.catalog_handler_registration import (
+        register_catalog_handlers,
     )
-    from app.modules.catalog.application.handlers.get_product_by_id_handler import (
-        GetProductByIdHandler,
-    )
-    from app.modules.catalog.application.handlers.get_products_handler import (
-        GetProductsHandler,
-        GetProductsQuery,
-    )
-    from app.modules.catalog.contracts.products.features.get_product_by_id import (
-        GetProductByIdQuery,
-    )
-
-    # Register handlers with their corresponding query/command types
-    handler_registry.register_handler(GetProductByIdQuery, GetProductByIdHandler(None))
-    handler_registry.register_handler(GetProductsQuery, GetProductsHandler(None))
-    handler_registry.register_handler(CreateProductCommand, CreateProductHandler(None))
+    register_catalog_handlers(handler_registry)
+    
+    # TODO: Register other module handlers as they are implemented
+    # from app.modules.basket.application.handlers.basket_handler_registration import register_basket_handlers
+    # from app.modules.ordering.application.handlers.ordering_handler_registration import register_ordering_handlers
+    # register_basket_handlers(handler_registry)
+    # register_ordering_handlers(handler_registry)
 
 
 def get_mediator() -> Mediator:

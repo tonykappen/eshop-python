@@ -117,7 +117,7 @@ async def get_product_by_id(
     RBAC: Requires query access (admin, manager, user roles)
     """
     # Create the HTTP request model
-    http_request = GetProductRequest(product_id=product_id)
+    request_model = GetProductRequest(product_id=product_id)
 
     # Create query endpoint using factory
     endpoint: Any = factory.create_query_endpoint(
@@ -126,15 +126,15 @@ async def get_product_by_id(
     )
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(request, http_request)
+    response = await endpoint.execute(request, request_model)
 
     return response  # type: ignore
 
 
 @router.post("/", response_model=ProductResponse)
 async def create_product(
-    product_data: CreateProductRequest,
-    request: Request,
+    request: CreateProductRequest,
+    http_request: Request,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Command access required (admin, manager only)
     _: Any = Depends(require_command_access()),
@@ -152,14 +152,14 @@ async def create_product(
     )
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(request, product_data)
+    response = await endpoint.execute(http_request, request)
 
     return response  # type: ignore
 
 
 @router.get("/", response_model=ProductsResponse)
 async def get_products(
-    request: Request,
+    http_request: Request,
     page: int = 1,
     page_size: int = 10,
     category_id: UUID | None = None,
@@ -175,7 +175,7 @@ async def get_products(
     RBAC: Requires query access (admin, manager, user roles)
     """
     # Create the HTTP request model
-    http_request = GetProductsRequest(
+    request = GetProductsRequest(
         page=page, page_size=page_size, category_id=category_id, search_term=search_term
     )
 
@@ -188,7 +188,7 @@ async def get_products(
     )
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(request, http_request)
+    response = await endpoint.execute(http_request, request)
 
     return response  # type: ignore
 

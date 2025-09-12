@@ -3,21 +3,25 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
+from typing import Any
 
 from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging.base_logger import BaseLogger
 
 
 class CancellationToken:
-    """Cancellation token equivalent to .NET CancellationToken."""
+    """Cancellation token equivalent to .NET CancellationToken with SQLAlchemy integration."""
 
-    def __init__(self, request: Request | None = None) -> None:
-        """Initialize cancellation token."""
+    def __init__(self, request: Request | None = None, session: AsyncSession | None = None) -> None:
+        """Initialize cancellation token with optional database session."""
         self._request = request
+        self._session = session
         self._cancelled = False
         self._logger = BaseLogger(__name__)
         self._monitor_task: asyncio.Task[None] | None = None
+        self._rollback_callbacks: list[callable] = []
 
         # Create a task to monitor request disconnection
         if request:
@@ -63,16 +67,79 @@ class CancellationToken:
             await asyncio.sleep(0.1)
 
     def cancel(self) -> None:
-        """Manually cancel the token."""
+        """Manually cancel the token and trigger rollback."""
         self._cancelled = True
         self._logger.log_debug_with_context("Cancellation token manually cancelled")
+        # Trigger rollback callbacks immediately
+        asyncio.create_task(self._execute_rollback_callbacks())
 
     async def cleanup(self) -> None:
-        """Clean up monitoring task."""
+        """Clean up monitoring task and execute rollback if cancelled."""
+        if self._cancelled:
+            await self._execute_rollback_callbacks()
+        
         if self._monitor_task and not self._monitor_task.done():
             self._monitor_task.cancel()
             with suppress(asyncio.CancelledError):
                 await self._monitor_task
+
+    def register_rollback_callback(self, callback: callable) -> None:
+        """Register a callback to be executed on cancellation for rollback."""
+        self._rollback_callbacks.append(callback)
+
+    async def _execute_rollback_callbacks(self) -> None:
+        """Execute all registered rollback callbacks."""
+        for callback in self._rollback_callbacks:
+            try:
+                if asyncio.iscoroutinefunction(callback):
+                    await callback()
+                else:
+                    callback()
+            except Exception as e:
+                self._logger.log_error_with_context(
+                    "Error executing rollback callback",
+                    error=e,
+                    context={"callback": str(callback)}
+                )
+
+    async def execute_with_rollback(self, operation: callable) -> Any:
+        """Execute an operation with automatic rollback on cancellation."""
+        try:
+            # Register session rollback if session is available
+            if self._session:
+                self.register_rollback_callback(self._rollback_session)
+            
+            # Execute the operation
+            if asyncio.iscoroutinefunction(operation):
+                return await operation()
+            else:
+                return operation()
+                
+        except Exception as e:
+            # If operation fails, trigger rollback
+            if self._session:
+                await self._rollback_session()
+            raise
+
+    async def _rollback_session(self) -> None:
+        """Rollback the associated database session."""
+        if self._session:
+            try:
+                await self._session.rollback()
+                self._logger.log_debug_with_context("Database session rolled back due to cancellation")
+            except Exception as e:
+                self._logger.log_error_with_context(
+                    "Error rolling back database session",
+                    error=e
+                )
+
+    def get_session(self) -> AsyncSession | None:
+        """Get the associated database session."""
+        return self._session
+
+    def set_session(self, session: AsyncSession) -> None:
+        """Set the database session for this cancellation token."""
+        self._session = session
 
 
 class CancellationError(Exception):
@@ -84,21 +151,40 @@ class CancellationError(Exception):
 @asynccontextmanager
 async def create_cancellation_token(
     request: Request | None = None,
+    session: AsyncSession | None = None,
 ) -> AsyncGenerator[CancellationToken, None]:
     """Create a cancellation token context manager."""
-    token = CancellationToken(request)
+    token = CancellationToken(request, session)
     try:
         yield token
     finally:
         await token.cleanup()
 
 
-def get_cancellation_token(request: Request) -> CancellationToken:
+@asynccontextmanager
+async def create_cancellation_token_with_session(
+    request: Request,
+    session: AsyncSession,
+) -> AsyncGenerator[CancellationToken, None]:
+    """Create a cancellation token context manager with database session for automatic rollback."""
+    token = CancellationToken(request, session)
+    try:
+        yield token
+    finally:
+        await token.cleanup()
+
+
+def get_cancellation_token(request: Request, session: AsyncSession | None = None) -> CancellationToken:
     """Get cancellation token from FastAPI request - matches .NET dependency injection pattern."""
-    return CancellationToken(request)
+    return CancellationToken(request, session)
+
+
+def get_cancellation_token_with_session(request: Request, session: AsyncSession) -> CancellationToken:
+    """Get cancellation token with database session for automatic rollback."""
+    return CancellationToken(request, session)
 
 
 # Global cancellation token for operations not tied to HTTP requests
-def get_global_cancellation_token() -> CancellationToken:
+def get_global_cancellation_token(session: AsyncSession | None = None) -> CancellationToken:
     """Get global cancellation token for background operations."""
-    return CancellationToken()
+    return CancellationToken(session=session)

@@ -3,8 +3,9 @@
 from typing import Any
 
 from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from .cancellation import CancellationToken, get_cancellation_token
+from .cancellation import CancellationToken, get_cancellation_token, get_cancellation_token_with_session
 from .handler_registry import HandlerRegistry
 from .mediator import Mediator
 
@@ -75,3 +76,10 @@ def get_handler_registry_dependency() -> HandlerRegistry:
 def get_cancellation_token_dependency(request: Request) -> CancellationToken:
     """FastAPI dependency for cancellation token - matches .NET CancellationToken injection."""
     return get_cancellation_token(request)
+
+
+def get_cancellation_token_with_session_dependency(
+    request: Request, session: AsyncSession
+) -> CancellationToken:
+    """FastAPI dependency for cancellation token with database session for automatic rollback."""
+    return get_cancellation_token_with_session(request, session)

@@ -1,30 +1,23 @@
-"""Catalog module router."""
+"""Catalog module router - updated to use new DDD structure."""
 
 from fastapi import APIRouter
-
-from app.modules.catalog.api.endpoints import products
+from app.core.di.container import Container
+from app.core.mediator.mediator import Mediator
+from .catalog_module import register_catalog_module
 
 # Create the main catalog router
 router = APIRouter()
 
 
-# Add a simple test endpoint
-@router.get("/test")
-async def test_catalog() -> dict[str, str]:
-    """Test endpoint to verify catalog router is working."""
-    return {"message": "Catalog router is working!"}
-
-
-# Add a simple RBAC test endpoint
-@router.get("/rbac-test")
-async def test_rbac() -> dict[str, str]:
-    """Test endpoint to verify RBAC is working."""
-    return {
-        "message": "RBAC test endpoint - UPDATED",
-        "description": "This endpoint tests RBAC functionality",
-        "status": "working",
-    }
-
-
-# Include product endpoints
-router.include_router(products.router)
+def create_catalog_router(container: Container, mediator: Mediator) -> APIRouter:
+    """
+    Create catalog router with proper DDD structure.
+    
+    Args:
+        container: Dependency injection container
+        mediator: Mediator for CQRS operations
+        
+    Returns:
+        FastAPI router for the catalog module
+    """
+    return register_catalog_module(container, mediator)

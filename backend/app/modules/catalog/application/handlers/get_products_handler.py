@@ -11,6 +11,8 @@ from app.core.mediator.handler_registry import IRequestHandler
 from app.core.pagination.models import PaginatedResult
 from app.modules.catalog.contracts.products.dtos import ProductDto
 from app.modules.catalog.domain.models import Product
+from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.core.database.session import AsyncSessionLocal
 
 
 class GetProductsQuery(IQuery[PaginatedResult[ProductDto]]):
@@ -27,9 +29,9 @@ class GetProductsHandler(
 ):
     """Handler for GetProductsQuery - provides paginated product listing."""
 
-    def __init__(self, db_context: Any) -> None:  # type: ignore
-        """Initialize handler with database context."""
-        self.db_context = db_context
+    def __init__(self) -> None:
+        """Initialize handler."""
+        pass
 
     async def handle(
         self, query: GetProductsQuery, cancellation_token: CancellationToken
@@ -47,114 +49,39 @@ class GetProductsHandler(
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Get products with pagination and filtering
-        return await self._get_products_paginated(query, cancellation_token)
+        # Use real database repository
+        async with AsyncSessionLocal() as session:
+            repository = ProductRepository(session)
+            
+            # Get products based on filters
+            if query.search_term:
+                products, total_count = await repository.search(
+                    query.search_term, query.page, query.page_size
+                )
+            elif query.category_id:
+                # For now, we'll use category name instead of ID
+                # In a real implementation, you'd have a category lookup
+                products, total_count = await repository.get_by_category(
+                    str(query.category_id), query.page, query.page_size
+                )
+            else:
+                products, total_count = await repository.get_all(
+                    query.page, query.page_size
+                )
+            
+            # Convert to DTOs
+            product_dtos = [self._map_to_dto(product) for product in products]
+            
+            total_pages = (total_count + query.page_size - 1) // query.page_size
+            return PaginatedResult(
+                items=product_dtos,
+                total=total_count,
+                page=query.page,
+                size=query.page_size,
+                pages=total_pages,
+            )
 
-    async def _get_products_paginated(
-        self, query: GetProductsQuery, cancellation_token: CancellationToken
-    ) -> PaginatedResult[ProductDto]:
-        """
-        Get products with pagination and filtering from database.
 
-        Args:
-            query: Query parameters
-            cancellation_token: Cancellation token
-
-        Returns:
-            Paginated result of products
-        """
-        # This is a simplified implementation - in real code, you'd use SQLAlchemy
-        # Check for cancellation
-        cancellation_token.throw_if_cancellation_requested()
-
-        # Simulate database query with pagination
-        await asyncio.sleep(0.01)  # Simulate database call
-
-        # Mock data for demonstration
-        mock_products = await self._create_mock_products()
-
-        # Apply filtering
-        filtered_products = self._apply_filters(mock_products, query)
-
-        # Apply pagination
-        total_count = len(filtered_products)
-        start_index = (query.page - 1) * query.page_size
-        end_index = start_index + query.page_size
-        page_products = filtered_products[start_index:end_index]
-
-        # Convert to DTOs
-        product_dtos = [self._map_to_dto(product) for product in page_products]
-
-        total_pages = (total_count + query.page_size - 1) // query.page_size
-        return PaginatedResult(
-            items=product_dtos,
-            total=total_count,
-            page=query.page,
-            size=query.page_size,
-            pages=total_pages,
-        )
-
-    async def _create_mock_products(self) -> list[Product]:
-        """Create mock products for demonstration."""
-        from uuid import uuid4
-
-        return [
-            Product.create(
-                product_id=uuid4(),
-                name="Laptop Computer",
-                category=["Electronics"],
-                description="High-performance laptop for work and gaming",
-                image_file="laptop.jpg",
-                price=Decimal("999.99"),
-            ),
-            Product.create(
-                product_id=uuid4(),
-                name="Wireless Mouse",
-                category=["Electronics"],
-                description="Ergonomic wireless mouse with precision tracking",
-                image_file="mouse.jpg",
-                price=Decimal("29.99"),
-            ),
-            Product.create(
-                product_id=uuid4(),
-                name="Office Chair",
-                category=["Furniture"],
-                description="Comfortable ergonomic office chair",
-                image_file="chair.jpg",
-                price=Decimal("249.99"),
-            ),
-            Product.create(
-                product_id=uuid4(),
-                name="Coffee Mug",
-                category=["Kitchen"],
-                description="Ceramic coffee mug with handle",
-                image_file="mug.jpg",
-                price=Decimal("12.99"),
-            ),
-        ]
-
-    def _apply_filters(
-        self, products: list[Product], query: GetProductsQuery
-    ) -> list[Product]:
-        """Apply filtering to products list."""
-        filtered = products
-
-        # Filter by category if specified
-        if query.category_id:
-            # In real implementation, you'd match by category ID
-            filtered = [p for p in filtered if str(query.category_id) in p.category]
-
-        # Filter by search term if specified
-        if query.search_term:
-            search_lower = query.search_term.lower()
-            filtered = [
-                p
-                for p in filtered
-                if search_lower in p.name.lower()
-                or search_lower in p.description.lower()
-            ]
-
-        return filtered
 
     def _map_to_dto(self, product: Product) -> ProductDto:
         """Map product entity to DTO."""

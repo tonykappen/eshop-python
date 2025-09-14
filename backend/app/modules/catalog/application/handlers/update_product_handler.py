@@ -3,28 +3,29 @@
 import asyncio
 from typing import Any
 from uuid import UUID
+from pydantic import BaseModel
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.contracts.products.dtos import ProductDto
 from app.modules.catalog.domain.exceptions import (
     ProductNotFoundError,
     ProductUpdateError,
     ProductValidationError,
 )
 from app.modules.catalog.domain.models import Product
+from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.core.database.session import AsyncSessionLocal
 
 
-class UpdateProductCommand:
+class UpdateProductCommand(BaseModel):
     """Command to update an existing product - matches .NET UpdateProductCommand."""
 
-    def __init__(self, id: UUID, name: str, description: str, price: float, picture_url: str, category: list[str]) -> None:
-        self.id = id
-        self.name = name
-        self.description = description
-        self.price = price
-        self.picture_url = picture_url
-        self.category = category
+    id: UUID
+    name: str
+    description: str
+    price: float
+    picture_url: str
+    category: list[str]
 
 
 class UpdateProductResult:
@@ -73,9 +74,9 @@ class UpdateProductCommandValidator:
 class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductResult]):
     """Handler for UpdateProductCommand - matches .NET UpdateProductHandler."""
 
-    def __init__(self, db_context: Any) -> None:  # type: ignore
-        """Initialize handler with database context."""
-        self.db_context = db_context
+    def __init__(self) -> None:
+        """Initialize handler."""
+        pass
 
     async def handle(
         self, command: UpdateProductCommand, cancellation_token: CancellationToken
@@ -95,64 +96,41 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             ProductUpdateError: If update operation fails
         """
         # Validate command first
-        from app.modules.catalog.application.validators.product_validators import validate_update_product_command
-        
-        validation_result = validate_update_product_command(command)
-        if not validation_result.is_valid:
+        validator = UpdateProductCommandValidator()
+        errors = validator.validate(command)
+        if errors:
             raise ProductValidationError(
-                f"Command validation failed: {', '.join(validation_result.errors)}"
+                f"Command validation failed: {', '.join(errors)}"
             )
 
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Find the product
-        product = await self._find_product_by_id(command.id, cancellation_token)
-        
-        if product is None:
-            raise ProductNotFoundError(command.id)
-
-        # Update product with new values
-        self._update_product_with_new_values(product, command)
-
-        # Save to database
-        await self._save_to_database(product, cancellation_token)
-
-        return UpdateProductResult(True)
-
-    async def _find_product_by_id(
-        self, product_id: UUID, cancellation_token: CancellationToken
-    ) -> Product | None:
-        """
-        Find product by ID - matches .NET FindAsync pattern.
-        
-        Args:
-            product_id: Product ID to find
-            cancellation_token: Cancellation token
+        # Use real database repository
+        async with AsyncSessionLocal() as session:
+            repository = ProductRepository(session)
             
-        Returns:
-            Product if found, None otherwise
-        """
-        # Check for cancellation before database operation
-        cancellation_token.throw_if_cancellation_requested()
+            # Find the product
+            product = await repository.get_by_id(command.id)
+            if product is None:
+                raise ProductNotFoundError(command.id)
 
-        try:
-            # Simulate database find operation
-            await asyncio.sleep(0.1)
-            
-            # Check again after delay
-            cancellation_token.throw_if_cancellation_requested()
-            
-            # In real implementation, this would be:
-            # return await self.db_context.Products.FindAsync([product_id], cancellation_token)
-            
-            # For now, return None to simulate not found
-            return None
-            
-        except Exception as e:
-            raise ProductUpdateError(
-                message="Failed to find product in database", details=str(e)
-            ) from e
+            try:
+                # Update product with new values
+                self._update_product_with_new_values(product, command)
+
+                # Save to database
+                await repository.update(product)
+                await session.commit()
+
+                return UpdateProductResult(True)
+            except Exception as e:
+                await session.rollback()
+                raise ProductUpdateError(
+                    message="Failed to update product in database",
+                    details=str(e)
+                ) from e
+
 
     def _update_product_with_new_values(self, product: Product, command: UpdateProductCommand) -> None:
         """
@@ -173,26 +151,3 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
         except Exception as e:
             raise ProductValidationError(f"Failed to update product: {str(e)}") from e
 
-    async def _save_to_database(
-        self,
-        product: Product,
-        cancellation_token: CancellationToken,
-    ) -> None:
-        """Save updated product to database with cancellation support."""
-        # Check for cancellation before save
-        cancellation_token.throw_if_cancellation_requested()
-
-        try:
-            # Simulate database save delay
-            await asyncio.sleep(0.1)
-
-            # Check again after delay
-            cancellation_token.throw_if_cancellation_requested()
-
-            # In real implementation, this would be:
-            # self.db_context.Products.Update(product)
-            # await self.db_context.SaveChangesAsync(cancellationToken)
-        except Exception as e:
-            raise ProductUpdateError(
-                message="Failed to save updated product to database", details=str(e)
-            ) from e

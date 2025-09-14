@@ -12,15 +12,22 @@ from app.modules.catalog.domain.exceptions import (
     ProductValidationError,
 )
 from app.modules.catalog.domain.models import Product
+from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.core.database.session import AsyncSessionLocal
 
 
 from pydantic import BaseModel, Field
 from decimal import Decimal
 
+
 class CreateProductCommand(BaseModel):
     """Command to create a new product - matches .NET CreateProductCommand."""
 
-    product: ProductDto = Field(..., description="Product data")
+    name: str = Field(..., description="Product name")
+    description: str = Field(..., description="Product description")
+    price: float = Field(..., gt=0, description="Product price")
+    picture_url: str = Field(..., description="Product picture URL")
+    category: list[str] = Field(..., description="Product categories")
 
 
 class CreateProductResult(BaseModel):
@@ -29,12 +36,45 @@ class CreateProductResult(BaseModel):
     id: UUID = Field(..., description="Created product ID")
 
 
+class CreateProductCommandValidator:
+    """Validator for CreateProductCommand - matches .NET CreateProductCommandValidator."""
+
+    def validate(self, command: CreateProductCommand) -> list[str]:
+        """
+        Validate the create product command.
+        
+        Args:
+            command: The command to validate
+            
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+        
+        if not command.name or not command.name.strip():
+            errors.append("Name is required")
+            
+        if not command.description or not command.description.strip():
+            errors.append("Description is required")
+            
+        if command.price <= 0:
+            errors.append("Price must be greater than 0")
+            
+        if not command.picture_url or not command.picture_url.strip():
+            errors.append("Picture URL is required")
+            
+        if not command.category:
+            errors.append("At least one category is required")
+            
+        return errors
+
+
 class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductResult]):
     """Handler for CreateProductCommand - matches .NET CreateProductHandler."""
 
-    def __init__(self, db_context: Any) -> None:  # type: ignore
-        """Initialize handler with database context."""
-        self.db_context = db_context
+    def __init__(self) -> None:
+        """Initialize handler."""
+        pass
 
     async def handle(
         self, command: CreateProductCommand, cancellation_token: CancellationToken
@@ -49,35 +89,40 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         Returns:
             CreateProductResult containing the created product ID
         """
-        # Validate command first - temporarily disabled for debugging
-        # from app.modules.catalog.application.validators.product_validators import validate_create_product_command
-        
-        # validation_result = validate_create_product_command(command)
-        # if not validation_result.is_valid:
-        #     raise ProductValidationError(
-        #         f"Command validation failed: {', '.join(validation_result.errors)}"
-        #     )
+        # Validate command first
+        validator = CreateProductCommandValidator()
+        errors = validator.validate(command)
+        if errors:
+            raise ProductValidationError(
+                f"Command validation failed: {', '.join(errors)}"
+            )
 
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        product = self._create_new_product(command.product)
+        product = self._create_new_product(command)
 
-        # In real implementation, you'd use SQLAlchemy
-        # dbContext.Products.Add(product);
-        # await dbContext.SaveChangesAsync(cancellationToken);
+        # Use real database repository
+        async with AsyncSessionLocal() as session:
+            try:
+                repository = ProductRepository(session)
+                saved_product = await repository.add(product)
+                await session.commit()
+                
+                return CreateProductResult(id=saved_product.id)
+            except Exception as e:
+                await session.rollback()
+                raise ProductCreationError(
+                    message="Failed to save product to database", 
+                    details=str(e)
+                ) from e
 
-        # Simulate database save with cancellation check
-        await self._save_to_database(product, cancellation_token)
-
-        return CreateProductResult(id=product.id)
-
-    def _create_new_product(self, product_dto: ProductDto) -> Product:
+    def _create_new_product(self, command: CreateProductCommand) -> Product:
         """
-        Create new product from ProductDto - matches .NET CreateNewProduct(ProductDto productDto).
+        Create new product from command - matches .NET CreateNewProduct(ProductDto productDto).
 
         Args:
-            product_dto: Product data transfer object
+            command: Create product command
 
         Returns:
             Created Product entity
@@ -88,10 +133,10 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         from uuid import uuid4
 
         # Validate product data
-        if not product_dto.name or not product_dto.name.strip():
+        if not command.name or not command.name.strip():
             raise ProductValidationError("Product name is required", field="name")
 
-        if product_dto.price <= 0:
+        if command.price <= 0:
             raise ProductValidationError(
                 "Product price must be greater than zero", field="price"
             )
@@ -99,36 +144,13 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         try:
             product = Product.create(
                 product_id=uuid4(),
-                name=product_dto.name,
-                category=product_dto.category,
-                description=product_dto.description,
-                image_file=product_dto.picture_url,  # Map picture_url to image_file for domain model
-                price=product_dto.price,
+                name=command.name,
+                category=command.category,
+                description=command.description,
+                image_file=command.picture_url,  # Map picture_url to image_file for domain model
+                price=Decimal(str(command.price)),
             )
             return product
         except Exception as e:
             raise ProductValidationError(f"Failed to create product: {str(e)}") from e
 
-    async def _save_to_database(
-        self,
-        product: Product,  # noqa: ARG002
-        cancellation_token: CancellationToken,  # noqa: ARG001
-    ) -> None:
-        """Save product to database with cancellation support."""
-        # Check for cancellation before save
-        cancellation_token.throw_if_cancellation_requested()
-
-        try:
-            # Simulate database save delay
-            await asyncio.sleep(0.1)
-
-            # Check again after delay
-            cancellation_token.throw_if_cancellation_requested()
-
-            # In real implementation, this would be:
-            # self.db_context.Products.Add(product)
-            # await self.db_context.SaveChangesAsync(cancellationToken)
-        except Exception as e:
-            raise ProductCreationError(
-                message="Failed to save product to database", details=str(e)
-            ) from e

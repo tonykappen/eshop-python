@@ -12,14 +12,16 @@ from app.modules.catalog.contracts.products.features.get_product_by_id import (
     GetProductByIdResult,
 )
 from app.modules.catalog.domain.exceptions import ProductNotFoundError
+from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.core.database.session import AsyncSessionLocal
 
 
 class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdResult]):
     """Handler for GetProductByIdQuery - matches .NET GetProductByIdHandler."""
 
-    def __init__(self, db_context: Any) -> None:  # type: ignore
-        """Initialize handler with database context."""
-        self.db_context = db_context
+    def __init__(self) -> None:
+        """Initialize handler."""
+        pass
 
     async def handle(
         self, query: GetProductByIdQuery, cancellation_token: CancellationToken
@@ -36,47 +38,26 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
         Raises:
             ProductNotFoundException: If product is not found
         """
-        # Get product by id using dbContext
-        # This is a simplified implementation - in real code, you'd use SQLAlchemy
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
-        product = await self._get_product_by_id(query.id, cancellation_token)
 
-        if product is None:
-            raise ProductNotFoundError(query.id)
+        # Use real database repository
+        async with AsyncSessionLocal() as session:
+            repository = ProductRepository(session)
+            product = await repository.get_by_id(query.id)
 
-        # Mapping product entity to ProductDto
-        # In real implementation, you'd use a mapper
-        product_dto = ProductDto(
-            id=product.id,
-            name=product.name,
-            category=product.category,
-            description=product.description,
-            picture_url=product.image_file,  # Map image_file to picture_url
-            price=product.price,
-        )
+            if product is None:
+                raise ProductNotFoundError(query.id)
 
-        return GetProductByIdResult(product=product_dto)
+            # Mapping product entity to ProductDto
+            product_dto = ProductDto(
+                id=product.id,
+                name=product.name,
+                category=product.category,
+                description=product.description,
+                picture_url=product.image_file,  # Map image_file to picture_url
+                price=product.price,
+            )
 
-    async def _get_product_by_id(
-        self,
-        product_id: UUID,  # noqa: ARG002
-        cancellation_token: CancellationToken,  # noqa: ARG001
-    ) -> Any | None:
-        """Get product by ID from database."""
-        # Simplified implementation - in real code, you'd use SQLAlchemy
-        # var product = await dbContext.Products
-        #     .AsNoTracking()
-        #     .SingleOrDefaultAsync(p => p.Id == query.Id, cancellationToken);
+            return GetProductByIdResult(product=product_dto)
 
-        # Check for cancellation during database operation
-        cancellation_token.throw_if_cancellation_requested()
-
-        # Simulate database delay
-        await asyncio.sleep(0.1)
-
-        # Check again after delay
-        cancellation_token.throw_if_cancellation_requested()
-
-        # For now, return None to simulate not found
-        return None

@@ -172,14 +172,40 @@ class KeycloakService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Return mock user data
-        return {
-            "sub": "mock-user-id",
-            "email": "mock@example.com",
-            "name": "Mock User",
-            "preferred_username": "mockuser",
-            "realm_access": {"roles": ["user", "admin"]},
-        }
+        # Return different mock user data based on token
+        if token == "admin-token":
+            return {
+                "sub": "mock-admin-id",
+                "email": "admin@example.com",
+                "name": "Mock Admin",
+                "preferred_username": "admin",
+                "realm_access": {"roles": ["admin"]},
+            }
+        elif token == "manager-token":
+            return {
+                "sub": "mock-manager-id",
+                "email": "manager@example.com",
+                "name": "Mock Manager",
+                "preferred_username": "manager",
+                "realm_access": {"roles": ["manager"]},
+            }
+        elif token == "user-token":
+            return {
+                "sub": "mock-user-id",
+                "email": "user@example.com",
+                "name": "Mock User",
+                "preferred_username": "user",
+                "realm_access": {"roles": ["user"]},
+            }
+        else:
+            # Default to admin for backward compatibility
+            return {
+                "sub": "mock-user-id",
+                "email": "mock@example.com",
+                "name": "Mock User",
+                "preferred_username": "mockuser",
+                "realm_access": {"roles": ["user", "admin"]},
+            }
 
     async def get_user_info(self, token: str) -> KeycloakUser:
         """Get user information from token."""

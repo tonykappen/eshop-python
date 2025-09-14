@@ -3,6 +3,7 @@
 import asyncio
 from typing import Any
 from uuid import UUID
+from pydantic import BaseModel
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
@@ -10,13 +11,14 @@ from app.modules.catalog.domain.exceptions import (
     ProductNotFoundError,
     ProductDeleteError,
 )
+from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.core.database.session import AsyncSessionLocal
 
 
-class DeleteProductCommand:
+class DeleteProductCommand(BaseModel):
     """Command to delete a product - matches .NET DeleteProductCommand."""
 
-    def __init__(self, product_id: UUID) -> None:
-        self.product_id = product_id
+    product_id: UUID
 
 
 class DeleteProductResult:
@@ -50,9 +52,9 @@ class DeleteProductCommandValidator:
 class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductResult]):
     """Handler for DeleteProductCommand - matches .NET DeleteProductHandler."""
 
-    def __init__(self, db_context: Any) -> None:  # type: ignore
-        """Initialize handler with database context."""
-        self.db_context = db_context
+    def __init__(self) -> None:
+        """Initialize handler."""
+        pass
 
     async def handle(
         self, command: DeleteProductCommand, cancellation_token: CancellationToken
@@ -72,83 +74,40 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
             ProductDeleteError: If delete operation fails
         """
         # Validate command first
-        from app.modules.catalog.application.validators.product_validators import validate_delete_product_command
-        
-        validation_result = validate_delete_product_command(command)
-        if not validation_result.is_valid:
+        validator = DeleteProductCommandValidator()
+        errors = validator.validate(command)
+        if errors:
             from app.modules.catalog.domain.exceptions import ProductValidationError
             raise ProductValidationError(
-                f"Command validation failed: {', '.join(validation_result.errors)}"
+                f"Command validation failed: {', '.join(errors)}"
             )
 
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Find the product
-        product = await self._find_product_by_id(command.product_id, cancellation_token)
-        
-        if product is None:
-            raise ProductNotFoundError(command.product_id)
-
-        # Delete the product
-        await self._delete_from_database(product, cancellation_token)
-
-        return DeleteProductResult(True)
-
-    async def _find_product_by_id(
-        self, product_id: UUID, cancellation_token: CancellationToken
-    ) -> Any | None:
-        """
-        Find product by ID - matches .NET FindAsync pattern.
-        
-        Args:
-            product_id: Product ID to find
-            cancellation_token: Cancellation token
+        # Use real database repository
+        async with AsyncSessionLocal() as session:
+            repository = ProductRepository(session)
             
-        Returns:
-            Product if found, None otherwise
-        """
-        # Check for cancellation before database operation
-        cancellation_token.throw_if_cancellation_requested()
+            # Check if product exists
+            if not await repository.exists(command.product_id):
+                raise ProductNotFoundError(command.product_id)
 
-        try:
-            # Simulate database find operation
-            await asyncio.sleep(0.1)
-            
-            # Check again after delay
-            cancellation_token.throw_if_cancellation_requested()
-            
-            # In real implementation, this would be:
-            # return await self.db_context.Products.FindAsync([product_id], cancellation_token)
-            
-            # For now, return None to simulate not found
-            return None
-            
-        except Exception as e:
-            raise ProductDeleteError(
-                message="Failed to find product in database", details=str(e)
-            ) from e
+            try:
+                # Delete the product
+                success = await repository.delete(command.product_id)
+                await session.commit()
 
-    async def _delete_from_database(
-        self,
-        product: Any,
-        cancellation_token: CancellationToken,
-    ) -> None:
-        """Delete product from database with cancellation support."""
-        # Check for cancellation before delete
-        cancellation_token.throw_if_cancellation_requested()
+                if not success:
+                    raise ProductDeleteError(
+                        message="Failed to delete product from database"
+                    )
 
-        try:
-            # Simulate database delete delay
-            await asyncio.sleep(0.1)
+                return DeleteProductResult(True)
+            except Exception as e:
+                await session.rollback()
+                raise ProductDeleteError(
+                    message="Failed to delete product from database", 
+                    details=str(e)
+                ) from e
 
-            # Check again after delay
-            cancellation_token.throw_if_cancellation_requested()
-
-            # In real implementation, this would be:
-            # self.db_context.Products.Remove(product)
-            # await self.db_context.SaveChangesAsync(cancellationToken)
-        except Exception as e:
-            raise ProductDeleteError(
-                message="Failed to delete product from database", details=str(e)
-            ) from e

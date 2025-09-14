@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eShop API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>eShop API Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const results = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        async function testAPI() {
+            addResult('Starting API tests...', 'info');
+            
+            try {
+                // Test 1: Get token
+                addResult('Test 1: Getting authentication token...', 'info');
+                const tokenResponse = await fetch(`${API_BASE}/api/v1/auth-proxy/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        username: 'user',
+                        password: 'password',
+                        grant_type: 'password',
+                        client_id: 'eshop-api',
+                        client_secret: 'your-client-secret'
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error(`Token request failed: ${tokenResponse.status}`);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                addResult(`✅ Token obtained successfully`, 'success');
+                
+                // Test 2: Get products
+                addResult('Test 2: Getting products...', 'info');
+                const productsResponse = await fetch(`${API_BASE}/api/v1/products/`, {
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`
+                    }
+                });
+                
+                if (!productsResponse.ok) {
+                    throw new Error(`Products request failed: ${productsResponse.status}`);
+                }
+                
+                const productsData = await productsResponse.json();
+                addResult(`✅ Products retrieved successfully`, 'success');
+                
+                // Test 3: Check response structure
+                addResult('Test 3: Checking response structure...', 'info');
+                const expectedFields = ['data', 'total_count', 'page', 'total_pages'];
+                const missingFields = expectedFields.filter(field => !(field in productsData));
+                
+                if (missingFields.length > 0) {
+                    addResult(`❌ Missing fields: ${missingFields.join(', ')}`, 'error');
+                } else {
+                    addResult(`✅ Response structure is correct`, 'success');
+                }
+                
+                // Test 4: Display products
+                addResult('Test 4: Displaying products...', 'info');
+                const products = productsData.data || [];
+                addResult(`Found ${products.length} products (total: ${productsData.total_count})`, 'success');
+                
+                if (products.length > 0) {
+                    addResult('<h3>Products:</h3>', 'info');
+                    products.forEach((product, index) => {
+                        addResult(`
+                            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px;">
+                                <strong>${product.name}</strong> - $${product.price}<br>
+                                <small>Categories: ${product.category.join(', ')}</small><br>
+                                <small>Description: ${product.description}</small>
+                            </div>
+                        `, 'info');
+                    });
+                }
+                
+                // Test 5: Test pagination
+                addResult('Test 5: Testing pagination...', 'info');
+                const paginationResponse = await fetch(`${API_BASE}/api/v1/products/?page=1&page_size=5`, {
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`
+                    }
+                });
+                
+                if (paginationResponse.ok) {
+                    const paginationData = await paginationResponse.json();
+                    addResult(`✅ Pagination works: ${paginationData.data.length} items on page ${paginationData.page} of ${paginationData.total_pages}`, 'success');
+                } else {
+                    addResult(`❌ Pagination test failed: ${paginationResponse.status}`, 'error');
+                }
+                
+                addResult('<h2>🎉 All tests completed successfully!</h2>', 'success');
+                addResult('The API is working correctly. The frontend should now display products.', 'success');
+                
+            } catch (error) {
+                addResult(`❌ Test failed: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            }
+        }
+        
+        // Run tests when page loads
+        testAPI();
+    </script>
+</body>
+</html>

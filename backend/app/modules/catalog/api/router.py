@@ -1,17 +1,22 @@
-"""Catalog module router - updated to use new DDD structure."""
+"""Catalog module router - using working endpoints approach."""
 
 from fastapi import APIRouter
 from app.core.di.container import Container
 from app.core.mediator.mediator import Mediator
-from .catalog_module import register_catalog_module
+
+# Import the working endpoints module
+from .endpoints import products
 
 # Create the main catalog router
 router = APIRouter()
 
+# Include the products router
+router.include_router(products.router, tags=["catalog"])
+
 
 def create_catalog_router(container: Container, mediator: Mediator) -> APIRouter:
     """
-    Create catalog router with proper DDD structure.
+    Create catalog router with working endpoints.
     
     Args:
         container: Dependency injection container
@@ -20,4 +25,4 @@ def create_catalog_router(container: Container, mediator: Mediator) -> APIRouter
     Returns:
         FastAPI router for the catalog module
     """
-    return register_catalog_module(container, mediator)
+    return router

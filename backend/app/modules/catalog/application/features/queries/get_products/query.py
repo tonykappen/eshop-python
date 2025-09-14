@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from app.modules.catalog.contracts.products.dtos import ProductDto
-from app.core.repr.base import PaginatedResult
+from app.core.pagination.models import PaginatedResult
 
 
 class GetProductsQuery(BaseModel):

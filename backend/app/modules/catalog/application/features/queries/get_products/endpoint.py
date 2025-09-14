@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, Request, Query
 from typing import Any, Optional
 from uuid import UUID
 
-from app.core.repr.base import CQRSEndpointFactory, get_endpoint_factory, PaginatedResultToResponseMapper
+from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
+from app.modules.catalog.utils import get_endpoint_factory
 from app.core.auth.rbac import require_query_access
 from .query import GetProductsQuery, GetProductsResult
 

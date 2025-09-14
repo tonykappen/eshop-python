@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Depends, Request
 from typing import Any
 
-from app.core.repr.base import CQRSEndpointFactory, get_endpoint_factory
+from app.core.repr.base import CQRSEndpointFactory
+from app.modules.catalog.utils import get_endpoint_factory
 from app.core.auth.rbac import require_command_access
 from .command import CreateProductCommand, CreateProductResult
 from .handler import CreateProductHandler

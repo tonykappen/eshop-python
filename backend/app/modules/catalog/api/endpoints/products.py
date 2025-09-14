@@ -21,12 +21,14 @@ from app.core.repr.base import (
     PaginatedRequest,
     PaginatedResponse,
 )
+from app.modules.catalog.domain.exceptions import ProductNotFoundError
 from app.modules.catalog.application.handlers.get_products_handler import (
     GetProductsQuery,
 )
 from app.modules.catalog.contracts.products.dtos import ProductDto
 from app.modules.catalog.contracts.products.features.get_product_by_id import (
     GetProductByIdQuery,
+    GetProductByIdResult,
 )
 from app.modules.catalog.application.handlers.update_product_handler import (
     UpdateProductCommand,
@@ -158,17 +160,27 @@ async def get_product_by_id(
     Demonstrates: HTTP Request -> Query -> Result -> HTTP Response
     RBAC: Requires query access (admin, manager, user roles)
     """
-    # Create the HTTP request model
-    request_model = GetProductRequest(product_id=product_id)
+    # Create the query directly with the correct field name
+    query = GetProductByIdQuery(id=product_id)
 
-    # Create query endpoint using factory
+    # Create custom result mapper to extract product from GetProductByIdResult
+    class GetProductByIdResultMapper:
+        """Custom mapper to extract product from GetProductByIdResult."""
+        
+        async def map_to_response(self, result: GetProductByIdResult, original_request: Request) -> ProductResponse:
+            """Map GetProductByIdResult to ProductResponse."""
+            if result.product is None:
+                raise ProductNotFoundError(product_id)
+            return ProductResponse(data=result.product)
+
+    # Create query endpoint using factory with custom mapper
     endpoint: Any = factory.create_query_endpoint(
         query_factory=GetProductByIdQuery,
-        result_mapper=None,  # Will use default DataResponse mapper
+        result_mapper=GetProductByIdResultMapper(),
     )
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(request, request_model)
+    response = await endpoint.execute(request, query)
 
     return response  # type: ignore
 

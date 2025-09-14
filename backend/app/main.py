@@ -115,6 +115,7 @@ if settings.log_enable_request_logging:
 # from app.modules.basket.api.router import router as basket_router
 # from app.modules.ordering.api.router import router as ordering_router
 
+# Include catalog router
 app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
 app.include_router(health_router)

@@ -13,11 +13,15 @@ from app.modules.catalog.domain.exceptions import (
 )
 from app.modules.catalog.domain.models import Product
 from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
+from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
-
+from app.core.logging.logger import get_logger
 
 from pydantic import BaseModel, Field
 from decimal import Decimal
+
+logger = get_logger(__name__)
 
 
 class CreateProductCommand(BaseModel):
@@ -74,7 +78,8 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
     def __init__(self) -> None:
         """Initialize handler."""
-        pass
+        self.cache_service = CatalogCacheService(RedisCacheService())
+        self.event_publisher = CatalogEventPublisherFactory.get_instance()
 
     async def handle(
         self, command: CreateProductCommand, cancellation_token: CancellationToken
@@ -108,6 +113,21 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 repository = ProductRepository(session)
                 saved_product = await repository.add(product)
                 await session.commit()
+                
+                # Cache the created product
+                await self._cache_product(saved_product)
+                
+                # Publish integration event
+                await self._publish_product_created_event(saved_product)
+                
+                # Invalidate products list cache
+                await self.cache_service.invalidate_products_list()
+                
+                logger.log_info_with_context(
+                    f"Product created successfully: {saved_product.name}",
+                    product_id=str(saved_product.id),
+                    product_name=saved_product.name,
+                )
                 
                 return CreateProductResult(id=saved_product.id)
             except Exception as e:
@@ -153,4 +173,61 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             return product
         except Exception as e:
             raise ProductValidationError(f"Failed to create product: {str(e)}") from e
+
+    async def _cache_product(self, product: Product) -> None:
+        """Cache the created product."""
+        try:
+            # Convert product to DTO for caching
+            product_dto = ProductDto(
+                id=product.id,
+                name=product.name,
+                category=product.category,
+                description=product.description,
+                picture_url=product.image_file,
+                price=product.price,
+            )
+            
+            # Cache the product
+            await self.cache_service.set_product(
+                product.id,
+                product_dto.model_dump(),
+                ttl=3600  # 1 hour TTL
+            )
+            
+            logger.log_debug_with_context(
+                f"Cached product {product.id}",
+                product_id=str(product.id),
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                f"Failed to cache product {product.id}",
+                error=e,
+                product_id=str(product.id),
+            )
+
+    async def _publish_product_created_event(self, product: Product) -> None:
+        """Publish product created integration event."""
+        try:
+            await self.event_publisher.publish_product_created(
+                product_id=product.id,
+                product_name=product.name,
+                price=float(product.price),
+                category_id=None,  # TODO: Add category support
+                additional_data={
+                    "description": product.description,
+                    "picture_url": product.image_file,
+                    "categories": product.category,
+                }
+            )
+            
+            logger.log_debug_with_context(
+                f"Published ProductCreated event for {product.id}",
+                product_id=str(product.id),
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                f"Failed to publish ProductCreated event for {product.id}",
+                error=e,
+                product_id=str(product.id),
+            )
 

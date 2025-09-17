@@ -1,0 +1,172 @@
+# ----------------------------- REPO ROOT -----------------------------
+pyproject.toml                         # project deps, setuptools config (namespace pkgs since no __init__.py)
+docker-compose.yml                     # services: Postgres (with pool), API container, optional broker
+Dockerfile                             # image for API
+.env.example                           # sample env (CATALOG_DB_URL, pool params, secrets)
+Makefile                               # dev targets: migrate-catalog, seed-catalog, test-catalog, lint, fmt
+.pre-commit-config.yaml                # ruff/black/isort/mypy hooks
+.editorconfig                          # enforce LF endings, indentation
+
+.github/
+└─ workflows/
+   └─ catalog-ci.yml                   # CI pipeline: lint, typecheck, run tests, alembic upgrade, seed
+
+scripts/                               # operational scripts
+├─ migrate_catalog.py                  # wrapper: alembic -c modules/catalog/migrations/alembic.ini upgrade head
+├─ seed_catalog.py                     # wrapper: run modules.catalog.seed.seed_runner
+└─ run_outbox_worker.py                # launches outbox_publisher_worker loop
+
+tests/                                 # test root (split by module)
+└─ catalog/                            # module-scoped tests for Catalog
+   ├─ conftest.py                      # sets up async engine, runs catalog migrations, applies seeds, yields AsyncSession
+   ├─ factories/
+   │  └─ product_factory.py
+   ├─ unit/
+   │  ├─ domain/test_product_aggregate.py
+   │  └─ features/product/test_create_product_handler.py
+   ├─ integration/
+   │  ├─ test_product_repository.py
+   │  ├─ test_outbox_persistence.py
+   │  └─ test_get_product_by_id_query.py
+   └─ e2e/
+      └─ test_create_product_endpoint.py
+
+# --------------------------- CATALOG MODULE ---------------------------
+modules/
+└─ catalog/
+   ├─ catalog_module.py                # FastAPI bootstrap: routers, DI wiring, startup tasks
+   ├─ api/
+   │  ├─ deps.py                       # FastAPI dependencies: get_session, get_uow, get_dispatcher, etc.
+   │  ├─ errors.py                     # HTTP error mapping (exceptions → Problem+JSON)
+   │  ├─ health.py                     # /healthz & /ready checks (db, outbox, broker)
+   │  ├─ middleware.py                 # request_id, timing, logging, auth stub
+   │  └─ versioning.py                 # api base prefix (/api/v1/catalog), OpenAPI tags
+   ├─ di/
+   │  ├─ container.py                  # optional central container (if DI lib used)
+   │  ├─ providers.py                  # factories: engine, sessionmaker, dispatcher, bus, outbox
+   │  └─ wiring.py                     # wires providers to FastAPI deps; subscribes domain→integration
+   ├─ domain/                          # PURE domain (no infra/pydantic)
+   │  ├─ value_objects/
+   │  │  ├─ money.py
+   │  │  └─ sku.py
+   │  ├─ product/
+   │  │  ├─ models/product.py
+   │  │  ├─ repository.py
+   │  │  ├─ domain_events/
+   │  │  │  ├─ product_created_domain_event.py
+   │  │  │  ├─ product_price_changed_domain_event.py
+   │  │  │  └─ product_deactivated_domain_event.py
+   │  │  ├─ domain_event_handlers/
+   │  │  │  ├─ product_created_domain_event_handler.py
+   │  │  │  └─ product_price_changed_domain_event_handler.py
+   │  │  └─ exceptions/
+   │  │     ├─ product_not_found.py
+   │  │     ├─ product_already_exists.py
+   │  │     └─ invalid_price.py
+   │  ├─ category/                      # internal-only entity (no public contracts)
+   │  │  ├─ models/category.py
+   │  │  ├─ repository.py
+   │  │  ├─ domain_events/category_created_domain_event.py
+   │  │  └─ domain_event_handlers/category_created_domain_event_handler.py
+   │  └─ inventory/                     # internal-only entity
+   │     ├─ models/inventory_item.py
+   │     ├─ repository.py
+   │     ├─ domain_events/
+   │     │  ├─ stock_adjusted_domain_event.py
+   │     │  └─ stock_reserved_domain_event.py
+   │     └─ domain_event_handlers/stock_adjusted_domain_event_handler.py
+   ├─ application/
+   │  ├─ dvos/                          # data value objects (internal dataclasses)
+   │  │  ├─ product_dvo.py
+   │  │  └─ category_dvo.py
+   │  ├─ read_models/                   # projections/read models (query side)
+   │  │  ├─ product_listing_view.py
+   │  │  └─ inventory_availability_view.py
+   │  ├─ view_repositories/             # repos for read models
+   │  │  ├─ product_listing_view_repo.py
+   │  │  └─ inventory_availability_view_repo.py
+   │  ├─ behaviors/                     # mediator pipeline behaviors
+   │  │  ├─ logging_behavior.py
+   │  │  ├─ validation_behavior.py
+   │  │  └─ authorization_behavior.py
+   │  ├─ mappers/                       # domain ↔ dto ↔ contract conversions
+   │  │  ├─ product_mapper.py
+   │  │  └─ category_mapper.py
+   │  ├─ services/                      # domain services (id, clock)
+   │  │  ├─ id_provider.py
+   │  │  └─ clock.py
+   │  ├─ context/request_context.py     # holds tenant/user info for auditing/policies
+   │  ├─ transactions/
+   │  │  ├─ commit_interceptors.py      # protocols + registry (before/after commit hooks)
+   │  │  └─ commit_interceptor_impl.py  # concrete hooks: audit stamps, cache invalidation
+   │  ├─ uow.py                         # UnitOfWork: flush → before hooks → commit → after hooks
+   │  ├─ integration_events/            # cross-module/system events
+   │  │  ├─ product/
+   │  │  │  ├─ product_created_integration_event_v1.py
+   │  │  │  └─ product_price_changed_integration_event_v1.py
+   │  │  ├─ category/category_created_integration_event_v1.py
+   │  │  └─ inventory/stock_adjusted_integration_event_v1.py
+   │  ├─ integration_event_handlers/
+   │  │  ├─ product/publish_product_created_integration_event_handler.py
+   │  │  └─ inventory/react_to_stock_adjusted_integration_event_handler.py
+   │  └─ features/                      # CQRS features (commands/queries/endpoints)
+   │     ├─ product/
+   │     │  ├─ commands/create_product/
+   │     │  │  ├─ create_product_command.py
+   │     │  │  ├─ create_product_handler.py
+   │     │  │  └─ create_product_endpoint.py
+   │     │  └─ queries/get_product_by_id/
+   │     │     ├─ get_product_by_id_query.py
+   │     │     ├─ get_product_by_id_handler.py
+   │     │     └─ get_product_by_id_endpoint.py
+   │     ├─ category/                   # internal-only commands/queries
+   │     └─ inventory/                  # internal-only commands/queries
+   ├─ infrastructure/
+   │  ├─ messaging/
+   │  │  ├─ bus.py                      # message bus abstraction
+   │  │  ├─ outbox.py                   # OutboxWriter (tx) + OutboxPublisher (bg worker)
+   │  │  ├─ domain_dispatcher.py        # in-memory domain event dispatcher
+   │  │  └─ subscriptions.py            # wires domain events → integration events
+   │  ├─ persistence/
+   │  │  ├─ db_config.py                # DB URL + pool settings (pydantic-settings)
+   │  │  ├─ db_session.py               # async engine (pooled) + sessionmaker
+   │  │  ├─ models/
+   │  │  │  ├─ product_orm.py
+   │  │  │  ├─ category_orm.py
+   │  │  │  ├─ inventory_item_orm.py
+   │  │  │  └─ outbox_orm.py
+   │  │  ├─ repositories/
+   │  │  │  ├─ product_repository.py
+   │  │  │  ├─ category_repository.py
+   │  │  │  └─ inventory_repository.py
+   │  │  └─ mappings.py
+   │  ├─ logging/logging_config.py      # structured logging config
+   │  ├─ observability/
+   │  │  ├─ tracing.py                  # OpenTelemetry traces
+   │  │  └─ metrics.py                  # Prometheus/OTel metrics
+   │  └─ seed/
+   │     └─ initial_data.py             # legacy/simple seed
+   ├─ migrations/                       # per-module alembic migrations
+   │  ├─ alembic.ini                    # config for this module only
+   │  ├─ env.py                         # async env, scoped to Catalog ORM
+   │  ├─ script.py.mako                 # template for new migrations
+   │  └─ versions/
+   │     ├─ catalog_20250915_initial.py
+   │     └─ catalog_20251001_add_idx.py
+   ├─ seed/                             # versioned seed system (aligned w/ alembic)
+   │  ├─ seed_runner.py                 # executes seeds; records in seed_version_catalog
+   │  ├─ seed_registry.py               # registry of seeds
+   │  └─ versions/
+   │     ├─ catalog_seed_20250915_initial.py
+   │     └─ catalog_seed_20251001_more.py
+   ├─ workers/outbox_publisher_worker.py # background publisher for outbox table
+   └─ contracts/                        # PUBLIC contracts (pydantic) — Product only
+      └─ product/
+         ├─ dtos/product_dto.py
+         └─ features/
+            ├─ create_product/
+            │  ├─ request.py
+            │  └─ response.py
+            └─ get_product_by_id/
+               ├─ request.py
+               └─ response.py

@@ -12,7 +12,12 @@ from app.modules.catalog.domain.exceptions import (
     ProductDeleteError,
 )
 from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
+from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
+from app.core.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class DeleteProductCommand(BaseModel):
@@ -54,7 +59,8 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
 
     def __init__(self) -> None:
         """Initialize handler."""
-        pass
+        self.cache_service = CatalogCacheService(RedisCacheService())
+        self.event_publisher = CatalogEventPublisherFactory.get_instance()
 
     async def handle(
         self, command: DeleteProductCommand, cancellation_token: CancellationToken
@@ -89,8 +95,9 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         async with AsyncSessionLocal() as session:
             repository = ProductRepository(session)
             
-            # Check if product exists
-            if not await repository.exists(command.product_id):
+            # Check if product exists and get product details for event
+            product = await repository.get_by_id(command.product_id)
+            if not product:
                 raise ProductNotFoundError(command.product_id)
 
             try:
@@ -103,6 +110,21 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                         message="Failed to delete product from database"
                     )
 
+                # Invalidate cache for this product
+                await self.cache_service.invalidate_product(command.product_id)
+                
+                # Publish product discontinued event
+                await self._publish_product_discontinued_event(product)
+                
+                # Invalidate products list cache
+                await self.cache_service.invalidate_products_list()
+
+                logger.log_info_with_context(
+                    f"Product deleted successfully: {product.name}",
+                    product_id=str(command.product_id),
+                    product_name=product.name,
+                )
+
                 return DeleteProductResult(True)
             except Exception as e:
                 await session.rollback()
@@ -110,4 +132,30 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                     message="Failed to delete product from database", 
                     details=str(e)
                 ) from e
+
+    async def _publish_product_discontinued_event(self, product) -> None:
+        """Publish product discontinued integration event."""
+        try:
+            from datetime import datetime
+            await self.event_publisher.publish_product_discontinued(
+                product_id=product.id,
+                discontinuation_date=datetime.now().isoformat(),
+                reason="Product deleted",
+                additional_data={
+                    "product_name": product.name,
+                    "deleted_at": datetime.now().isoformat(),
+                }
+            )
+            
+            logger.log_debug_with_context(
+                f"Published ProductDiscontinued event for {product.id}",
+                product_id=str(product.id),
+                product_name=product.name,
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                f"Failed to publish ProductDiscontinued event for {product.id}",
+                error=e,
+                product_id=str(product.id),
+            )
 

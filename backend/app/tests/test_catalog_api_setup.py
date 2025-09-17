@@ -149,3 +149,4 @@ def sample_product_data():
         "picture_url": "https://example.com/image.jpg",
         "category": ["Electronics", "Gadgets"]
     }
+

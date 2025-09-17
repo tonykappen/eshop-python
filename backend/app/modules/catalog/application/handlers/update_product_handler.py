@@ -14,7 +14,12 @@ from app.modules.catalog.domain.exceptions import (
 )
 from app.modules.catalog.domain.models import Product
 from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
+from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
+from app.core.logging.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class UpdateProductCommand(BaseModel):
@@ -76,7 +81,8 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
 
     def __init__(self) -> None:
         """Initialize handler."""
-        pass
+        self.cache_service = CatalogCacheService(RedisCacheService())
+        self.event_publisher = CatalogEventPublisherFactory.get_instance()
 
     async def handle(
         self, command: UpdateProductCommand, cancellation_token: CancellationToken
@@ -116,12 +122,32 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 raise ProductNotFoundError(command.id)
 
             try:
+                # Store old price for event publishing
+                old_price = float(product.price)
+                
                 # Update product with new values
                 self._update_product_with_new_values(product, command)
 
                 # Save to database
                 await repository.update(product)
                 await session.commit()
+
+                # Invalidate cache for this product
+                await self.cache_service.invalidate_product(command.id)
+                
+                # Publish price changed event if price changed
+                new_price = float(product.price)
+                if old_price != new_price:
+                    await self._publish_price_changed_event(command.id, old_price, new_price)
+
+                # Invalidate products list cache
+                await self.cache_service.invalidate_products_list()
+
+                logger.log_info_with_context(
+                    f"Product updated successfully: {product.name}",
+                    product_id=str(command.id),
+                    product_name=product.name,
+                )
 
                 return UpdateProductResult(True)
             except Exception as e:
@@ -150,4 +176,30 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             )
         except Exception as e:
             raise ProductValidationError(f"Failed to update product: {str(e)}") from e
+
+    async def _publish_price_changed_event(self, product_id: UUID, old_price: float, new_price: float) -> None:
+        """Publish product price changed integration event."""
+        try:
+            await self.event_publisher.publish_product_price_changed(
+                product_id=product_id,
+                old_price=old_price,
+                new_price=new_price,
+                price_change_reason="Product update",
+                additional_data={
+                    "updated_at": "now",  # TODO: Add proper timestamp
+                }
+            )
+            
+            logger.log_debug_with_context(
+                f"Published ProductPriceChanged event for {product_id}",
+                product_id=str(product_id),
+                old_price=old_price,
+                new_price=new_price,
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                f"Failed to publish ProductPriceChanged event for {product_id}",
+                error=e,
+                product_id=str(product_id),
+            )
 

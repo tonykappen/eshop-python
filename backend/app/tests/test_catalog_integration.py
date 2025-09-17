@@ -420,3 +420,4 @@ class TestCatalogIntegration:
                 f"/api/v1/products/{product_id}",
                 headers=admin_headers
             )
+

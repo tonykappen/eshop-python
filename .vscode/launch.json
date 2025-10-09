@@ -1,14 +1,29 @@
 {
+    // VS Code Debug Configurations for eShop Application
+    // 
+    // Environment Variables Loading:
+    // 1. All configurations use "envFile": "${workspaceFolder}/.env" to load .env file
+    // 2. Specific values in "env" override .env file values
+    // 3. Priority: launch.json env > .env file > os.environ > settings.py defaults
+    //
+    // Quick Start:
+    // 1. Copy env.example to .env: cp env.example .env
+    // 2. Start infrastructure: ./scripts/start-infrastructure.sh
+    // 3. Press F5 or select a debug configuration below
+    //
+    // See ENVIRONMENT_VARIABLES.md for detailed documentation
+    
     "version": "0.2.0",
     "configurations": [
         
         {
             "name": "Debug Backend (FastAPI)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/backend/app/main.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/backend",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/backend"
             },
@@ -18,7 +33,7 @@
         },
         {
             "name": "Debug Backend (uvicorn)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
             "args": [
@@ -30,17 +45,31 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/backend",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/backend",
+                "DEBUG": "true",
+                "LOG_LEVEL": "DEBUG",
+                "LOG_ENABLE_SEQ": "true",
                 "SEQ_URL": "http://localhost:5341",
-                "SEQ_API_KEY": "l6obaob16J6292tGOfnc"
+                "SEQ_API_KEY": "l6obaob16J6292tGOfnc",
+                "DATABASE_HOST": "localhost",
+                "DATABASE_PORT": "5432",
+                "DATABASE_NAME": "eshop",
+                "DATABASE_USER": "postgres",
+                "DATABASE_PASSWORD": "postgres",
+                "REDIS_HOST": "localhost",
+                "REDIS_PORT": "6379",
+                "RABBITMQ_HOST": "localhost",
+                "RABBITMQ_PORT": "5672",
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080"
             },
             "justMyCode": false,
             "stopOnEntry": false
         },
         {
             "name": "Debug Frontend (HTTP Server)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "http.server",
             "args": ["3000"],
@@ -72,7 +101,7 @@
         },
         {
             "name": "Debug Backend Tests",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "pytest",
             "args": [
@@ -83,8 +112,10 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/backend",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/backend"
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "TESTING": "true"
             },
             "justMyCode": false
         },

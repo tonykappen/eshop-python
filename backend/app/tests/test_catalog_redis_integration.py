@@ -245,3 +245,5 @@ class TestCatalogCachePatterns:
         expected_key = "catalog:categories:list"
         assert CatalogCachePatterns.categories_list_key() == expected_key
 
+
+

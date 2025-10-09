@@ -1,10 +1,17 @@
 {
     // VS Code Debug Configurations for eShop Application
     // 
-    // Environment Variables Loading:
-    // 1. All configurations use "envFile": "${workspaceFolder}/.env" to load .env file
-    // 2. Specific values in "env" override .env file values
-    // 3. Priority: launch.json env > .env file > os.environ > settings.py defaults
+    // Environment Variables Priority (highest to lowest):
+    // 1. os.environ (system/production environment variables) - HIGHEST
+    // 2. .env file (local development configuration)
+    // 3. launch.json "env" values (IDE debugging convenience) - LOWEST
+    // 4. settings.py defaults (fallback)
+    //
+    // This priority order follows 12-Factor App methodology and ensures:
+    // - Production safety: System env vars always take precedence
+    // - Docker/Kubernetes compatibility: Container env vars win
+    // - Developer convenience: .env provides local defaults
+    // - IDE flexibility: launch.json provides debug overrides (but can't override production)
     //
     // Quick Start:
     // 1. Copy env.example to .env: cp env.example .env

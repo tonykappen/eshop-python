@@ -8,11 +8,18 @@ from pathlib import Path
 class EnvConfig:
     """Environment configuration with fallback strategy.
     
-    Fallback order:
-    1. launch.json environment variables (if running in VS Code)
-    2. .env file
-    3. os.environ
-    4. Fail if no value found
+    Priority order (highest to lowest):
+    1. os.environ (system/production environment variables)
+    2. .env file (local development configuration)
+    3. launch.json environment variables (VS Code debug convenience)
+    4. Default value or raise error
+    
+    Rationale:
+    - Follows 12-Factor App methodology (environment variables are primary config)
+    - Production-safe: System env vars always take precedence
+    - Docker/Kubernetes friendly: Container env vars override local config
+    - .env file is for local development convenience only
+    - launch.json is lowest priority (IDE debugging convenience)
     """
     
     def __init__(self):
@@ -52,7 +59,13 @@ class EnvConfig:
         return env_vars
     
     def get(self, key: str, default: Optional[Any] = None) -> str:
-        """Get environment variable with fallback strategy.
+        """Get environment variable with standard fallback strategy.
+        
+        Priority order (highest to lowest):
+        1. os.environ - System/production environment variables (HIGHEST)
+        2. .env file - Local development configuration
+        3. launch.json - VS Code debug convenience (LOWEST)
+        4. default - Fallback value
         
         Args:
             key: Environment variable key
@@ -64,20 +77,20 @@ class EnvConfig:
         Raises:
             ValueError: If no value found and no default provided
         """
-        # 1. Check launch.json environment variables
-        if key in self._launch_env:
-            return self._launch_env[key]
+        # 1. Check os.environ FIRST (highest priority - production/system env vars)
+        if key in os.environ:
+            return os.environ[key]
         
-        # 2. Check .env file
+        # 2. Check .env file (local development)
         env_file_vars = self._load_env_file()
         if key in env_file_vars:
             return env_file_vars[key]
         
-        # 3. Check os.environ
-        if key in os.environ:
-            return os.environ[key]
+        # 3. Check launch.json (lowest priority - IDE convenience)
+        if key in self._launch_env:
+            return self._launch_env[key]
         
-        # 4. Check with common variations
+        # 4. Check with common variations (same priority order)
         variations = [
             key.upper(),
             key.lower(),
@@ -87,18 +100,21 @@ class EnvConfig:
         ]
         
         for var_key in variations:
-            if var_key in self._launch_env:
-                return self._launch_env[var_key]
-            if var_key in env_file_vars:
-                return env_file_vars[var_key]
+            # Check os.environ first
             if var_key in os.environ:
                 return os.environ[var_key]
+            # Then .env file
+            if var_key in env_file_vars:
+                return env_file_vars[var_key]
+            # Finally launch.json
+            if var_key in self._launch_env:
+                return self._launch_env[var_key]
         
         # 5. Return default or fail
         if default is not None:
             return str(default)
         
-        raise ValueError(f"Environment variable '{key}' not found in any source (launch.json, .env, os.environ)")
+        raise ValueError(f"Environment variable '{key}' not found in any source (os.environ, .env, launch.json)")
     
     def get_bool(self, key: str, default: Optional[bool] = None) -> bool:
         """Get boolean environment variable."""
@@ -139,18 +155,24 @@ class EnvConfig:
             return False
     
     def all(self) -> dict[str, str]:
-        """Get all environment variables from all sources."""
+        """Get all environment variables from all sources.
+        
+        Variables are merged with correct priority order:
+        - Start with launch.json (lowest priority)
+        - Override with .env file
+        - Override with os.environ (highest priority - takes precedence)
+        """
         all_vars = {}
         
-        # Start with os.environ
-        all_vars.update(os.environ)
+        # Start with launch.json (lowest priority)
+        all_vars.update(self._launch_env)
         
         # Override with .env file
         env_file_vars = self._load_env_file()
         all_vars.update(env_file_vars)
         
-        # Override with launch.json (highest priority)
-        all_vars.update(self._launch_env)
+        # Override with os.environ (highest priority)
+        all_vars.update(os.environ)
         
         return all_vars
 

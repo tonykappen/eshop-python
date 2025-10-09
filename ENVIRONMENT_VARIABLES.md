@@ -6,10 +6,12 @@ This guide explains how to configure environment variables for the eShop applica
 
 The application supports multiple ways to configure environment variables with the following **priority order** (highest to lowest):
 
-1. **VS Code `launch.json`** - Direct `env` values in debug configurations
-2. **`.env` file** - Root level environment file
-3. **System environment variables** (`os.environ`)
+1. **System environment variables** (`os.environ`) - Production/container environment
+2. **`.env` file** - Local development configuration file
+3. **VS Code `launch.json`** - Debug convenience overrides
 4. **Default values** - Defined in `backend/app/config/settings.py`
+
+This priority order follows the **12-Factor App** methodology and ensures production safety.
 
 ## Quick Start
 
@@ -76,8 +78,10 @@ The application automatically loads `.env` through:
 
 **Pros:**
 - ✅ Configuration-specific values
-- ✅ Highest priority (overrides .env)
 - ✅ Good for debugging with specific settings
+- ✅ Doesn't affect other environments
+
+**Note:** These have **lowest priority** and won't override system env vars (by design for safety).
 
 **Setup:**
 Edit `.vscode/launch.json`:
@@ -87,13 +91,12 @@ Edit `.vscode/launch.json`:
     "type": "python",
     "request": "launch",
     "module": "uvicorn",
-    "envFile": "${workspaceFolder}/.env",  // Load .env first
+    "envFile": "${workspaceFolder}/.env",  // Load .env as baseline
     "env": {
         "PYTHONPATH": "${workspaceFolder}/backend",
         "DEBUG": "true",
         "LOG_LEVEL": "DEBUG",
-        "DATABASE_HOST": "localhost",
-        // Override specific values here
+        // These provide defaults, but os.environ and .env take precedence
     }
 }
 ```
@@ -173,11 +176,17 @@ debug = get_env_bool("DEBUG", False)
 port = get_env_int("PORT", 8000)
 ```
 
-**Loading order:**
-1. Check `launch.json` env vars (VS Code debugging)
-2. Check `.env` file
-3. Check `os.environ` (system environment)
+**Loading order (highest to lowest priority):**
+1. Check `os.environ` (system/production environment variables) - **HIGHEST**
+2. Check `.env` file (local development)
+3. Check `launch.json` env vars (VS Code debugging convenience) - **LOWEST**
 4. Return default value or raise `ValueError`
+
+**Why this order?**
+- ✅ **Production-safe:** System environment variables always win
+- ✅ **12-Factor App compliant:** Environment is the source of truth
+- ✅ **Docker/Kubernetes friendly:** Container env vars take precedence
+- ✅ **Developer-friendly:** `.env` provides convenient local defaults
 
 ## Available Environment Variables
 
@@ -279,11 +288,13 @@ Edit `.vscode/launch.json` to add a new configuration:
 
 1. **Never commit `.env`** - Add to `.gitignore`
 2. **Always update `env.example`** when adding new variables
-3. **Use `.env` for local development** - Most convenient
-4. **Use `launch.json` env for debug-specific overrides** - Highest priority
-5. **Document all environment variables** - Update this file and `env.example`
-6. **Use strong secrets in production** - Don't use default values
-7. **Validate environment variables** - The app will raise errors if critical vars are missing
+3. **Use `.env` for local development** - Most convenient for developers
+4. **Use system env vars for production** - Set via Docker, K8s, or deployment config
+5. **Use `launch.json` env for IDE debugging convenience** - Lowest priority by design
+6. **Document all environment variables** - Update this file and `env.example`
+7. **Use strong secrets in production** - Don't use default values
+8. **Validate environment variables** - The app will raise errors if critical vars are missing
+9. **Follow 12-Factor App principles** - Environment is the source of truth
 
 ## Troubleshooting
 
@@ -298,17 +309,23 @@ Edit `.vscode/launch.json` to add a new configuration:
 ### Problem: Wrong values being used
 
 **Solution:**
-Check the priority order:
-1. `launch.json` env values (highest)
-2. `.env` file
-3. System environment variables
-4. Default values (lowest)
+Check the priority order (highest to lowest):
+1. **`os.environ`** - System environment variables (highest)
+2. **`.env` file** - Local development config
+3. **`launch.json`** env values - IDE debug convenience (lowest)
+4. **Default values** - Fallback
 
 Use this to debug:
 ```python
 from app.config.env import get_all_env
 print(get_all_env())  # See all loaded environment variables
+
+# Or check a specific variable's source
+import os
+print(f"DATABASE_HOST in os.environ: {os.environ.get('DATABASE_HOST')}")
 ```
+
+**Example:** If you set `DATABASE_HOST=production-db` in your system environment, it will override the value in `.env` or `launch.json`. This is intentional for production safety.
 
 ### Problem: Docker vs Local Development confusion
 

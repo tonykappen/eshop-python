@@ -92,8 +92,22 @@ jobs:
             const path = require('path');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             
+            // Debug: Log environment
+            console.log('GITHUB_WORKSPACE:', process.env.GITHUB_WORKSPACE);
+            console.log('Event name:', context.eventName);
+            console.log('Issue number:', context.issue.number);
+            
             // Read files from backend directory
             const backendDir = path.join(process.env.GITHUB_WORKSPACE, 'backend');
+            console.log('Looking for files in:', backendDir);
+            
+            // Check if files exist
+            try {
+              const files = fs.readdirSync(backendDir);
+              console.log('Files in backend:', files.filter(f => f.includes('output')));
+            } catch(e) {
+              console.log('Cannot list backend directory:', e.message);
+            }
             
             let ruffOutput = '';
             let ruffFormatOutput = '';
@@ -104,6 +118,8 @@ jobs:
             try { ruffFormatOutput = fs.readFileSync(path.join(backendDir, 'ruff_format_output.txt'), 'utf8'); } catch(e) { console.log('Could not read ruff_format_output.txt:', e.message); }
             try { blackOutput = fs.readFileSync(path.join(backendDir, 'black_output.txt'), 'utf8'); } catch(e) { console.log('Could not read black_output.txt:', e.message); }
             try { isortOutput = fs.readFileSync(path.join(backendDir, 'isort_output.txt'), 'utf8'); } catch(e) { console.log('Could not read isort_output.txt:', e.message); }
+            
+            console.log('File sizes - Ruff:', ruffOutput.length, 'RuffFormat:', ruffFormatOutput.length, 'Black:', blackOutput.length, 'isort:', isortOutput.length);
             
             const hasRuffIssues = ruffOutput.includes('error') || ruffOutput.includes('warning');
             const hasRuffFormatIssues = ruffFormatOutput.includes('would reformat');

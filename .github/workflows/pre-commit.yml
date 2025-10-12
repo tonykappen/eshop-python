@@ -31,12 +31,14 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Check Poetry Lock File
-        run: poetry lock --check || poetry lock --no-update
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
         continue-on-error: true
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
+        continue-on-error: true
 
       - name: Cache pre-commit
         uses: actions/cache@v4

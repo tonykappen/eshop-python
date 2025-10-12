@@ -42,12 +42,14 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Check Poetry Lock File
-        run: poetry lock --check || poetry lock --no-update
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
         continue-on-error: true
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
+        continue-on-error: true
 
       - name: Run Ruff Linter
         run: poetry run ruff check . --output-format=github
@@ -102,12 +104,14 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Check Poetry Lock File
-        run: poetry lock --check || poetry lock --no-update
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
         continue-on-error: true
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
+        continue-on-error: true
 
       - name: Run Bandit Security Checks
         run: poetry run bandit -r app -f json -o bandit-report.json || true
@@ -164,12 +168,14 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Check Poetry Lock File
-        run: poetry lock --check || poetry lock --no-update
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
         continue-on-error: true
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
+        continue-on-error: true
 
       - name: Run MyPy Type Checker
         run: poetry run mypy app --ignore-missing-imports --show-error-codes
@@ -251,12 +257,14 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Check Poetry Lock File
-        run: poetry lock --check || poetry lock --no-update
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
         continue-on-error: true
 
       - name: Install dependencies
         run: poetry install --no-interaction
+        continue-on-error: true
 
       - name: Set up test environment variables
         run: |

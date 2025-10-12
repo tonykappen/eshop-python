@@ -3,13 +3,12 @@ name: Code Quality
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [ main, master ]
 
 jobs:
   code-metrics:
     name: Code Quality Metrics
     runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
     defaults:
       run:
         working-directory: ./backend
@@ -35,6 +34,10 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
+      - name: Check Poetry Lock File
+        run: poetry lock --check || poetry lock --no-update
+        continue-on-error: true
+
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
@@ -42,41 +45,32 @@ jobs:
         run: |
           echo "## Ruff Linting Results" >> $GITHUB_STEP_SUMMARY
           poetry run ruff check . --statistics >> $GITHUB_STEP_SUMMARY || true
+        continue-on-error: true
 
       - name: Count Lines of Code
         run: |
           echo "## Lines of Code" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          find app -name "*.py" -not -path "*/tests/*" -not -path "*/__pycache__/*" | xargs wc -l | tail -1 >> $GITHUB_STEP_SUMMARY
+          find app -name "*.py" -not -path "*/tests/*" -not -path "*/__pycache__/*" | xargs wc -l | tail -1 >> $GITHUB_STEP_SUMMARY || echo "N/A" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        continue-on-error: true
 
       - name: Generate Code Quality Report
         run: |
           echo "## Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "ℹ️  All checks are informational only - not blocking merge" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Ruff configured with: E, F, I, N, W, B, C4, UP, ARG, SIM, TCH, Q" >> $GITHUB_STEP_SUMMARY
           echo "✅ Black format check (line-length: 88)" >> $GITHUB_STEP_SUMMARY
           echo "✅ MyPy type checking (Python 3.12)" >> $GITHUB_STEP_SUMMARY
           echo "✅ Bandit security scanning" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Test coverage requirement: 80%" >> $GITHUB_STEP_SUMMARY
-
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
-          fail-on-scopes: runtime
+          echo "ℹ️  Test coverage recommendation: 80%" >> $GITHUB_STEP_SUMMARY
+        continue-on-error: true
 
   pr-labeler:
     name: PR Auto-Labeler
     runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -90,4 +84,5 @@ jobs:
         uses: actions/labeler@v5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 

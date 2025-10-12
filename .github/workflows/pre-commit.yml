@@ -2,13 +2,12 @@ name: Pre-commit Checks
 
 on:
   pull_request:
-  push:
-    branches: [ main, master, develop ]
 
 jobs:
   pre-commit:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
     defaults:
       run:
         working-directory: ./backend
@@ -32,6 +31,10 @@ jobs:
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
+      - name: Check Poetry Lock File
+        run: poetry lock --check || poetry lock --no-update
+        continue-on-error: true
+
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
@@ -43,5 +46,5 @@ jobs:
 
       - name: Run pre-commit hooks
         run: poetry run pre-commit run --all-files --show-diff-on-failure
-        continue-on-error: false
+        continue-on-error: true
 

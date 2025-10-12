@@ -182,34 +182,48 @@ jobs:
             comment += `\`\`\`\n\n`;
             comment += `*Note: These checks are informational. You can merge this PR and fix issues later.*\n`;
             
-            // Find existing comment
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
+            console.log('About to post comment. Comment length:', comment.length);
+            console.log('Repo:', context.repo.owner + '/' + context.repo.repo, 'Issue:', context.issue.number);
             
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('🔍 Code Quality Report')
-            );
-            
-            if (botComment) {
-              // Update existing comment
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              // Create new comment
-              await github.rest.issues.createComment({
+            try {
+              // Find existing comment
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: comment
               });
+              
+              console.log('Found', comments.length, 'existing comments');
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔍 Code Quality Report')
+              );
+              
+              if (botComment) {
+                console.log('Updating existing comment', botComment.id);
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('Comment updated successfully');
+              } else {
+                console.log('Creating new comment');
+                // Create new comment
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('Comment created successfully with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('Error posting comment:', error.message);
+              console.error('Error details:', error.status, error.response?.data);
             }
 
   security:
@@ -328,31 +342,41 @@ jobs:
             
             comment += `*Note: This scan is informational. Review findings but merge is not blocked.*\n`;
             
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
+            console.log('[Security] Posting comment, length:', comment.length);
             
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('🔒 Security Scan Report')
-            );
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: comment
               });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔒 Security Scan Report')
+              );
+              
+              if (botComment) {
+                console.log('[Security] Updating comment', botComment.id);
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('[Security] Updated successfully');
+              } else {
+                console.log('[Security] Creating new comment');
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('[Security] Created with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('[Security] Error:', error.message, error.status);
             }
 
   type-check:
@@ -445,31 +469,41 @@ jobs:
             
             comment += `*Note: Type checking is informational. Merge is not blocked.*\n`;
             
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
+            console.log('[TypeCheck] Posting comment, length:', comment.length);
             
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('🔍 Type Checking Report')
-            );
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: comment
               });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔍 Type Checking Report')
+              );
+              
+              if (botComment) {
+                console.log('[TypeCheck] Updating comment', botComment.id);
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('[TypeCheck] Updated successfully');
+              } else {
+                console.log('[TypeCheck] Creating new comment');
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('[TypeCheck] Created with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('[TypeCheck] Error:', error.message, error.status);
             }
 
   test:
@@ -673,31 +707,41 @@ jobs:
             comment += `📄 **Download full coverage report from CI artifacts**\n\n`;
             comment += `*Note: Tests are informational. Merge is not blocked.*\n`;
             
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
+            console.log('[Tests] Posting comment, length:', comment.length);
             
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('🧪 Test Results & Coverage')
-            );
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: comment
               });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🧪 Test Results & Coverage')
+              );
+              
+              if (botComment) {
+                console.log('[Tests] Updating comment', botComment.id);
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('[Tests] Updated successfully');
+              } else {
+                console.log('[Tests] Creating new comment');
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('[Tests] Created with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('[Tests] Error:', error.message, error.status);
             }
 
       - name: Coverage Badge

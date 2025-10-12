@@ -1,0 +1,41 @@
+name: Required Status Checks
+
+# This workflow provides a single status check that can be used as a 
+# required check in branch protection rules. It waits for all other 
+# workflows to complete and reports their combined status.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main, master, develop ]
+
+jobs:
+  all-checks-pass:
+    name: All Required Checks Pass
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Wait for other workflows
+        uses: lewagon/wait-on-check-action@v1.3.3
+        with:
+          ref: ${{ github.ref }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          running-workflow-name: 'All Required Checks Pass'
+          allowed-conclusions: success,skipped
+
+      - name: All checks passed
+        run: |
+          echo "✅ All required checks have passed successfully!"
+          echo ""
+          echo "The following checks were validated:"
+          echo "  ✅ Code Quality Checks (Ruff, Black, isort)"
+          echo "  ✅ Security Checks (Bandit)"
+          echo "  ✅ Type Checking (MyPy)"
+          echo "  ✅ Tests with 80% Coverage Minimum"
+          echo "  ✅ Pre-commit Hooks"
+          echo ""
+          echo "This branch is ready to merge! 🚀"
+

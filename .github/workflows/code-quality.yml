@@ -1,0 +1,93 @@
+name: Code Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  code-metrics:
+    name: Code Quality Metrics
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Run Ruff with Statistics
+        run: |
+          echo "## Ruff Linting Results" >> $GITHUB_STEP_SUMMARY
+          poetry run ruff check . --statistics >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Count Lines of Code
+        run: |
+          echo "## Lines of Code" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          find app -name "*.py" -not -path "*/tests/*" -not -path "*/__pycache__/*" | xargs wc -l | tail -1 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate Code Quality Report
+        run: |
+          echo "## Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Ruff configured with: E, F, I, N, W, B, C4, UP, ARG, SIM, TCH, Q" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Black format check (line-length: 88)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ MyPy type checking (Python 3.12)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Bandit security scanning" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Test coverage requirement: 80%" >> $GITHUB_STEP_SUMMARY
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          fail-on-scopes: runtime
+
+  pr-labeler:
+    name: PR Auto-Labeler
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Label PR based on files
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+

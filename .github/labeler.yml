@@ -1,0 +1,54 @@
+# Label PRs automatically based on changed files
+
+backend:
+  - changed-files:
+    - any-glob-to-any-file: 'backend/**/*'
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: 'frontend/**/*'
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/tests/**/*'
+      - '**/test_*.py'
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/*.md'
+      - 'docs/**/*'
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '.github/**/*'
+      - '.pre-commit-config.yaml'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/pyproject.toml'
+      - '**/poetry.lock'
+      - '**/requirements*.txt'
+
+docker:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/Dockerfile*'
+      - '**/docker-compose*.yml'
+      - 'docker/**/*'
+
+infrastructure:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - 'infra/**/*'
+      - '**/alembic/**/*'
+
+security:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/auth/**/*'
+      - '**/security/**/*'
+

@@ -496,7 +496,10 @@ def load_credentials_config(credentials_path: str | None = None) -> dict[str, An
                 }
                 for client in credentials.clients
             ],
-            "roles": [{"name": role.name, "description": role.description} for role in credentials.roles],
+            "roles": [
+                {"name": role.name, "description": role.description}
+                for role in credentials.roles
+            ],
             "users": [
                 {
                     "username": user.username,
@@ -557,12 +560,18 @@ def validate_credentials_file(credentials_path: str | None = None) -> tuple[bool
         for user in credentials.users:
             for role in user.roles:
                 if role not in role_names:
-                    return False, f"User '{user.username}' references non-existent role '{role}'"
+                    return (
+                        False,
+                        f"User '{user.username}' references non-existent role '{role}'",
+                    )
 
         # Check role hierarchy references
         for parent_role, hierarchy in credentials.role_hierarchy.items():
             if parent_role not in role_names:
-                return False, f"Role hierarchy references non-existent parent role '{parent_role}'"
+                return (
+                    False,
+                    f"Role hierarchy references non-existent parent role '{parent_role}'",
+                )
             for child_role in hierarchy.includes:
                 if child_role not in role_names:
                     return (

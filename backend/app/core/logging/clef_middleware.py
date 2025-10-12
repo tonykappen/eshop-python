@@ -9,10 +9,12 @@ from typing import Any
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import Message
 
 from app.core.logging.clef_dispatcher import get_dispatcher
-from app.core.logging.w3c_trace import extract_or_generate_trace_context, format_traceparent
+from app.core.logging.w3c_trace import (
+    extract_or_generate_trace_context,
+    format_traceparent,
+)
 
 
 def get_service_metadata() -> dict[str, Any]:
@@ -47,7 +49,7 @@ def create_clef_event(
 ) -> dict[str, Any]:
     """
     Create a CLEF-compliant log event.
-    
+
     Args:
         event_name: Event name (e.g., "begin_request", "response_sent")
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -56,7 +58,7 @@ def create_clef_event(
         function: Function name
         line: Line number
         **kwargs: Additional fields to include in the event
-    
+
     Returns:
         CLEF-formatted event dictionary
     """
@@ -71,20 +73,20 @@ def create_clef_event(
         "line": line,
         **get_host_metadata(),
     }
-    
+
     # Add additional fields
     event.update(kwargs)
-    
+
     # Remove None values
     event = {k: v for k, v in event.items() if v is not None}
-    
+
     return event
 
 
 class CLEFLoggingMiddleware(BaseHTTPMiddleware):
     """
     Middleware for CLEF-compliant request/response logging with W3C trace correlation.
-    
+
     Emits:
     - begin_request: When request is received
     - response_sent: When response is sent (with timings and outcome)
@@ -98,7 +100,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
     ):
         super().__init__(app)
         self.exclude_paths = exclude_paths or []
-        
+
         # Add common health check paths to exclusion list
         if exclude_health_checks:
             self.exclude_paths.extend(
@@ -119,32 +121,33 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         """Process request and response with CLEF logging."""
-        
+
         # Skip logging for excluded paths
         if request.url.path in self.exclude_paths:
             return await call_next(request)
-        
+
         dispatcher = get_dispatcher()
         if not dispatcher:
             # No dispatcher, skip logging
             return await call_next(request)
-        
+
         # Generate unique request ID
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
-        
+
         # Parse or generate W3C trace context
         traceparent_raw = request.headers.get("traceparent")
         tracestate = request.headers.get("tracestate")
         trace_ctx = extract_or_generate_trace_context(traceparent_raw, tracestate)
-        
+
         # Store trace context in request state
         request.state.trace_context = trace_ctx
-        
+
         # Set trace context in contextvars for propagation to all logs
         from app.core.logging.trace_context import set_trace_context
+
         set_trace_context(trace_ctx.trace_id, trace_ctx.span_id, request_id)
-        
+
         # Extract identity/tenant/roles from JWT or other auth
         user = getattr(request.state, "user", None)
         auth_subject = user.sub if user and hasattr(user, "sub") else None
@@ -152,7 +155,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         tenant_id = getattr(user, "tenant_id", None) if user else None
         roles = getattr(user, "roles", []) if user else []
         token_id = getattr(user, "jti", None) if user else None
-        
+
         # Extract request descriptors
         client_ip = self._get_client_ip(request)
         user_agent = request.headers.get("user-agent")
@@ -162,10 +165,10 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         method = request.method
         path = request.url.path
         query = str(request.url.query) if request.url.query else None
-        
+
         # Calculate request size
         request_size = int(request.headers.get("content-length", 0))
-        
+
         # Extract route and path params if available
         route = None
         path_params = {}
@@ -175,14 +178,14 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 route = route_obj.path
         if hasattr(request, "path_params"):
             path_params = dict(request.path_params)
-        
+
         # Session ID prefix (first 6 chars of request_id)
         session_id_prefix = request_id[:6]
-        
+
         # Start timer
         start_time = time.time()
-        start_queue_time = time.perf_counter()
-        
+        time.perf_counter()
+
         # EMIT begin_request event
         begin_event = create_clef_event(
             event_name="begin_request",
@@ -216,16 +219,16 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             request_size=request_size,
             dispatcher_lag_ms=0,  # Can be calculated if needed
         )
-        
+
         await dispatcher.enqueue(begin_event)
-        
+
         # Process request
         response = None
         exception_info = None
-        
+
         try:
             response = await call_next(request)
-            
+
         except Exception as e:
             # Capture exception
             exception_info = {
@@ -236,32 +239,32 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             }
             # Re-raise to let error handlers deal with it
             raise
-        
+
         finally:
             # Calculate timings
             duration_ms = round((time.time() - start_time) * 1000, 2)
-            
+
             # Extract DB/cache timings from request state if available
             db_time_ms = getattr(request.state, "db_time_ms", 0)
             cache_time_ms = getattr(request.state, "cache_time_ms", 0)
             cache_hit = getattr(request.state, "cache_hit", None)
             app_time_ms = max(0, duration_ms - db_time_ms - cache_time_ms)
-            
+
             # Extract policy info if available
             policy = {
                 "rate_limited": getattr(request.state, "rate_limited", False),
                 "retry_count": getattr(request.state, "retry_count", 0),
             }
-            
+
             # Extract response info
             status_code = response.status_code if response else 500
             response_size = 0
             content_type = None
-            
+
             if response:
                 response_size = int(response.headers.get("content-length", 0))
                 content_type = response.headers.get("content-type")
-            
+
             # Determine log level based on status
             if status_code >= 500 or exception_info:
                 level = "ERROR"
@@ -269,11 +272,11 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 level = "WARNING"
             else:
                 level = "INFO"
-            
+
             # Extract operation_id and controller if available
             operation_id = getattr(request.state, "operation_id", None)
             controller = getattr(request.state, "controller", None)
-            
+
             # EMIT response_sent event
             response_event = create_clef_event(
                 event_name="response_sent",
@@ -303,17 +306,18 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 controller=controller,
                 **(exception_info or {}),
             )
-            
+
             await dispatcher.enqueue(response_event)
-            
+
             # Echo traceparent in response headers if we have a response
             if response:
                 response.headers["traceparent"] = format_traceparent(trace_ctx)
-            
+
             # Clear trace context after request
             from app.core.logging.trace_context import clear_trace_context
+
             clear_trace_context()
-        
+
         return response
 
     def _get_client_ip(self, request: Request) -> str:
@@ -322,21 +326,21 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         forwarded_for = request.headers.get("x-forwarded-for")
         if forwarded_for:
             return forwarded_for.split(",")[0].strip()
-        
+
         real_ip = request.headers.get("x-real-ip")
         if real_ip:
             return real_ip
-        
+
         # Fall back to direct client
         if request.client:
             return request.client.host
-        
+
         return "unknown"
 
     def _format_exception(self, exc: Exception) -> str:
         """Format exception for logging."""
         import traceback
-        
+
         return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
 
@@ -351,4 +355,3 @@ def add_clef_logging_middleware(
         exclude_paths=exclude_paths,
         exclude_health_checks=exclude_health_checks,
     )
-

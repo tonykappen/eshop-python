@@ -30,7 +30,7 @@ def get_host_metadata() -> dict[str, Any]:
 class CLEFHandler(logging.Handler):
     """
     Handler that sends logs in CLEF format with correct source attribution.
-    
+
     This handler extracts the ACTUAL caller's source information,
     not the logging wrapper's info.
     """
@@ -44,15 +44,15 @@ class CLEFHandler(logging.Handler):
         """Emit a log record in CLEF format."""
         try:
             from app.core.logging.clef_dispatcher import get_dispatcher
-            
+
             dispatcher = get_dispatcher()
             if not dispatcher:
                 return
-            
+
             # Extract ACTUAL caller information by walking up the stack
             # Skip logging internals to find the real caller
             caller_frame = self._find_caller_frame()
-            
+
             if caller_frame:
                 filename = os.path.basename(caller_frame.f_code.co_filename)
                 module = caller_frame.f_globals.get("__name__", "unknown")
@@ -64,7 +64,7 @@ class CLEFHandler(logging.Handler):
                 module = record.module
                 function = record.funcName
                 line = record.lineno
-            
+
             # Create CLEF log entry
             log_entry = {
                 "@t": datetime.fromtimestamp(record.created, tz=UTC)
@@ -99,15 +99,15 @@ class CLEFHandler(logging.Handler):
             # Add trace context from contextvars if available
             try:
                 from app.core.logging.trace_context import (
-                    get_trace_id,
-                    get_span_id,
                     get_request_id,
+                    get_span_id,
+                    get_trace_id,
                 )
-                
+
                 trace_id = get_trace_id()
                 span_id = get_span_id()
                 request_id = get_request_id()
-                
+
                 if trace_id:
                     log_entry["trace_id"] = trace_id
                 if span_id:
@@ -116,7 +116,7 @@ class CLEFHandler(logging.Handler):
                     log_entry["request_id"] = request_id
             except Exception:
                 pass
-            
+
             # Add extra fields from record.__dict__ and FLATTEN nested objects
             for key, value in record.__dict__.items():
                 if key not in {
@@ -174,7 +174,7 @@ class CLEFHandler(logging.Handler):
             "app.core.logging.clef_logger",
             "_base",
         }
-        
+
         skip_files = {
             "base_logger.py",
             "logger.py",
@@ -182,36 +182,36 @@ class CLEFHandler(logging.Handler):
             "_base.py",
             "logging/__init__.py",
         }
-        
+
         # Get current frame
         current_frame = inspect.currentframe()
-        
+
         try:
             # Walk up the stack
             frame = current_frame
             for _ in range(15):  # Limit depth
                 if frame is None:
                     break
-                
+
                 frame = frame.f_back
                 if frame is None:
                     break
-                
+
                 # Get module name
                 module_name = frame.f_globals.get("__name__", "")
                 filename = frame.f_code.co_filename
                 basename = os.path.basename(filename)
-                
+
                 # Skip internal logging frames
                 if any(skip in module_name for skip in skip_modules):
                     continue
-                
+
                 if basename in skip_files:
                     continue
-                
+
                 # Found the actual caller!
                 return frame
-            
+
             return None
         finally:
             # Clean up frame references
@@ -221,10 +221,9 @@ class CLEFHandler(logging.Handler):
 def get_clef_logger(name: str) -> logging.Logger:
     """
     Get a logger configured for CLEF output.
-    
+
     This bypasses structlog and uses Python's standard logging
     with our custom CLEF handler.
     """
     logger = logging.getLogger(name)
     return logger
-

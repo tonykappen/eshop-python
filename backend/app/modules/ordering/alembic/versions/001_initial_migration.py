@@ -1,16 +1,15 @@
 """Initial placeholder migration for ordering module
 
 Revision ID: 001
-Revises: 
+Revises:
 Create Date: 2025-10-10 12:00:00.000000
 
 NOTE: This is a placeholder migration. Ordering tables will be created
 when the ordering module is implemented.
 """
-from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '001'
+revision = "001"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,4 +25,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Placeholder downgrade."""
     pass
-

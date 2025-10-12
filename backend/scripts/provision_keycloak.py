@@ -71,7 +71,7 @@ def main() -> int:
                 print("❌ Failed to load credentials configuration")
                 return 1
 
-            print(f"\n👤 Realm Admin:")
+            print("\n👤 Realm Admin:")
             print(f"   Username: {config.get('realm_admin', {}).get('username')}")
             print(f"   Email:    {config.get('realm_admin', {}).get('email')}")
 
@@ -89,9 +89,11 @@ def main() -> int:
                 print(f"   • {user['username']} ({user['email']})")
                 print(f"     Roles: {', '.join(user['roles'])}")
 
-            print(f"\n🏗️  Role Hierarchy:")
+            print("\n🏗️  Role Hierarchy:")
             for parent_role, hierarchy in config.get("role_hierarchy", {}).items():
-                print(f"   • {parent_role} includes: {', '.join(hierarchy['includes'])}")
+                print(
+                    f"   • {parent_role} includes: {', '.join(hierarchy['includes'])}"
+                )
 
             print("\n" + "=" * 60)
             return 0
@@ -151,4 +153,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

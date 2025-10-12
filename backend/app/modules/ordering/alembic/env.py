@@ -1,13 +1,15 @@
 """Alembic environment for Ordering module."""
 
 from logging.config import fileConfig
+
 from sqlalchemy import engine_from_config, pool, text
+
 from alembic import context
+from app.config.settings import settings
 
 # Import the Base and ORM models for this module
 from app.core.database.base import Base
 from app.modules.ordering.infrastructure.orm_models import *  # noqa: F401, F403
-from app.config.settings import settings
 
 # this is the Alembic Config object
 config = context.config
@@ -43,7 +45,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def include_object(object, name, type_, reflected, compare_to):
+def include_object(object, _name, type_, _reflected, _compare_to):
     """Filter objects to only include those in the module's schema."""
     if type_ == "table":
         # Only include tables in this module's schema
@@ -80,4 +82,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

@@ -10,12 +10,6 @@ from alembic import context
 from app.core.database.base import Base
 
 # Import catalog models
-from app.modules.catalog.infrastructure.orm_models import (
-    ProductORM,
-    CatalogItemORM,
-    CatalogCategoryORM,
-    CatalogBrandORM,
-)
 
 # TODO: Add basket and ordering ORM models when implemented
 # from app.modules.basket.infrastructure.orm_models import *
@@ -54,7 +48,7 @@ def run_migrations_online() -> None:
     # Convert async URL to sync URL
     if url.startswith("postgresql+asyncpg://"):
         url = url.replace("postgresql+asyncpg://", "postgresql://")
-    
+
     connectable = engine_from_config(
         {"sqlalchemy.url": url},
         prefix="sqlalchemy.",

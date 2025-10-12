@@ -6,12 +6,8 @@ from typing import Any, Generic, TypeVar
 from pydantic import BaseModel
 
 # Import and re-export from core contracts
-from app.core.contracts.cqrs import (
-    ICommand as ICommandContract,
-)
-from app.core.contracts.cqrs import (
-    IQuery as IQueryContract,
-)
+from app.core.contracts.cqrs import ICommand as ICommandContract
+from app.core.contracts.cqrs import IQuery as IQueryContract
 
 TResult = TypeVar("TResult")
 

@@ -4,8 +4,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-import structlog
-
 
 class LogFormatters:
     """Standardized log formatters for consistent logging across the application."""
@@ -79,7 +77,9 @@ class BaseLogger:
         if context:
             log_entry["context"] = context
 
-        extra_data = {k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
+        extra_data = {
+            k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]
+        }
         self.logger.error(
             f"Error Message: {message}, Time of occurrence {log_entry['timestamp']}",
             extra=extra_data,
@@ -104,7 +104,9 @@ class BaseLogger:
         if context:
             log_entry["context"] = context
 
-        extra_data = {k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
+        extra_data = {
+            k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]
+        }
         log_func = getattr(self.logger, level.lower())
         log_func(
             f"{level.title()}: {message}, Time of occurrence {log_entry['timestamp']}",
@@ -181,7 +183,9 @@ class BaseLogger:
         security_data = {k: v for k, v in security_data.items() if v is not None}
         log_entry.update(security_data)
 
-        extra_data = {k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
+        extra_data = {
+            k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]
+        }
         self.logger.info(
             f"Security Event: {event_type}, Time of occurrence {log_entry['timestamp']}",
             extra=extra_data,

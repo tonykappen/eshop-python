@@ -1,12 +1,9 @@
 """Async CLEF log dispatcher for Seq and NDJSON file output."""
 
 import asyncio
+import contextlib
 import json
-import os
-import traceback
 from asyncio import Queue
-from collections.abc import Awaitable
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -40,10 +37,10 @@ class CLEFLogDispatcher:
         self._running = False
         self._task: asyncio.Task | None = None
         self._client: httpx.AsyncClient | None = None
-        
+
         # Create log directory
         self.log_directory.mkdir(exist_ok=True, parents=True)
-        
+
         # Track stats
         self.stats = {
             "enqueued": 0,
@@ -58,29 +55,29 @@ class CLEFLogDispatcher:
         """Start the async dispatcher."""
         if self._running:
             return
-        
+
         self._running = True
-        
+
         # Create async HTTP client for Seq
         if HTTPX_AVAILABLE and self.seq_url:
             self._client = httpx.AsyncClient(
                 timeout=5.0,
                 limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
             )
-        
+
         # Start background task
         self._task = asyncio.create_task(self._process_queue())
 
     async def stop(self) -> None:
         """Stop the dispatcher and flush remaining logs."""
         self._running = False
-        
+
         if self._task:
             await self._task
-        
+
         # Flush any remaining logs
         await self._flush_remaining()
-        
+
         # Close HTTP client
         if self._client:
             await self._client.aclose()
@@ -97,16 +94,14 @@ class CLEFLogDispatcher:
             # Try to mark as sampled
             event["sampled"] = True
             # Try one more time
-            try:
+            with contextlib.suppress(asyncio.QueueFull):
                 self.queue.put_nowait(event)
-            except asyncio.QueueFull:
-                pass  # Drop silently
 
     async def _process_queue(self) -> None:
         """Background task that processes queued log events."""
         batch: list[dict[str, Any]] = []
         last_flush = asyncio.get_event_loop().time()
-        
+
         while self._running or not self.queue.empty():
             try:
                 # Wait for event with timeout
@@ -115,25 +110,25 @@ class CLEFLogDispatcher:
                         self.queue.get(), timeout=self.flush_interval
                     )
                     batch.append(event)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     pass  # Flush on timeout
-                
+
                 current_time = asyncio.get_event_loop().time()
                 should_flush = (
                     len(batch) >= self.batch_size
                     or (current_time - last_flush) >= self.flush_interval
                 )
-                
+
                 if should_flush and batch:
                     await self._flush_batch(batch)
                     batch = []
                     last_flush = current_time
-                    
+
             except Exception as e:
                 # Log error to stderr to avoid log loops
                 print(f"Error in log dispatcher: {e}", flush=True)
                 await asyncio.sleep(0.1)
-        
+
         # Final flush
         if batch:
             await self._flush_batch(batch)
@@ -142,11 +137,11 @@ class CLEFLogDispatcher:
         """Flush a batch of events to Seq and NDJSON files."""
         if not batch:
             return
-        
+
         # Send to Seq (async)
         if self._client and self.seq_url:
             asyncio.create_task(self._send_to_seq_batch(batch))
-        
+
         # Write to NDJSON files (async)
         asyncio.create_task(self._write_to_ndjson_batch(batch))
 
@@ -154,15 +149,15 @@ class CLEFLogDispatcher:
         """Send a batch of events to Seq with retry."""
         if not self._client or not self.seq_url:
             return
-        
+
         try:
             headers = {"Content-Type": "application/vnd.serilog.clef"}
             if self.seq_api_key:
                 headers["X-Seq-ApiKey"] = self.seq_api_key
-            
+
             # Seq CLEF ingestion expects newline-delimited JSON
             payload = "\n".join(json.dumps(event, default=str) for event in batch)
-            
+
             response = await self._client.post(
                 f"{self.seq_url}/api/events/raw",
                 content=payload,
@@ -170,7 +165,7 @@ class CLEFLogDispatcher:
             )
             response.raise_for_status()
             self.stats["sent_to_seq"] += len(batch)
-            
+
         except Exception as e:
             self.stats["seq_errors"] += len(batch)
             # Fallback: write to file if Seq fails
@@ -179,31 +174,31 @@ class CLEFLogDispatcher:
             print(f"Failed to send logs to Seq: {e}", flush=True)
 
     async def _write_to_ndjson_batch(
-        self, batch: list[dict[str, Any]], fallback: bool = False
+        self, batch: list[dict[str, Any]], _fallback: bool = False
     ) -> None:
         """Write batch to NDJSON files."""
         try:
             # Group events by type
             access_events = []
             app_events = []
-            
+
             for event in batch:
                 event_name = event.get("@m", "")
                 if event_name in ("begin_request", "response_sent"):
                     access_events.append(event)
                 else:
                     app_events.append(event)
-            
+
             # Write access logs
             if access_events:
                 await self._append_to_file("access.ndjson", access_events)
-            
+
             # Write app logs
             if app_events:
                 await self._append_to_file("app.ndjson", app_events)
-            
+
             self.stats["sent_to_file"] += len(batch)
-            
+
         except Exception as e:
             self.stats["file_errors"] += len(batch)
             print(f"Failed to write logs to file: {e}", flush=True)
@@ -213,11 +208,11 @@ class CLEFLogDispatcher:
     ) -> None:
         """Append events to NDJSON file."""
         file_path = self.log_directory / filename
-        
+
         # Use aiofiles if available, otherwise sync write in thread pool
         try:
             import aiofiles
-            
+
             async with aiofiles.open(file_path, "a") as f:
                 for event in events:
                     await f.write(json.dumps(event, default=str) + "\n")
@@ -247,7 +242,7 @@ class CLEFLogDispatcher:
                     batch = []
             except asyncio.QueueEmpty:
                 break
-        
+
         if batch:
             await self._flush_batch(batch)
 
@@ -277,10 +272,10 @@ async def init_dispatcher(
 ) -> CLEFLogDispatcher:
     """Initialize and start the global dispatcher."""
     global _dispatcher
-    
+
     if _dispatcher:
         await _dispatcher.stop()
-    
+
     _dispatcher = CLEFLogDispatcher(
         seq_url=seq_url,
         seq_api_key=seq_api_key,
@@ -289,7 +284,7 @@ async def init_dispatcher(
         batch_size=batch_size,
         flush_interval=flush_interval,
     )
-    
+
     await _dispatcher.start()
     return _dispatcher
 
@@ -300,4 +295,3 @@ async def shutdown_dispatcher() -> None:
     if _dispatcher:
         await _dispatcher.stop()
         _dispatcher = None
-

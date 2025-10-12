@@ -1,13 +1,13 @@
 """Structured logging configuration with CLEF/SEQ support and async dispatcher."""
 
 import asyncio
+
+# Try to import httpx for SEQ HTTP transport
+import importlib.util
 import inspect
 import logging
-import os
-import socket
 import sys
-import traceback as tb
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,13 +16,7 @@ from structlog.stdlib import LoggerFactory
 
 from app.core.logging.base_logger import LogFormatters
 
-# Try to import httpx for SEQ HTTP transport
-try:
-    import httpx
-
-    HTTPX_AVAILABLE = True
-except ImportError:
-    HTTPX_AVAILABLE = False
+HTTPX_AVAILABLE = importlib.util.find_spec("httpx") is not None
 
 
 def configure_logging(
@@ -30,7 +24,7 @@ def configure_logging(
     log_format: str = "json",
     enable_seq: bool = False,
     seq_url: str | None = None,
-    seq_api_key: str | None = None,
+    _seq_api_key: str | None = None,
     enable_file_logging: bool = True,
     log_directory: str = "run_time/logs",
     separate_server_logs: bool = True,
@@ -141,10 +135,9 @@ def configure_logging(
         try:
             # Import the CLEF handler
             from app.core.logging.clef_logger import CLEFHandler
-            
+
             # Note: The dispatcher will be initialized during app startup
             # This is just configuration
-            
             # Add CLEF handler to root logger
             clef_handler = CLEFHandler()
             clef_handler.setLevel(getattr(logging, log_level.upper()))

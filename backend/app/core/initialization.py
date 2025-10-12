@@ -30,8 +30,8 @@ async def initialize_logging() -> None:
     if settings.log_enable_seq:
         try:
             from app.core.logging.clef_dispatcher import init_dispatcher
-            
-            dispatcher = await init_dispatcher(
+
+            await init_dispatcher(
                 seq_url=settings.seq_url,
                 seq_api_key=settings.seq_api_key,
                 log_directory=settings.log_directory,
@@ -39,7 +39,7 @@ async def initialize_logging() -> None:
                 batch_size=50,
                 flush_interval=1.0,
             )
-            
+
             logger.log_with_context(
                 "Async CLEF dispatcher initialized successfully",
                 "info",
@@ -169,11 +169,11 @@ async def shutdown_logging() -> None:
     """Shutdown logging and flush remaining events."""
     logger = BaseLogger("initialization")
     logger.log_with_context("Shutting down logging system", "info")
-    
+
     # Shutdown async CLEF dispatcher
     try:
         from app.core.logging.clef_dispatcher import shutdown_dispatcher
-        
+
         await shutdown_dispatcher()
         logger.log_with_context("Async CLEF dispatcher shutdown completed", "info")
     except Exception as e:

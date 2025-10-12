@@ -2,11 +2,9 @@
 
 import asyncio
 from pathlib import Path
-from typing import List
 
 from sqlalchemy import text
 
-from app.config.settings import settings
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
 
@@ -114,7 +112,9 @@ async def run_module_migrations(module_config: dict) -> None:
     module_path = Path(module_config["path"])
     schema_name = module_config["schema"]
 
-    logger.info(f"🔄 Running migrations for module: {module_name} (schema: {schema_name})")
+    logger.info(
+        f"🔄 Running migrations for module: {module_name} (schema: {schema_name})"
+    )
 
     try:
         # Check if alembic configuration exists
@@ -128,9 +128,7 @@ async def run_module_migrations(module_config: dict) -> None:
         # Check if migrations directory exists
         migrations_dir = module_path / "alembic"
         if not migrations_dir.exists():
-            logger.warning(
-                f"⚠️ No migrations directory found for module {module_name}"
-            )
+            logger.warning(f"⚠️ No migrations directory found for module {module_name}")
             return
 
         # Run migrations using Alembic command
@@ -155,7 +153,7 @@ async def run_module_migrations(module_config: dict) -> None:
                 f"❌ Migration execution failed for module {module_name}: {error_msg}"
             )
             # Don't raise here, continue with other modules
-            logger.warning(f"⚠️ Continuing with other modules...")
+            logger.warning("⚠️ Continuing with other modules...")
         else:
             output = stdout.decode() if stdout else ""
             logger.debug(f"Migration output for {module_name}: {output}")
@@ -164,14 +162,12 @@ async def run_module_migrations(module_config: dict) -> None:
     except Exception as e:
         logger.error(f"❌ Migration execution failed for module {module_name}: {e}")
         # Don't raise here, continue with other modules
-        logger.warning(f"⚠️ Continuing with other modules...")
+        logger.warning("⚠️ Continuing with other modules...")
 
 
 async def create_module_migration(module_name: str, message: str) -> None:
     """Create a new migration for a specific module."""
-    module_config = next(
-        (m for m in MODULE_CONFIGS if m["name"] == module_name), None
-    )
+    module_config = next((m for m in MODULE_CONFIGS if m["name"] == module_name), None)
 
     if not module_config:
         logger.error(f"❌ Module {module_name} not found in MODULE_CONFIGS")

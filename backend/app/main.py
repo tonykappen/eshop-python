@@ -71,7 +71,9 @@ register_shutdown_callback(cache_handler.shutdown)
 register_shutdown_callback(messaging_handler.shutdown)
 register_shutdown_callback(auth_handler.shutdown)
 register_shutdown_callback(health_handler.shutdown)
-register_shutdown_callback(shutdown_logging)  # Shutdown logging last to capture all events
+register_shutdown_callback(
+    shutdown_logging
+)  # Shutdown logging last to capture all events
 
 # Create FastAPI app with graceful lifecycle management
 app = FastAPI(

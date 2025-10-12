@@ -6,8 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, Generic, TypeVar
 
 from app.core.logging.base_logger import BaseLogger
-
-from .cancellation import CancellationToken
+from app.core.mediator.cancellation import CancellationToken
 
 TRequest = TypeVar("TRequest")
 TResponse = TypeVar("TResponse")

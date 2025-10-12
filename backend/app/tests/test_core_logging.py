@@ -81,7 +81,7 @@ class TestLoggerConfiguration:
     def test_configure_logging_with_seq_disabled(self) -> None:
         """Test logging configuration when SEQ is not available."""
         with (
-            patch("app.core.logging.logger.SEQ_AVAILABLE", False),
+            patch("app.core.logging.logger.HTTPX_AVAILABLE", False),
             patch("app.core.logging.logger.get_logger") as mock_get_logger,
         ):
             mock_logger = create_mock_logger()

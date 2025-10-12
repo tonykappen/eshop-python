@@ -1,0 +1,72 @@
+{
+  "Title": "Security & Authentication Events",
+  "Description": "All security, authentication, and authorization events (Filters commented - enable manually in Seq UI)",
+  "Filters": [],
+  "Columns": [
+    {
+      "Expression": "@Level"
+    },
+    {
+      "Expression": "@Timestamp"
+    },
+    {
+      "Expression": "event_type"
+    },
+    {
+      "Expression": "authentication_method"
+    },
+    {
+      "Expression": "authorization_outcome"
+    },
+    {
+      "Expression": "user_id"
+    },
+    {
+      "Expression": "auth_subject"
+    },
+    {
+      "Expression": "tenant_id"
+    },
+    {
+      "Expression": "session_id"
+    },
+    {
+      "Expression": "session_id_prefix"
+    },
+    {
+      "Expression": "client_ip"
+    },
+    {
+      "Expression": "source_ip"
+    },
+    {
+      "Expression": "user_agent"
+    },
+    {
+      "Expression": "roles"
+    },
+    {
+      "Expression": "trace_id"
+    },
+    {
+      "Expression": "request_id"
+    },
+    {
+      "Expression": "status_code"
+    },
+    {
+      "Expression": "method"
+    },
+    {
+      "Expression": "path"
+    },
+    {
+      "Expression": "service"
+    },
+    {
+      "Expression": "@Message"
+    }
+  ],
+  "IsWatched": true,
+  "Grouping": "Personal"
+}

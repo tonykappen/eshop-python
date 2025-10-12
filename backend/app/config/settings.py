@@ -3,7 +3,7 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from .env import get_env, get_env_bool, get_env_int, get_env_list
+from app.config.env import get_env, get_env_bool, get_env_int, get_env_list
 
 
 class Settings(BaseSettings):
@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     debug: bool = Field(default_factory=lambda: get_env_bool("DEBUG", False))
     environment: str = Field(
         default_factory=lambda: get_env("ENVIRONMENT", "development")
+    )
+    
+    # Service metadata for CLEF logging
+    service_name: str = Field(
+        default_factory=lambda: get_env("SERVICE_NAME", "eshop-api")
+    )
+    service_version: str = Field(
+        default_factory=lambda: get_env("SERVICE_VERSION", "1.0.0")
     )
 
     # Server
@@ -146,6 +154,22 @@ class Settings(BaseSettings):
     keycloak_jwt_algorithms: list[str] = Field(
         default_factory=lambda: get_env_list("KEYCLOAK_JWT_ALGORITHMS", "RS256")
     )
+    
+    # Keycloak Credentials File
+    keycloak_credentials_path: str | None = Field(default=None)
+    
+    # Keycloak Admin (for provisioning) - can be overridden by credentials file
+    keycloak_admin_username: str = Field(
+        default_factory=lambda: get_env("KEYCLOAK_ADMIN_USERNAME", "admin")
+    )
+    keycloak_admin_password: str = Field(
+        default_factory=lambda: get_env("KEYCLOAK_ADMIN_PASSWORD", "admin")
+    )
+    
+    # Keycloak Provisioning
+    keycloak_auto_provision: bool = Field(
+        default_factory=lambda: get_env_bool("KEYCLOAK_AUTO_PROVISION", False)
+    )
 
     # Logging
     log_level: str = Field(default_factory=lambda: get_env("LOG_LEVEL", "INFO"))
@@ -161,7 +185,7 @@ class Settings(BaseSettings):
     log_enable_file: bool = Field(
         default_factory=lambda: get_env_bool("LOG_ENABLE_FILE", True)
     )
-    log_directory: str = Field(default_factory=lambda: get_env("LOG_DIRECTORY", "logs"))
+    log_directory: str = Field(default_factory=lambda: get_env("LOG_DIRECTORY", "run_time/logs"))
     log_separate_server_logs: bool = Field(
         default_factory=lambda: get_env_bool("LOG_SEPARATE_SERVER_LOGS", True)
     )

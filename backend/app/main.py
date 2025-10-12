@@ -18,6 +18,7 @@ from app.core.initialization import (
     initialize_dependency_injection,
     initialize_logging,
     initialize_mediator,
+    shutdown_logging,
 )
 from app.core.lifecycle.handlers import (
     auth_handler,
@@ -32,7 +33,7 @@ from app.core.lifecycle.manager import (
     register_shutdown_callback,
     register_startup_callback,
 )
-from app.core.logging.request_logging import add_request_logging_middleware
+from app.core.logging.clef_middleware import add_clef_logging_middleware
 from app.core.middleware.auth_middleware import add_auth_middleware
 from app.modules.catalog.api.router import router as catalog_router
 
@@ -70,6 +71,7 @@ register_shutdown_callback(cache_handler.shutdown)
 register_shutdown_callback(messaging_handler.shutdown)
 register_shutdown_callback(auth_handler.shutdown)
 register_shutdown_callback(health_handler.shutdown)
+register_shutdown_callback(shutdown_logging)  # Shutdown logging last to capture all events
 
 # Create FastAPI app with graceful lifecycle management
 app = FastAPI(
@@ -103,12 +105,10 @@ add_pagination(app)
 # Add custom exception handlers
 add_exception_handlers(app)
 
-# Add request logging middleware (before other middleware)
+# Add CLEF request/response logging middleware (before other middleware)
 if settings.log_enable_request_logging:
-    add_request_logging_middleware(
+    add_clef_logging_middleware(
         app,
-        log_request_body=settings.log_request_body,
-        log_response_body=settings.log_response_body,
         exclude_health_checks=True,
     )
 

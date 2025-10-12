@@ -1,0 +1,81 @@
+{
+  "Title": "Application & Business Events",
+  "Description": "Application-level events with business context (requests, handlers, behaviors) (Filters commented - enable manually in Seq UI)",
+  "Filters": [],
+  "Columns": [
+    {
+      "Expression": "@Level"
+    },
+    {
+      "Expression": "@Timestamp"
+    },
+    {
+      "Expression": "trace_id"
+    },
+    {
+      "Expression": "request_id"
+    },
+    {
+      "Expression": "request_type"
+    },
+    {
+      "Expression": "response_type"
+    },
+    {
+      "Expression": "operation"
+    },
+    {
+      "Expression": "handler"
+    },
+    {
+      "Expression": "command"
+    },
+    {
+      "Expression": "query"
+    },
+    {
+      "Expression": "event"
+    },
+    {
+      "Expression": "entity_type"
+    },
+    {
+      "Expression": "entity_id"
+    },
+    {
+      "Expression": "aggregate_id"
+    },
+    {
+      "Expression": "product_id"
+    },
+    {
+      "Expression": "order_id"
+    },
+    {
+      "Expression": "basket_id"
+    },
+    {
+      "Expression": "duration_ms"
+    },
+    {
+      "Expression": "table"
+    },
+    {
+      "Expression": "service"
+    },
+    {
+      "Expression": "module"
+    },
+    {
+      "Expression": "function"
+    },
+    {
+      "Expression": "user_id"
+    },
+    {
+      "Expression": "@Message"
+    }
+  ],
+  "IsWatched": true,
+  "Grouping": "Personal"
+}

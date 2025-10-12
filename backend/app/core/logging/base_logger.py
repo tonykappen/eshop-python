@@ -40,7 +40,8 @@ class BaseLogger:
 
     def __init__(self, logger_name: str):
         """Initialize the base logger."""
-        self.logger = structlog.get_logger(logger_name)
+        # Use standard Python logger to ensure CLEF handler processes it correctly
+        self.logger = logging.getLogger(logger_name)
         self._logger_name = logger_name
 
     def _create_log_entry(
@@ -78,11 +79,10 @@ class BaseLogger:
         if context:
             log_entry["context"] = context
 
+        extra_data = {k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
         self.logger.error(
-            "Error Message: %s, Time of occurrence %s",
-            message,
-            log_entry["timestamp"],
-            **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]},
+            f"Error Message: {message}, Time of occurrence {log_entry['timestamp']}",
+            extra=extra_data,
         )
 
     def log_warning_with_context(
@@ -104,10 +104,11 @@ class BaseLogger:
         if context:
             log_entry["context"] = context
 
+        extra_data = {k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
         log_func = getattr(self.logger, level.lower())
         log_func(
             f"{level.title()}: {message}, Time of occurrence {log_entry['timestamp']}",
-            **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]},
+            extra=extra_data,
         )
 
     def log_debug_with_context(
@@ -137,16 +138,15 @@ class BaseLogger:
         if context:
             log_entry["context"] = context
 
+        extra_data = {
+            k: v
+            for k, v in log_entry.items()
+            if k not in ["message", "error", "timestamp"]
+        }
         self.logger.error(
-            "Exception: %s, Error: %s, Time of occurrence %s",
-            message,
-            str(exception),
-            log_entry["timestamp"],
-            **{
-                k: v
-                for k, v in log_entry.items()
-                if k not in ["message", "error", "timestamp"]
-            },
+            f"Exception: {message}, Error: {str(exception)}, Time of occurrence {log_entry['timestamp']}",
+            extra=extra_data,
+            exc_info=True,
         )
 
     def log_security_audit(
@@ -181,11 +181,10 @@ class BaseLogger:
         security_data = {k: v for k, v in security_data.items() if v is not None}
         log_entry.update(security_data)
 
+        extra_data = {k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]}
         self.logger.info(
-            "Security Event: %s, Time of occurrence %s",
-            event_type,
-            log_entry["timestamp"],
-            **{k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]},
+            f"Security Event: {event_type}, Time of occurrence {log_entry['timestamp']}",
+            extra=extra_data,
         )
 
     def log_security_event(
@@ -226,8 +225,8 @@ class BaseLogger:
         else:
             self.log_error_with_context(message, context=context, **kwargs)
 
-    def get_logger(self) -> structlog.stdlib.BoundLogger:
-        """Get the underlying structlog logger."""
+    def get_logger(self) -> logging.Logger:
+        """Get the underlying Python logger."""
         return self.logger
 
     # Standard method names for easy migration

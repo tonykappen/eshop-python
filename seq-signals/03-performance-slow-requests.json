@@ -1,0 +1,63 @@
+{
+  "Title": "Performance - Slow Requests",
+  "Description": "Requests taking more than 500ms with performance metrics (Filters commented - enable manually in Seq UI: duration_ms > 500)",
+  "Filters": [],
+  "Columns": [
+    {
+      "Expression": "@Timestamp"
+    },
+    {
+      "Expression": "duration_ms"
+    },
+    {
+      "Expression": "app_time_ms"
+    },
+    {
+      "Expression": "db_time_ms"
+    },
+    {
+      "Expression": "cache_time_ms"
+    },
+    {
+      "Expression": "trace_id"
+    },
+    {
+      "Expression": "request_id"
+    },
+    {
+      "Expression": "method"
+    },
+    {
+      "Expression": "path"
+    },
+    {
+      "Expression": "request_type"
+    },
+    {
+      "Expression": "response_type"
+    },
+    {
+      "Expression": "status_code"
+    },
+    {
+      "Expression": "response_size"
+    },
+    {
+      "Expression": "request_size"
+    },
+    {
+      "Expression": "user_id"
+    },
+    {
+      "Expression": "service"
+    },
+    {
+      "Expression": "module"
+    },
+    {
+      "Expression": "@Message"
+    }
+  ],
+  "IsWatched": true,
+  "Grouping": "Personal"
+}

@@ -8,11 +8,11 @@ from app.core.mediator.fastapi_integration import configure_mediator
 
 
 async def initialize_logging() -> None:
-    """Initialize and configure application logging."""
+    """Initialize and configure application logging with async dispatcher."""
     logger = BaseLogger("initialization")
     logger.log_with_context("Initializing logging configuration", "info")
 
-    # Configure logging first
+    # Configure logging first (handlers, formatters, etc.)
     configure_logging(
         log_level=settings.log_level,
         log_format="json",
@@ -25,6 +25,31 @@ async def initialize_logging() -> None:
         enable_console=True,  # Always enable console output
         environment=settings.environment,
     )
+
+    # Initialize async CLEF dispatcher for Seq
+    if settings.log_enable_seq:
+        try:
+            from app.core.logging.clef_dispatcher import init_dispatcher
+            
+            dispatcher = await init_dispatcher(
+                seq_url=settings.seq_url,
+                seq_api_key=settings.seq_api_key,
+                log_directory=settings.log_directory,
+                queue_max_size=10000,
+                batch_size=50,
+                flush_interval=1.0,
+            )
+            
+            logger.log_with_context(
+                "Async CLEF dispatcher initialized successfully",
+                "info",
+                context={"seq_url": settings.seq_url},
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                "Failed to initialize async CLEF dispatcher",
+                error=e,
+            )
 
     logger.log_with_context("Logging configuration completed", "info")
 
@@ -138,3 +163,21 @@ async def cleanup_dependency_injection() -> None:
         logger.log_with_context("Database engine closed successfully", "info")
     except Exception as e:
         logger.log_error_with_context("Error during database cleanup", error=e)
+
+
+async def shutdown_logging() -> None:
+    """Shutdown logging and flush remaining events."""
+    logger = BaseLogger("initialization")
+    logger.log_with_context("Shutting down logging system", "info")
+    
+    # Shutdown async CLEF dispatcher
+    try:
+        from app.core.logging.clef_dispatcher import shutdown_dispatcher
+        
+        await shutdown_dispatcher()
+        logger.log_with_context("Async CLEF dispatcher shutdown completed", "info")
+    except Exception as e:
+        logger.log_error_with_context(
+            "Error during CLEF dispatcher shutdown",
+            error=e,
+        )

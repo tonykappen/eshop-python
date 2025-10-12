@@ -1,0 +1,81 @@
+{
+  "Title": "Request Lifecycle (Begin → Response)",
+  "Description": "Shows begin_request and response_sent events with full request/response details (Filters commented - enable manually in Seq UI)",
+  "Filters": [],
+  "Columns": [
+    {
+      "Expression": "@Timestamp"
+    },
+    {
+      "Expression": "@MessageTemplate"
+    },
+    {
+      "Expression": "trace_id"
+    },
+    {
+      "Expression": "request_id"
+    },
+    {
+      "Expression": "span_id"
+    },
+    {
+      "Expression": "method"
+    },
+    {
+      "Expression": "path"
+    },
+    {
+      "Expression": "path_params"
+    },
+    {
+      "Expression": "query_params"
+    },
+    {
+      "Expression": "status_code"
+    },
+    {
+      "Expression": "success"
+    },
+    {
+      "Expression": "duration_ms"
+    },
+    {
+      "Expression": "request_size"
+    },
+    {
+      "Expression": "response_size"
+    },
+    {
+      "Expression": "content_type"
+    },
+    {
+      "Expression": "client_ip"
+    },
+    {
+      "Expression": "user_id"
+    },
+    {
+      "Expression": "tenant_id"
+    },
+    {
+      "Expression": "http_version"
+    },
+    {
+      "Expression": "scheme"
+    },
+    {
+      "Expression": "host"
+    },
+    {
+      "Expression": "service"
+    },
+    {
+      "Expression": "version"
+    },
+    {
+      "Expression": "env"
+    }
+  ],
+  "IsWatched": true,
+  "Grouping": "Personal"
+}

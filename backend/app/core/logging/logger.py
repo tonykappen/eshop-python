@@ -1,9 +1,12 @@
-"""Structured logging configuration with SEQ support and auto-logging capabilities."""
+"""Structured logging configuration with CLEF/SEQ support and async dispatcher."""
 
 import asyncio
 import inspect
 import logging
+import os
+import socket
 import sys
+import traceback as tb
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -29,7 +32,7 @@ def configure_logging(
     seq_url: str | None = None,
     seq_api_key: str | None = None,
     enable_file_logging: bool = True,
-    log_directory: str = "logs",
+    log_directory: str = "run_time/logs",
     separate_server_logs: bool = True,
     enable_console: bool = True,
     environment: str = "development",
@@ -39,7 +42,7 @@ def configure_logging(
     # Create logs directory if it doesn't exist
     if enable_file_logging:
         log_path = Path(log_directory)
-        log_path.mkdir(exist_ok=True)
+        log_path.mkdir(parents=True, exist_ok=True)
 
     # Configure structlog processors
     processors = [
@@ -102,6 +105,13 @@ def configure_logging(
         handlers=handlers,
     )
 
+    # Silence noisy third-party loggers
+    # Prevent httpx and httpcore from flooding logs with connection details
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("httpcore.connection").setLevel(logging.WARNING)
+    logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
+
     # Configure Uvicorn server logs separately if enabled
     if separate_server_logs and enable_file_logging:
         # Create separate handlers for uvicorn
@@ -126,75 +136,18 @@ def configure_logging(
         # Prevent propagation to avoid duplicate console logs
         uvicorn_access_logger.propagate = False
 
-    # Configure SEQ logging if enabled and available
+    # Configure SEQ logging with async CLEF dispatcher if enabled and available
     if enable_seq and HTTPX_AVAILABLE and seq_url:
         try:
-            # Create a custom handler for Seq HTTP transport
-            class SeqHTTPHandler(logging.Handler):
-                """Custom handler for sending logs to Seq via HTTP."""
-
-                def __init__(self, seq_url: str, api_key: str | None = None):
-                    super().__init__()
-                    self.seq_url = seq_url.rstrip("/")
-                    self.api_key = api_key
-                    # Use synchronous client for logging handler
-                    self.client = httpx.Client(timeout=5.0)
-
-                def emit(self, record: logging.LogRecord) -> None:
-                    """Emit a log record to Seq."""
-                    try:
-                        # Create log entry for Seq in proper format
-                        log_entry = {
-                            "@t": datetime.fromtimestamp(
-                                record.created, tz=UTC
-                            ).isoformat(),
-                            "@l": record.levelname,
-                            "MessageTemplate": record.getMessage(),
-                            "Timestamp": datetime.fromtimestamp(
-                                record.created, tz=UTC
-                            ).isoformat(),
-                            "Logger": record.name,
-                            "Level": record.levelname,
-                        }
-
-                        # Add exception info if present
-                        if record.exc_info:
-                            log_entry["@x"] = record.exc_text
-
-                        # Add extra fields from record
-                        if hasattr(record, "structlog"):
-                            log_entry.update(record.structlog)
-
-                        # Send to Seq synchronously
-                        self._send_to_seq(log_entry)
-
-                    except Exception as e:
-                        # Fallback to console if Seq fails
-                        print(f"Failed to send log to Seq: {e}")
-
-                def _send_to_seq(self, log_entry: dict) -> None:
-                    """Send log entry to Seq."""
-                    try:
-                        headers = {"Content-Type": "application/json"}
-                        if self.api_key:
-                            headers["X-Seq-ApiKey"] = self.api_key
-
-                        # Seq expects an array of events
-                        payload = {"Events": [log_entry]}
-
-                        response = self.client.post(
-                            f"{self.seq_url}/api/events/raw",
-                            json=payload,
-                            headers=headers,
-                        )
-                        response.raise_for_status()
-                    except Exception:
-                        # Silently fail to avoid log loops
-                        pass
-
-            # Add Seq handler to root logger with filter to exclude HTTP request logs
-            seq_handler = SeqHTTPHandler(seq_url, seq_api_key)
-            seq_handler.setLevel(getattr(logging, log_level.upper()))
+            # Import the CLEF handler
+            from app.core.logging.clef_logger import CLEFHandler
+            
+            # Note: The dispatcher will be initialized during app startup
+            # This is just configuration
+            
+            # Add CLEF handler to root logger
+            clef_handler = CLEFHandler()
+            clef_handler.setLevel(getattr(logging, log_level.upper()))
 
             # Add filter to exclude HTTP request logs from httpx
             def filter_http_logs(record):
@@ -209,15 +162,15 @@ def configure_logging(
                     return False
                 return True
 
-            seq_handler.addFilter(filter_http_logs)
-            logging.getLogger().addHandler(seq_handler)
+            clef_handler.addFilter(filter_http_logs)
+            logging.getLogger().addHandler(clef_handler)
 
             get_logger(__name__).info(
-                f"✅ SEQ logging configured successfully at {seq_url}"
+                f"✅ CLEF/SEQ logging configured successfully at {seq_url}"
             )
         except Exception as e:
             # Fallback to console logging if SEQ configuration fails
-            get_logger(__name__).warning(f"Failed to configure SEQ logging: {e}")
+            get_logger(__name__).warning(f"Failed to configure CLEF/SEQ logging: {e}")
     elif enable_seq and not HTTPX_AVAILABLE:
         get_logger(__name__).warning(
             "SEQ logging requested but httpx package not available"

@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from app.core.auth.keycloak_setup import setup_keycloak_async
+from infra.keycloak.keycloak_setup import setup_keycloak_async
 from app.core.database.migrations import run_migrations, wait_for_database
 from app.core.database.seeding import run_seeding
 from app.core.database.session import close_db_engine, create_db_engine

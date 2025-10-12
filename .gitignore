@@ -170,6 +170,7 @@ Thumbs.db
 
 # Logs
 logs/
+run_time/
 *.log
 
 
@@ -203,6 +204,10 @@ frontend/build/
 .secrets
 *.pem
 *.key
+
+# Keycloak credentials (DO NOT COMMIT)
+infra/keycloak/credentials.yaml
+keycloak_credentials.yaml
 
 # Backup files
 *.bak

@@ -5,10 +5,9 @@ from typing import Any, TypeVar
 
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.logging.base_logger import BaseLogger
-
-from .behaviors import LoggingBehavior, ValidationBehavior
-from .cancellation import CancellationToken
-from .handler_registry import HandlerRegistry
+from app.core.mediator.behaviors import LoggingBehavior, ValidationBehavior
+from app.core.mediator.cancellation import CancellationToken
+from app.core.mediator.handler_registry import HandlerRegistry
 
 TResponse = TypeVar("TResponse")
 

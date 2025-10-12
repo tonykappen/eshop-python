@@ -6,8 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.core.auth.keycloak import KeycloakUser
-
-from .mocks import MockKeycloakService, create_mock_settings
+from app.tests.utils.mocks import MockKeycloakService, create_mock_settings
 
 
 @pytest.fixture

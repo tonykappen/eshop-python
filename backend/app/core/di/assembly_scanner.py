@@ -8,7 +8,7 @@ from typing import Any
 
 from dependency_injector import containers, providers
 
-from ..logging.base_logger import BaseLogger
+from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 

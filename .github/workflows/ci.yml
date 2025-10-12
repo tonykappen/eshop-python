@@ -126,9 +126,13 @@ jobs:
             const hasBlackIssues = blackOutput.includes('would reformat') || blackOutput.includes('reformatted');
             const hasIsortIssues = isortOutput.includes('ERROR') || isortOutput.includes('would be reformatted');
             
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
             let comment = `## 🔍 Code Quality Report\n\n`;
             comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
             comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
             comment += `---\n\n`;
             
             // Ruff Linting
@@ -310,9 +314,13 @@ jobs:
               banditJson = JSON.parse(fs.readFileSync(path.join(backendDir, 'bandit-report.json'), 'utf8'));
             } catch(e) { console.log('Could not read bandit files:', e.message); }
             
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
             let comment = `## 🔒 Security Scan Report\n\n`;
             comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
             comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
             comment += `---\n\n`;
             
             if (banditJson && banditJson.results && banditJson.results.length > 0) {
@@ -452,9 +460,13 @@ jobs:
             const hasErrors = mypyOutput.includes('error:');
             const errorCount = (mypyOutput.match(/error:/g) || []).length;
             
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
             let comment = `## 🔍 Type Checking Report (MyPy)\n\n`;
             comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
             comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
             comment += `---\n\n`;
             
             if (hasErrors) {
@@ -604,15 +616,32 @@ jobs:
           DEBUG=false
           EOF
 
+      - name: Discover Tests
+        run: |
+          echo "=== Test Discovery ==="
+          echo "Current directory: $(pwd)"
+          echo "Looking for tests in: app/tests/"
+          find app/tests -name "test_*.py" -type f | head -20
+          echo "Total test files found: $(find app/tests -name "test_*.py" -type f | wc -l)"
+          echo "=== Pytest Collection ==="
+          poetry run pytest --collect-only app/tests/ 2>&1 | tee test_collection.txt || true
+        continue-on-error: true
+
       - name: Run Tests with Coverage
         run: |
+          echo "=== Starting pytest ===" | tee pytest_output.txt
           poetry run pytest \
+            app/tests/ \
             --cov=app \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-report=html \
-            -v > pytest_output.txt 2>&1 || true
-          cat pytest_output.txt
+            -v \
+            --tb=short \
+            2>&1 | tee -a pytest_output.txt || true
+          echo "=== Pytest exit code: $? ==="
+          echo "=== Test Summary ==="
+          tail -50 pytest_output.txt
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eshop_test
           REDIS_URL: redis://localhost:6379/0
@@ -658,9 +687,13 @@ jobs:
             const failed = failedMatch ? parseInt(failedMatch[1]) : 0;
             const errors = errorMatch ? parseInt(errorMatch[1]) : 0;
             
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
             let comment = `## 🧪 Test Results & Coverage\n\n`;
             comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
             comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
             comment += `---\n\n`;
             
             // Test Results

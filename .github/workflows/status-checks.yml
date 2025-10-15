@@ -1,0 +1,31 @@
+name: CI Summary
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
+    if: always()
+    
+    steps:
+      - name: CI Summary
+        run: |
+          echo "📊 CI Pipeline Status Summary"
+          echo ""
+          echo "ℹ️  All CI checks are informational only"
+          echo "✅ Checks provide feedback to improve code quality"
+          echo "⚠️  No checks are blocking merge"
+          echo ""
+          echo "Checks included:"
+          echo "  • Code Quality (Ruff, Black, isort)"
+          echo "  • Security Scanning (Bandit)"
+          echo "  • Type Checking (MyPy)"
+          echo "  • Tests with Coverage"
+          echo "  • Pre-commit Hooks"
+          echo ""
+          echo "Review the individual check results for details."
+

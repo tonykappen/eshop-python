@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Question or Discussion
+    url: https://github.com/YOUR_ORG/eshop-python/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/YOUR_ORG/eshop-python#readme
+    about: Check out the project documentation
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/YOUR_ORG/eshop-python/security/advisories/new
+    about: Report a security vulnerability (private)
+

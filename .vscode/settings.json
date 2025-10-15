@@ -1,0 +1,45 @@
+{
+    "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "backend/tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.analysis.extraPaths": [
+        "./backend"
+    ],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        "**/.coverage": true,
+        "**/htmlcov": true,
+        "**/.mypy_cache": true,
+        "**/.ruff_cache": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/.coverage": true,
+        "**/htmlcov": true
+    },
+    "emmet.includeLanguages": {
+        "javascript": "html"
+    },
+    "files.associations": {
+        "*.html": "html"
+    },
+    "debug.console.fontSize": 12,
+    "debug.internalConsoleOptions": "openOnSessionStart",
+    "debug.showBreakpointsInOverviewRuler": true,
+    "debug.showInlineBreakpointCandidates": true
+}

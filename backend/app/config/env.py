@@ -42,8 +42,10 @@ class EnvConfig:
                 for config in data.get("configurations", []):
                     if "backend" in config.get("name", "").lower():
                         return config.get("env", {})
-        except Exception:
-            pass
+        except Exception as e:
+            # Silently fail if launch.json is malformed or missing
+            # This is expected in non-VSCode environments
+            print(f"Warning: Could not load launch.json: {e}", flush=True)
         return {}
 
     def _load_env_file(self) -> dict[str, str]:
@@ -57,8 +59,9 @@ class EnvConfig:
                         if line and not line.startswith("#") and "=" in line:
                             key, value = line.split("=", 1)
                             env_vars[key.strip()] = value.strip()
-            except Exception:
-                pass
+            except Exception as e:
+                # Silently fail if .env file is malformed
+                print(f"Warning: Could not load .env file: {e}", flush=True)
         return env_vars
 
     def get(self, key: str, default: Any | None = None) -> str:

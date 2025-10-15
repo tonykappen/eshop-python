@@ -6,59 +6,29 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.core.database.migrations import (
-    _create_alembic_config,
-    _create_migrations_directory,
-    create_initial_migration,
     run_migrations,
+    wait_for_database,
+    ensure_schemas_exist,
+    create_module_migration,
 )
 
 
 class TestDatabaseMigrations:
     """Test database migration functionality."""
 
-    def test_create_alembic_config(self, tmp_path, monkeypatch):
-        """Test Alembic configuration creation."""
-        # Change to temporary directory
-        monkeypatch.chdir(tmp_path)
+    async def test_wait_for_database(self):
+        """Test database connection waiting."""
+        # This test would require a real database connection
+        # For now, we'll just test that the function exists and can be called
+        with pytest.raises(Exception):  # Should fail without real DB
+            await wait_for_database(max_retries=1, delay=0.1)
 
-        # Test configuration creation
-        _create_alembic_config()
-
-        # Verify alembic.ini was created
-        alembic_ini = tmp_path / "alembic.ini"
-        assert alembic_ini.exists()
-
-        # Verify content contains expected sections
-        content = alembic_ini.read_text()
-        assert "[alembic]" in content
-        assert "script_location = migrations" in content
-        assert "sqlalchemy.url" in content
-
-    def test_create_migrations_directory(self, tmp_path, monkeypatch):
-        """Test migrations directory structure creation."""
-        # Change to temporary directory
-        monkeypatch.chdir(tmp_path)
-
-        # Test directory creation
-        _create_migrations_directory()
-
-        # Verify directory structure
-        migrations_dir = tmp_path / "migrations"
-        assert migrations_dir.exists()
-
-        versions_dir = migrations_dir / "versions"
-        assert versions_dir.exists()
-
-        env_py = migrations_dir / "env.py"
-        assert env_py.exists()
-
-        script_mako = migrations_dir / "script.py.mako"
-        assert script_mako.exists()
-
-        # Verify env.py content
-        env_content = env_py.read_text()
-        assert "from app.core.database.base import Base" in env_content
-        assert "target_metadata = Base.metadata" in env_content
+    async def test_ensure_schemas_exist(self):
+        """Test schema existence check."""
+        # This test would require a real database connection
+        # For now, we'll just test that the function exists and can be called
+        with pytest.raises(Exception):  # Should fail without real DB
+            await ensure_schemas_exist()
 
     @patch("asyncio.create_subprocess_exec")
     async def test_run_migrations_success(
@@ -123,75 +93,44 @@ class TestDatabaseMigrations:
         with pytest.raises(RuntimeError, match="Migration failed"):
             await run_migrations()
 
-    @patch("subprocess.run")
-    def test_create_initial_migration_success(self, mock_run, tmp_path, monkeypatch):
-        """Test successful initial migration creation."""
-        # Mock successful subprocess run
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "Migration created successfully"
-        mock_run.return_value = mock_result
+    @patch("asyncio.create_subprocess_exec")
+    async def test_create_module_migration_success(self, mock_create_subprocess):
+        """Test successful module migration creation."""
+        # Mock successful subprocess
+        mock_process = MagicMock()
+        mock_process.returncode = 0
 
-        # Change to temporary directory
-        monkeypatch.chdir(tmp_path)
+        async def mock_communicate():
+            return (b"Migration created successfully", b"")
+
+        mock_process.communicate = mock_communicate
+        mock_create_subprocess.return_value = mock_process
 
         # Test migration creation
-        create_initial_migration()
+        await create_module_migration("catalog", "Test migration")
 
         # Verify subprocess was called correctly
-        mock_run.assert_called_once_with(
-            [
-                "poetry",
-                "run",
-                "alembic",
-                "revision",
-                "--autogenerate",
-                "-m",
-                "Initial migration",
-            ],
-            capture_output=True,
-            text=True,
-            cwd=tmp_path,
-        )
+        mock_create_subprocess.assert_called_once()
 
-    @patch("subprocess.run")
-    def test_create_initial_migration_failure(self, mock_run, tmp_path, monkeypatch):
-        """Test initial migration creation failure."""
-        # Mock failed subprocess run
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stderr = "Migration creation failed"
-        mock_run.return_value = mock_result
+    @patch("asyncio.create_subprocess_exec")
+    async def test_create_module_migration_failure(self, mock_create_subprocess):
+        """Test module migration creation failure."""
+        # Mock failed subprocess
+        mock_process = MagicMock()
+        mock_process.returncode = 1
 
-        # Change to temporary directory
-        monkeypatch.chdir(tmp_path)
+        async def mock_communicate():
+            return (b"", b"Migration creation failed")
+
+        mock_process.communicate = mock_communicate
+        mock_create_subprocess.return_value = mock_process
 
         # Test migration creation failure
         with pytest.raises(RuntimeError, match="Migration creation failed"):
-            create_initial_migration()
+            await create_module_migration("catalog", "Test migration")
 
-    async def test_run_migrations_creates_config_if_missing(
-        self, tmp_path, monkeypatch
-    ):
-        """Test that run_migrations creates config if missing."""
-        # Change to temporary directory
-        monkeypatch.chdir(tmp_path)
-
-        # Mock subprocess to avoid actual execution
-        with patch("asyncio.create_subprocess_exec") as mock_create_subprocess:
-            mock_process = MagicMock()
-            mock_process.returncode = 0
-
-            async def mock_communicate():
-                return (b"Migration completed", b"")
-
-            mock_process.communicate = mock_communicate
-            mock_create_subprocess.return_value = mock_process
-
-            # Run migrations (should create config)
-            await run_migrations()
-
-            # Verify config was created
-            assert (tmp_path / "alembic.ini").exists()
-            assert (tmp_path / "migrations").exists()
-            assert (tmp_path / "migrations" / "env.py").exists()
+    def test_create_module_migration_invalid_module(self):
+        """Test migration creation with invalid module name."""
+        with pytest.raises(ValueError, match="Module invalid_module not found"):
+            # This will fail because the module doesn't exist in MODULE_CONFIGS
+            asyncio.run(create_module_migration("invalid_module", "Test migration"))

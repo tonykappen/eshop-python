@@ -3,6 +3,13 @@
 import asyncio
 from typing import Any
 
+import sys
+from pathlib import Path
+
+# Add the project root to the Python path to access infra module
+project_root = Path(__file__).parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from infra.keycloak.keycloak_setup import setup_keycloak_async
 
 from app.core.database.migrations import run_migrations, wait_for_database

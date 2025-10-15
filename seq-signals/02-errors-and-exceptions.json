@@ -1,0 +1,75 @@
+{
+  "Title": "Errors & Exceptions",
+  "Description": "All errors and exceptions with full context and stack traces (Filters commented - enable manually in Seq UI)",
+  "Filters": [],
+  "Columns": [
+    {
+      "Expression": "@Level"
+    },
+    {
+      "Expression": "@Timestamp"
+    },
+    {
+      "Expression": "trace_id"
+    },
+    {
+      "Expression": "request_id"
+    },
+    {
+      "Expression": "service"
+    },
+    {
+      "Expression": "module"
+    },
+    {
+      "Expression": "function"
+    },
+    {
+      "Expression": "file"
+    },
+    {
+      "Expression": "line"
+    },
+    {
+      "Expression": "error"
+    },
+    {
+      "Expression": "error_type"
+    },
+    {
+      "Expression": "error_code"
+    },
+    {
+      "Expression": "exception_class"
+    },
+    {
+      "Expression": "request_type"
+    },
+    {
+      "Expression": "operation"
+    },
+    {
+      "Expression": "table"
+    },
+    {
+      "Expression": "user_id"
+    },
+    {
+      "Expression": "path"
+    },
+    {
+      "Expression": "method"
+    },
+    {
+      "Expression": "status_code"
+    },
+    {
+      "Expression": "@Message"
+    },
+    {
+      "Expression": "@Exception"
+    }
+  ],
+  "IsWatched": true,
+  "Grouping": "Personal"
+}

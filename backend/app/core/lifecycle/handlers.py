@@ -1,14 +1,22 @@
 """Lifecycle handlers for application services."""
 
 import asyncio
+import sys
+from pathlib import Path
 from typing import Any
 
-from app.core.auth.keycloak_setup import setup_keycloak_async
-from app.core.database.migrations import run_migrations, wait_for_database
-from app.core.database.seeding import run_seeding
-from app.core.database.session import close_db_engine, create_db_engine
-from app.core.health.health_service import health_service
-from app.core.logging.base_logger import BaseLogger
+# Add the project root to the Python path to access infra module
+project_root = Path(__file__).parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# Import after path modification - noqa: E402
+from infra.keycloak.keycloak_setup import setup_keycloak_async  # noqa: E402
+
+from app.core.database.migrations import run_migrations, wait_for_database  # noqa: E402
+from app.core.database.seeding import run_seeding  # noqa: E402
+from app.core.database.session import close_db_engine, create_db_engine  # noqa: E402
+from app.core.health.health_service import health_service  # noqa: E402
+from app.core.logging.base_logger import BaseLogger  # noqa: E402
 
 logger = BaseLogger(__name__)
 

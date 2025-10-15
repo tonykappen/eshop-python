@@ -258,11 +258,42 @@ This project was migrated from a standalone structure to follow the [FastAPI Ful
 - Database migrations maintained compatibility
 - Configuration files adapted for new structure
 
+## 🔐 Keycloak Provisioning
+
+The application uses Keycloak for authentication with automated provisioning of realms, clients, roles, and users.
+
+### Quick Setup
+
+```bash
+# 1. Create credentials file
+cp infra/keycloak/credentials.yaml.example infra/keycloak/credentials.yaml
+nano infra/keycloak/credentials.yaml  # Edit with your credentials
+
+# 2. Provision Keycloak
+cd backend
+python scripts/provision_keycloak.py
+```
+
+### Documentation
+
+- **[Keycloak Setup Guide](infra/keycloak/README.md)** - Complete provisioning guide
+- **[Quick Reference](infra/keycloak/QUICK_REFERENCE.md)** - Common commands and examples
+
+### Features
+
+- ✅ No hardcoded credentials - all config in YAML file
+- ✅ Realm admin creates application resources
+- ✅ CLI tool for provisioning and validation
+- ✅ Auto-provision on startup (optional)
+
+For detailed instructions, see the [Keycloak documentation](infra/keycloak/README.md).
+
 ## 📚 Additional Documentation
 
 - [Frontend README](frontend/README.md) - Detailed frontend documentation
 - [Backend API Docs](http://localhost:8000/docs) - Interactive API documentation
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development setup and debugging guide
+- [Keycloak Setup Guide](infra/keycloak/README.md) - Keycloak provisioning guide
 
 ## 🤝 Contributing
 

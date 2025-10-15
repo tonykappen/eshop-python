@@ -12,7 +12,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from ..logging.base_logger import BaseLogger
+from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 

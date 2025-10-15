@@ -1,0 +1,808 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  lint-and-format:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
+    permissions:
+      pull-requests: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+        continue-on-error: true
+
+      - name: Run Ruff Linter
+        id: ruff_lint
+        run: |
+          poetry run ruff check . --output-format=github > ruff_output.txt 2>&1 || true
+          cat ruff_output.txt
+        continue-on-error: true
+
+      - name: Run Ruff Format Check
+        id: ruff_format
+        run: |
+          poetry run ruff format --check . > ruff_format_output.txt 2>&1 || true
+          cat ruff_format_output.txt
+        continue-on-error: true
+
+      - name: Run Black Format Check
+        id: black
+        run: |
+          poetry run black --check . > black_output.txt 2>&1 || true
+          cat black_output.txt
+        continue-on-error: true
+
+      - name: Run isort Import Check
+        id: isort
+        run: |
+          poetry run isort --check-only . > isort_output.txt 2>&1 || true
+          cat isort_output.txt
+        continue-on-error: true
+
+      - name: Post Code Quality Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            // Debug: Log environment
+            console.log('GITHUB_WORKSPACE:', process.env.GITHUB_WORKSPACE);
+            console.log('Event name:', context.eventName);
+            console.log('Issue number:', context.issue.number);
+            
+            // Read files from backend directory
+            const backendDir = path.join(process.env.GITHUB_WORKSPACE, 'backend');
+            console.log('Looking for files in:', backendDir);
+            
+            // Check if files exist
+            try {
+              const files = fs.readdirSync(backendDir);
+              console.log('Files in backend:', files.filter(f => f.includes('output')));
+            } catch(e) {
+              console.log('Cannot list backend directory:', e.message);
+            }
+            
+            let ruffOutput = '';
+            let ruffFormatOutput = '';
+            let blackOutput = '';
+            let isortOutput = '';
+            
+            try { ruffOutput = fs.readFileSync(path.join(backendDir, 'ruff_output.txt'), 'utf8'); } catch(e) { console.log('Could not read ruff_output.txt:', e.message); }
+            try { ruffFormatOutput = fs.readFileSync(path.join(backendDir, 'ruff_format_output.txt'), 'utf8'); } catch(e) { console.log('Could not read ruff_format_output.txt:', e.message); }
+            try { blackOutput = fs.readFileSync(path.join(backendDir, 'black_output.txt'), 'utf8'); } catch(e) { console.log('Could not read black_output.txt:', e.message); }
+            try { isortOutput = fs.readFileSync(path.join(backendDir, 'isort_output.txt'), 'utf8'); } catch(e) { console.log('Could not read isort_output.txt:', e.message); }
+            
+            console.log('File sizes - Ruff:', ruffOutput.length, 'RuffFormat:', ruffFormatOutput.length, 'Black:', blackOutput.length, 'isort:', isortOutput.length);
+            
+            const hasRuffIssues = ruffOutput.includes('error') || ruffOutput.includes('warning');
+            const hasRuffFormatIssues = ruffFormatOutput.includes('would reformat');
+            const hasBlackIssues = blackOutput.includes('would reformat') || blackOutput.includes('reformatted');
+            const hasIsortIssues = isortOutput.includes('ERROR') || isortOutput.includes('would be reformatted');
+            
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
+            let comment = `## 🔍 Code Quality Report\n\n`;
+            comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
+            comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
+            comment += `---\n\n`;
+            
+            // Ruff Linting
+            comment += `### Ruff Linting\n`;
+            if (hasRuffIssues) {
+              comment += `❌ **Issues Found**\n\n`;
+              comment += `\`\`\`\n${ruffOutput.slice(0, 2000)}\n\`\`\`\n\n`;
+              comment += `**To fix:** \`poetry run ruff check . --fix\`\n\n`;
+            } else {
+              comment += `✅ **No issues**\n\n`;
+            }
+            
+            // Ruff Format
+            comment += `### Ruff Format\n`;
+            if (hasRuffFormatIssues) {
+              comment += `❌ **Files need formatting**\n\n`;
+              comment += `\`\`\`\n${ruffFormatOutput.slice(0, 1000)}\n\`\`\`\n\n`;
+              comment += `**To fix:** \`poetry run ruff format .\`\n\n`;
+            } else {
+              comment += `✅ **All files formatted correctly**\n\n`;
+            }
+            
+            // Black
+            comment += `### Black Format\n`;
+            if (hasBlackIssues) {
+              comment += `❌ **Files need formatting**\n\n`;
+              comment += `\`\`\`\n${blackOutput.slice(0, 1000)}\n\`\`\`\n\n`;
+              comment += `**To fix:** \`poetry run black .\`\n\n`;
+            } else {
+              comment += `✅ **All files formatted correctly**\n\n`;
+            }
+            
+            // isort
+            comment += `### Import Sorting (isort)\n`;
+            if (hasIsortIssues) {
+              comment += `❌ **Imports need sorting**\n\n`;
+              comment += `\`\`\`\n${isortOutput.slice(0, 1000)}\n\`\`\`\n\n`;
+              comment += `**To fix:** \`poetry run isort .\`\n\n`;
+            } else {
+              comment += `✅ **Imports sorted correctly**\n\n`;
+            }
+            
+            comment += `---\n\n`;
+            comment += `### 📋 Quick Fix Commands\n\n`;
+            comment += `\`\`\`bash\n`;
+            comment += `cd backend\n`;
+            comment += `poetry run black .\n`;
+            comment += `poetry run isort .\n`;
+            comment += `poetry run ruff check . --fix\n`;
+            comment += `poetry run ruff format .\n`;
+            comment += `\`\`\`\n\n`;
+            comment += `*Note: These checks are informational. You can merge this PR and fix issues later.*\n`;
+            
+            console.log('About to post comment. Comment length:', comment.length);
+            console.log('Repo:', context.repo.owner + '/' + context.repo.repo, 'Issue:', context.issue.number);
+            
+            try {
+              // Find existing comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              
+              console.log('Found', comments.length, 'existing comments');
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔍 Code Quality Report')
+              );
+              
+              if (botComment) {
+                console.log('Updating existing comment', botComment.id);
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('Comment updated successfully');
+              } else {
+                console.log('Creating new comment');
+                // Create new comment
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('Comment created successfully with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('Error posting comment:', error.message);
+              console.error('Error details:', error.status, error.response?.data);
+            }
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
+    permissions:
+      pull-requests: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+        continue-on-error: true
+
+      - name: Run Bandit Security Checks
+        run: |
+          poetry run bandit -r app -f json -o bandit-report.json || true
+          poetry run bandit -r app -f screen > bandit_output.txt 2>&1 || true
+          cat bandit_output.txt
+        continue-on-error: true
+
+      - name: Upload Bandit Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-security-report
+          path: backend/bandit-report.json
+          retention-days: 30
+
+      - name: Post Security Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            const backendDir = path.join(process.env.GITHUB_WORKSPACE, 'backend');
+            
+            let banditOutput = '';
+            let banditJson = null;
+            
+            try { 
+              banditOutput = fs.readFileSync(path.join(backendDir, 'bandit_output.txt'), 'utf8'); 
+              banditJson = JSON.parse(fs.readFileSync(path.join(backendDir, 'bandit-report.json'), 'utf8'));
+            } catch(e) { console.log('Could not read bandit files:', e.message); }
+            
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
+            let comment = `## 🔒 Security Scan Report\n\n`;
+            comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
+            comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
+            comment += `---\n\n`;
+            
+            if (banditJson && banditJson.results && banditJson.results.length > 0) {
+              comment += `### ⚠️ Security Issues Found\n\n`;
+              comment += `**Total Issues:** ${banditJson.results.length}\n\n`;
+              
+              const highSeverity = banditJson.results.filter(r => r.issue_severity === 'HIGH');
+              const mediumSeverity = banditJson.results.filter(r => r.issue_severity === 'MEDIUM');
+              const lowSeverity = banditJson.results.filter(r => r.issue_severity === 'LOW');
+              
+              if (highSeverity.length > 0) {
+                comment += `🔴 **High Severity:** ${highSeverity.length}\n`;
+              }
+              if (mediumSeverity.length > 0) {
+                comment += `🟡 **Medium Severity:** ${mediumSeverity.length}\n`;
+              }
+              if (lowSeverity.length > 0) {
+                comment += `🟢 **Low Severity:** ${lowSeverity.length}\n`;
+              }
+              
+              comment += `\n\`\`\`\n${banditOutput.slice(0, 3000)}\n\`\`\`\n\n`;
+              comment += `📄 **Download full report from CI artifacts**\n\n`;
+            } else {
+              comment += `### ✅ No Security Issues Found\n\n`;
+              comment += `Bandit security scanner found no issues.\n\n`;
+            }
+            
+            comment += `*Note: This scan is informational. Review findings but merge is not blocked.*\n`;
+            
+            console.log('[Security] Posting comment, length:', comment.length);
+            
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔒 Security Scan Report')
+              );
+              
+              if (botComment) {
+                console.log('[Security] Updating comment', botComment.id);
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('[Security] Updated successfully');
+              } else {
+                console.log('[Security] Creating new comment');
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('[Security] Created with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('[Security] Error:', error.message, error.status);
+            }
+
+  type-check:
+    name: Type Checking (MyPy)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
+    permissions:
+      pull-requests: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+        continue-on-error: true
+
+      - name: Run MyPy Type Checker
+        run: |
+          poetry run mypy app --ignore-missing-imports --show-error-codes > mypy_output.txt 2>&1 || true
+          cat mypy_output.txt
+        continue-on-error: true
+
+      - name: Post Type Check Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            const backendDir = path.join(process.env.GITHUB_WORKSPACE, 'backend');
+            
+            let mypyOutput = '';
+            try { mypyOutput = fs.readFileSync(path.join(backendDir, 'mypy_output.txt'), 'utf8'); } catch(e) { console.log('Could not read mypy_output.txt:', e.message); }
+            
+            const hasErrors = mypyOutput.includes('error:');
+            const errorCount = (mypyOutput.match(/error:/g) || []).length;
+            
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
+            let comment = `## 🔍 Type Checking Report (MyPy)\n\n`;
+            comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
+            comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
+            comment += `---\n\n`;
+            
+            if (hasErrors) {
+              comment += `### ❌ Type Errors Found\n\n`;
+              comment += `**Total Errors:** ${errorCount}\n\n`;
+              comment += `\`\`\`\n${mypyOutput.slice(0, 3000)}\n\`\`\`\n\n`;
+              comment += `**To fix:** Add type hints and fix type annotations\n\n`;
+            } else {
+              comment += `### ✅ No Type Errors\n\n`;
+              comment += `MyPy found no type checking issues.\n\n`;
+            }
+            
+            comment += `*Note: Type checking is informational. Merge is not blocked.*\n`;
+            
+            console.log('[TypeCheck] Posting comment, length:', comment.length);
+            
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔍 Type Checking Report')
+              );
+              
+              if (botComment) {
+                console.log('[TypeCheck] Updating comment', botComment.id);
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('[TypeCheck] Updated successfully');
+              } else {
+                console.log('[TypeCheck] Creating new comment');
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('[TypeCheck] Created with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('[TypeCheck] Error:', error.message, error.status);
+            }
+
+  test:
+    name: Tests with Coverage
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
+    permissions:
+      pull-requests: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eshop_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Update Poetry Lock File
+        run: |
+          poetry lock --check || poetry lock
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+        continue-on-error: true
+
+      - name: Set up test environment variables
+        run: |
+          cat > .env.test << EOF
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eshop_test
+          REDIS_URL=redis://localhost:6379/0
+          RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+          ENVIRONMENT=test
+          DEBUG=false
+          EOF
+
+      - name: Discover Tests
+        run: |
+          echo "=== Test Discovery ==="
+          echo "Current directory: $(pwd)"
+          echo "Looking for tests in: app/tests/"
+          find app/tests -name "test_*.py" -type f | head -20
+          echo "Total test files found: $(find app/tests -name "test_*.py" -type f | wc -l)"
+          echo "=== Pytest Collection ==="
+          poetry run pytest --collect-only app/tests/ 2>&1 | tee test_collection.txt || true
+        continue-on-error: true
+
+      - name: Run Tests with Coverage
+        run: |
+          echo "=== Starting pytest ===" | tee pytest_output.txt
+          poetry run pytest \
+            app/tests/ \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-report=html \
+            -v \
+            --tb=short \
+            2>&1 | tee -a pytest_output.txt || true
+          echo "=== Pytest exit code: $? ==="
+          echo "=== Test Summary ==="
+          tail -50 pytest_output.txt
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eshop_test
+          REDIS_URL: redis://localhost:6379/0
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+          ENVIRONMENT: test
+        continue-on-error: true
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            backend/htmlcov/
+            backend/coverage.xml
+          retention-days: 30
+
+      - name: Post Test Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            const backendDir = path.join(process.env.GITHUB_WORKSPACE, 'backend');
+            
+            let pytestOutput = '';
+            try { pytestOutput = fs.readFileSync(path.join(backendDir, 'pytest_output.txt'), 'utf8'); } catch(e) { console.log('Could not read pytest_output.txt:', e.message); }
+            
+            // Extract coverage percentage
+            const coverageMatch = pytestOutput.match(/TOTAL\s+\d+\s+\d+\s+(\d+)%/);
+            const coverage = coverageMatch ? parseInt(coverageMatch[1]) : 0;
+            
+            // Extract test results
+            const passedMatch = pytestOutput.match(/(\d+) passed/);
+            const failedMatch = pytestOutput.match(/(\d+) failed/);
+            const errorMatch = pytestOutput.match(/(\d+) error/);
+            
+            const passed = passedMatch ? parseInt(passedMatch[1]) : 0;
+            const failed = failedMatch ? parseInt(failedMatch[1]) : 0;
+            const errors = errorMatch ? parseInt(errorMatch[1]) : 0;
+            
+            const timestamp = new Date().toISOString();
+            const commitSha = context.sha.substring(0, 7);
+            
+            let comment = `## 🧪 Test Results & Coverage\n\n`;
+            comment += `📊 **Status:** Informational only - not blocking merge\n\n`;
+            comment += `🔗 **[View Full CI Logs](${runUrl})**\n\n`;
+            comment += `📝 **Commit:** \`${commitSha}\` | ⏰ **Updated:** ${timestamp}\n\n`;
+            comment += `---\n\n`;
+            
+            // Test Results
+            comment += `### Test Results\n\n`;
+            if (failed > 0 || errors > 0) {
+              comment += `❌ **Some tests failed**\n\n`;
+            } else if (passed > 0) {
+              comment += `✅ **All tests passed**\n\n`;
+            }
+            
+            comment += `- ✅ Passed: ${passed}\n`;
+            if (failed > 0) comment += `- ❌ Failed: ${failed}\n`;
+            if (errors > 0) comment += `- 🔴 Errors: ${errors}\n`;
+            comment += `\n`;
+            
+            // Coverage
+            comment += `### Code Coverage\n\n`;
+            let coverageIcon = '🔴';
+            let coverageStatus = 'Below target';
+            if (coverage >= 80) {
+              coverageIcon = '✅';
+              coverageStatus = 'Excellent';
+            } else if (coverage >= 70) {
+              coverageIcon = '🟡';
+              coverageStatus = 'Good';
+            }
+            
+            comment += `${coverageIcon} **Coverage: ${coverage}%** (Target: 80%)\n\n`;
+            comment += `**Status:** ${coverageStatus}\n\n`;
+            
+            if (coverage < 80) {
+              comment += `⚠️ Coverage is below 80% target. Consider adding tests.\n\n`;
+            }
+            
+            // Show failures if any
+            if (failed > 0 || errors > 0) {
+              comment += `### Failed Tests\n\n`;
+              const failureSection = pytestOutput.split('FAILED')[1];
+              if (failureSection) {
+                comment += `\`\`\`\n${failureSection.slice(0, 2000)}\n\`\`\`\n\n`;
+              }
+            }
+            
+            comment += `📄 **Download full coverage report from CI artifacts**\n\n`;
+            comment += `*Note: Tests are informational. Merge is not blocked.*\n`;
+            
+            console.log('[Tests] Posting comment, length:', comment.length);
+            
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🧪 Test Results & Coverage')
+              );
+              
+              if (botComment) {
+                console.log('[Tests] Updating comment', botComment.id);
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+                console.log('[Tests] Updated successfully');
+              } else {
+                console.log('[Tests] Creating new comment');
+                const result = await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+                console.log('[Tests] Created with ID:', result.data.id);
+              }
+            } catch (error) {
+              console.error('[Tests] Error:', error.message, error.status);
+            }
+
+      - name: Coverage Badge
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./backend/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking - informational only
+    needs: [lint-and-format, security, type-check, test]
+    if: always()
+    
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "📊 CI Results Summary:"
+          echo "  Lint & Format: ${{ needs.lint-and-format.result }}"
+          echo "  Security: ${{ needs.security.result }}"
+          echo "  Type Check: ${{ needs.type-check.result }}"
+          echo "  Tests: ${{ needs.test.result }}"
+          echo ""
+          echo "ℹ️  All checks are informational only - not blocking merge"
+        continue-on-error: true
+

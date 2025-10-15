@@ -7,8 +7,8 @@ from typing import Any
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .base_logger import BaseLogger
-from .logger import _sanitize_log_data
+from app.core.logging.base_logger import BaseLogger
+from app.core.logging.logger import _sanitize_log_data
 
 logger = BaseLogger(__name__)
 

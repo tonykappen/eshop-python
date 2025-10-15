@@ -1,5 +1,6 @@
 """Role-Based Access Control (RBAC) for eShop application."""
 
+import asyncio
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
@@ -385,3 +386,204 @@ def get_user_permissions(
         "is_manager": "manager" in user.roles,
         "is_user": "user" in user.roles,
     }
+
+
+# Keycloak Provisioning Utilities
+# These utilities help with provisioning Keycloak realms, clients, users, and roles
+
+
+def provision_keycloak_sync(credentials_path: str | None = None) -> bool:
+    """
+    Synchronously provision Keycloak from credentials file.
+
+    This is a convenience wrapper that runs the async provisioning in a new event loop.
+    Use this for CLI scripts or non-async contexts.
+
+    Args:
+        credentials_path: Optional path to credentials file. If None, uses default search locations.
+
+    Returns:
+        True if provisioning was successful, False otherwise
+
+    Example:
+        ```python
+        from app.core.auth.rbac import provision_keycloak_sync
+
+        success = provision_keycloak_sync("keycloak_credentials.yaml")
+        if success:
+            print("✅ Keycloak provisioned successfully")
+        else:
+            print("❌ Keycloak provisioning failed")
+        ```
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from infra.keycloak.keycloak_setup import setup_keycloak_async
+
+        # Run in a new event loop
+        return asyncio.run(setup_keycloak_async(credentials_path))
+    except Exception as e:
+        logger.error(f"Failed to provision Keycloak: {e}")
+        return False
+
+
+async def provision_keycloak_async(credentials_path: str | None = None) -> bool:
+    """
+    Asynchronously provision Keycloak from credentials file.
+
+    Use this for async contexts like FastAPI startup events.
+
+    Args:
+        credentials_path: Optional path to credentials file. If None, uses default search locations.
+
+    Returns:
+        True if provisioning was successful, False otherwise
+
+    Example:
+        ```python
+        from app.core.auth.rbac import provision_keycloak_async
+
+        @app.on_event("startup")
+        async def startup():
+            success = await provision_keycloak_async()
+            if success:
+                logger.info("✅ Keycloak provisioned successfully")
+        ```
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from infra.keycloak.keycloak_setup import setup_keycloak_async
+
+        return await setup_keycloak_async(credentials_path)
+    except Exception as e:
+        logger.error(f"Failed to provision Keycloak: {e}")
+        return False
+
+
+def load_credentials_config(credentials_path: str | None = None) -> dict[str, Any]:
+    """
+    Load and return Keycloak credentials configuration.
+
+    Args:
+        credentials_path: Optional path to credentials file. If None, uses default search locations.
+
+    Returns:
+        Dictionary containing the credentials configuration
+
+    Example:
+        ```python
+        from app.core.auth.rbac import load_credentials_config
+
+        config = load_credentials_config()
+        print(f"Configured users: {len(config['users'])}")
+        print(f"Configured roles: {len(config['roles'])}")
+        ```
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from infra.keycloak.credentials import load_keycloak_credentials
+
+        credentials = load_keycloak_credentials(credentials_path)
+        return {
+            "realm_admin": {
+                "username": credentials.realm_admin.username,
+                "email": credentials.realm_admin.email,
+            },
+            "clients": [
+                {
+                    "client_id": client.client_id,
+                    "redirect_uris": client.redirect_uris,
+                }
+                for client in credentials.clients
+            ],
+            "roles": [
+                {"name": role.name, "description": role.description}
+                for role in credentials.roles
+            ],
+            "users": [
+                {
+                    "username": user.username,
+                    "email": user.email,
+                    "roles": user.roles,
+                }
+                for user in credentials.users
+            ],
+            "role_hierarchy": {
+                role_name: {"includes": hierarchy.includes}
+                for role_name, hierarchy in credentials.role_hierarchy.items()
+            },
+        }
+    except Exception as e:
+        logger.error(f"Failed to load credentials config: {e}")
+        return {}
+
+
+def validate_credentials_file(credentials_path: str | None = None) -> tuple[bool, str]:
+    """
+    Validate the credentials file without provisioning.
+
+    Args:
+        credentials_path: Optional path to credentials file. If None, uses default search locations.
+
+    Returns:
+        Tuple of (is_valid, message)
+
+    Example:
+        ```python
+        from app.core.auth.rbac import validate_credentials_file
+
+        is_valid, message = validate_credentials_file()
+        if is_valid:
+            print(f"✅ {message}")
+        else:
+            print(f"❌ {message}")
+        ```
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from infra.keycloak.credentials import load_keycloak_credentials
+
+        credentials = load_keycloak_credentials(credentials_path)
+
+        # Perform validation checks
+        if not credentials.clients:
+            return False, "No clients configured in credentials file"
+
+        if not credentials.roles:
+            return False, "No roles configured in credentials file"
+
+        if not credentials.users:
+            return False, "No users configured in credentials file"
+
+        # Check that all user roles exist in the roles list
+        role_names = {role.name for role in credentials.roles}
+        for user in credentials.users:
+            for role in user.roles:
+                if role not in role_names:
+                    return (
+                        False,
+                        f"User '{user.username}' references non-existent role '{role}'",
+                    )
+
+        # Check role hierarchy references
+        for parent_role, hierarchy in credentials.role_hierarchy.items():
+            if parent_role not in role_names:
+                return (
+                    False,
+                    f"Role hierarchy references non-existent parent role '{parent_role}'",
+                )
+            for child_role in hierarchy.includes:
+                if child_role not in role_names:
+                    return (
+                        False,
+                        f"Role hierarchy for '{parent_role}' references non-existent child role '{child_role}'",
+                    )
+
+        return True, (
+            f"Credentials file is valid: {len(credentials.users)} users, "
+            f"{len(credentials.roles)} roles, {len(credentials.clients)} clients"
+        )
+    except FileNotFoundError:
+        return False, "Credentials file not found"
+    except Exception as e:
+        return False, f"Invalid credentials file: {e}"

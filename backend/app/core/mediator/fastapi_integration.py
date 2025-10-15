@@ -5,13 +5,13 @@ from typing import Any
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .cancellation import (
+from app.core.mediator.cancellation import (
     CancellationToken,
     get_cancellation_token,
     get_cancellation_token_with_session,
 )
-from .handler_registry import HandlerRegistry
-from .mediator import Mediator
+from app.core.mediator.handler_registry import HandlerRegistry
+from app.core.mediator.mediator import Mediator
 
 # Global services container (simplified version of .NET IServiceCollection)
 _services: dict[str, Any] = {}

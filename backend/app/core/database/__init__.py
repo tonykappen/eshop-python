@@ -1,9 +1,9 @@
 """Database package for eShop Modular Monolith."""
 
-from .base import Base
-from .migrations import run_migrations
-from .seeding import run_seeding
-from .session import create_db_engine, get_db_session
+from app.core.database.base import Base
+from app.core.database.migrations import run_migrations
+from app.core.database.seeding import run_seeding
+from app.core.database.session import create_db_engine, get_db_session
 
 __all__ = [
     "Base",

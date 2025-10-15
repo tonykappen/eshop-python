@@ -4,9 +4,8 @@ import inspect
 from typing import Any
 
 from app.core.logging.base_logger import BaseLogger
-
-from .handler_registry import HandlerRegistry
-from .mediator import Mediator
+from app.core.mediator.handler_registry import HandlerRegistry
+from app.core.mediator.mediator import Mediator
 
 
 def add_mediator_with_assemblies(services: Any, *assemblies: Any) -> Any:

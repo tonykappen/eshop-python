@@ -64,7 +64,7 @@ services:
     container_name: eshop-seq
     environment:
       ACCEPT_EULA: "Y"
-      SEQ_FIRSTRUN_ADMINPASSWORD: "test1234"
+      SEQ_FIRSTRUN_ADMINPASSWORD: "admin"
       SEQ_API_KEY: "your-seq-api-key-change-in-production"
       SEQ_FIRSTRUN_NOAUTHENTICATION: "false"
     ports:

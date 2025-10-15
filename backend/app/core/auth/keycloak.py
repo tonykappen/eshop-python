@@ -64,14 +64,15 @@ class KeycloakService:
 
             try:
                 # Initialize without admin client secret for basic authentication
+                # Using empty string is intentional when admin secret is not configured
                 self.keycloak = FastAPIKeycloak(
                     server_url=settings.keycloak_server_url,
                     client_id=settings.keycloak_client_id,
                     client_secret=settings.keycloak_client_secret,
                     realm=settings.keycloak_realm,
                     callback_uri=settings.keycloak_callback_uri,
-                    # Use empty string for admin client secret if not available
-                    admin_client_secret="",
+                    # Empty string is intentional - not a hardcoded password
+                    admin_client_secret="",  # nosec B106
                 )
                 self._initialized = True
                 logger.log_with_context(
@@ -107,13 +108,14 @@ class KeycloakService:
             },
         )
 
+        # Checking for empty string is not a security issue - it's validation
         result = (
             settings.keycloak_server_url is not None
             and settings.keycloak_server_url != ""
             and settings.keycloak_client_id is not None
             and settings.keycloak_client_id != ""
             and settings.keycloak_client_secret is not None
-            and settings.keycloak_client_secret != ""
+            and settings.keycloak_client_secret != ""  # nosec B105
             and settings.keycloak_realm is not None
             and settings.keycloak_realm != ""
         )

@@ -1,0 +1,77 @@
+{
+  "Title": "All Requests (with Trace Context)",
+  "Description": "Shows all logs with full trace context, request details, and flattened context fields",
+  "Filters": [],
+  "Columns": [
+    {
+      "Expression": "@Level"
+    },
+    {
+      "Expression": "@Timestamp"
+    },
+    {
+      "Expression": "trace_id"
+    },
+    {
+      "Expression": "request_id"
+    },
+    {
+      "Expression": "span_id"
+    },
+    {
+      "Expression": "service"
+    },
+    {
+      "Expression": "env"
+    },
+    {
+      "Expression": "module"
+    },
+    {
+      "Expression": "function"
+    },
+    {
+      "Expression": "file"
+    },
+    {
+      "Expression": "line"
+    },
+    {
+      "Expression": "request_type"
+    },
+    {
+      "Expression": "response_type"
+    },
+    {
+      "Expression": "duration_ms"
+    },
+    {
+      "Expression": "status_code"
+    },
+    {
+      "Expression": "method"
+    },
+    {
+      "Expression": "path"
+    },
+    {
+      "Expression": "user_id"
+    },
+    {
+      "Expression": "tenant_id"
+    },
+    {
+      "Expression": "client_ip"
+    },
+    {
+      "Expression": "logger"
+    },
+    {
+      "Expression": "@Message"
+    }
+  ],
+  "IsWatched": true,
+  "Grouping": "Personal",
+  "ExplicitGroupName": null,
+  "OwnerId": "user-admin"
+}

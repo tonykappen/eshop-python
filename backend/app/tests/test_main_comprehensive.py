@@ -72,7 +72,6 @@ class TestMainApplication:
             patch("app.main.initialize_auth") as mock_auth,
             patch("app.main.initialize_health") as mock_health,
         ):
-
             # Test the lifespan startup
             async with lifespan(app):
                 pass
@@ -97,7 +96,6 @@ class TestMainApplication:
             patch("app.main.auth_handler") as mock_auth_handler,
             patch("app.main.health_handler") as mock_health_handler,
         ):
-
             # Mock the shutdown methods
             mock_db_handler.shutdown = AsyncMock()
             mock_cache_handler.shutdown = AsyncMock()

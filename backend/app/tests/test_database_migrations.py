@@ -6,10 +6,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.core.database.migrations import (
+    create_module_migration,
+    ensure_schemas_exist,
     run_migrations,
     wait_for_database,
-    ensure_schemas_exist,
-    create_module_migration,
 )
 
 
@@ -20,14 +20,14 @@ class TestDatabaseMigrations:
         """Test database connection waiting."""
         # This test would require a real database connection
         # For now, we'll just test that the function exists and can be called
-        with pytest.raises(Exception):  # Should fail without real DB
+        with pytest.raises(ConnectionError):  # Should fail without real DB
             await wait_for_database(max_retries=1, delay=0.1)
 
     async def test_ensure_schemas_exist(self):
         """Test schema existence check."""
         # This test would require a real database connection
         # For now, we'll just test that the function exists and can be called
-        with pytest.raises(Exception):  # Should fail without real DB
+        with pytest.raises(ConnectionError):  # Should fail without real DB
             await ensure_schemas_exist()
 
     @patch("asyncio.create_subprocess_exec")

@@ -63,9 +63,7 @@ class TestDatabaseSession:
     async def test_create_db_engine_success(self):
         """Test successful database engine creation."""
         with patch("app.core.database.session.engine") as mock_engine:
-            mock_engine.begin.return_value.__aenter__.return_value.execute.return_value = (
-                None
-            )
+            mock_engine.begin.return_value.__aenter__.return_value.execute.return_value = None
 
             await create_db_engine()
 

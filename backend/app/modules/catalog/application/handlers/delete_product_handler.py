@@ -113,7 +113,10 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 # Invalidate cache for this product
                 await self.cache_service.invalidate_product(command.product_id)
                 
-                # Publish product discontinued event
+                # Publish product deleted event
+                await self._publish_product_deleted_event(product)
+                
+                # Also publish discontinued event (for backward compatibility/analytics)
                 await self._publish_product_discontinued_event(product)
                 
                 # Invalidate products list cache
@@ -134,8 +137,37 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                     details=str(e)
                 ) from e
 
+    async def _publish_product_deleted_event(self, product) -> None:
+        """Publish product deleted integration event."""
+        try:
+            from datetime import datetime
+            deleted_at = datetime.now().isoformat()
+            
+            await self.event_publisher.publish_product_deleted(
+                product_id=product.id,
+                product_name=product.name,
+                deleted_at=deleted_at,
+                reason="Product deleted via API",
+                additional_data={
+                    "price": float(product.price.amount) if product.price else 0.0,
+                    "categories": product.category,
+                }
+            )
+            
+            logger.log_debug_with_context(
+                f"Published ProductDeleted event for {product.id}",
+                product_id=str(product.id),
+                product_name=product.name,
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                f"Failed to publish ProductDeleted event for {product.id}",
+                error=e,
+                product_id=str(product.id),
+            )
+
     async def _publish_product_discontinued_event(self, product) -> None:
-        """Publish product discontinued integration event."""
+        """Publish product discontinued integration event (for backward compatibility)."""
         try:
             from datetime import datetime
             await self.event_publisher.publish_product_discontinued(

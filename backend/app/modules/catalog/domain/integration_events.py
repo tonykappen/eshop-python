@@ -56,6 +56,22 @@ class ProductInventoryUpdatedIntegrationEvent(CatalogIntegrationEvent):
     )
 
 
+class ProductUpdatedIntegrationEvent(CatalogIntegrationEvent):
+    """Integration event published when a product is updated."""
+
+    # Auto-generated metadata:
+    # event_type: "product_updated"
+    # topic: "app.catalog.product_updated"
+    # routing_key: "app.catalog.product_updated"
+
+    product_id: UUID = Field(..., description="ID of the updated product")
+    product_name: str = Field(..., description="Updated name of the product")
+    price: float = Field(..., description="Updated price of the product")
+    description: str | None = Field(None, description="Updated description")
+    category: list[str] | None = Field(None, description="Updated categories")
+    image_file: str | None = Field(None, description="Updated image file/picture URL")
+
+
 class ProductDiscontinuedIntegrationEvent(CatalogIntegrationEvent):
     """Integration event published when a product is discontinued."""
 
@@ -72,6 +88,20 @@ class ProductDiscontinuedIntegrationEvent(CatalogIntegrationEvent):
     replacement_product_id: UUID | None = Field(
         None, description="ID of replacement product if any"
     )
+
+
+class ProductDeletedIntegrationEvent(CatalogIntegrationEvent):
+    """Integration event published when a product is deleted."""
+
+    # Auto-generated metadata:
+    # event_type: "product_deleted"
+    # topic: "app.catalog.product_deleted"
+    # routing_key: "app.catalog.product_deleted"
+
+    product_id: UUID = Field(..., description="ID of the deleted product")
+    product_name: str = Field(..., description="Name of the deleted product")
+    deleted_at: str = Field(..., description="Timestamp when product was deleted")
+    reason: str | None = Field(None, description="Reason for deletion")
 
 
 # Example usage showing how to create integration events from domain events

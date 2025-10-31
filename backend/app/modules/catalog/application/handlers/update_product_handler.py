@@ -134,7 +134,10 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 # Invalidate cache for this product
                 await self.cache_service.invalidate_product(command.id)
                 
-                # Publish price changed event if price changed
+                # Publish product updated event
+                await self._publish_product_updated_event(product)
+                
+                # Publish price changed event if price changed (separate event for price tracking)
                 new_price = float(product.price.amount) if product.price else 0.0
                 if old_price != new_price:
                     await self._publish_price_changed_event(command.id, old_price, new_price)
@@ -190,6 +193,33 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             )
         except Exception as e:
             raise ProductValidationError(f"Failed to update product: {str(e)}") from e
+
+    async def _publish_product_updated_event(self, product: Product) -> None:
+        """Publish product updated integration event."""
+        try:
+            await self.event_publisher.publish_product_updated(
+                product_id=product.id,
+                product_name=product.name,
+                price=float(product.price.amount) if product.price else 0.0,
+                description=product.description,
+                category=product.category,
+                image_file=product.image_file,
+                additional_data={
+                    "updated_at": "now",  # TODO: Add proper timestamp
+                }
+            )
+            
+            logger.log_debug_with_context(
+                f"Published ProductUpdated event for {product.id}",
+                product_id=str(product.id),
+                product_name=product.name,
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                f"Failed to publish ProductUpdated event for {product.id}",
+                error=e,
+                product_id=str(product.id),
+            )
 
     async def _publish_price_changed_event(self, product_id: UUID, old_price: float, new_price: float) -> None:
         """Publish product price changed integration event."""

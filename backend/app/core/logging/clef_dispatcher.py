@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import json
 from asyncio import Queue
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,32 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
+
+
+def _resolve_log_directory(log_directory: str) -> Path:
+    """Resolve log directory path relative to backend directory.
+    
+    Args:
+        log_directory: Relative or absolute log directory path
+        
+    Returns:
+        Resolved absolute Path to log directory
+    """
+    log_path = Path(log_directory)
+    
+    # If already absolute, return as is
+    if log_path.is_absolute():
+        return log_path
+    
+    # Get the backend directory (parent of app directory)
+    # __file__ is in backend/app/core/logging/clef_dispatcher.py
+    # So we go: clef_dispatcher.py -> logging/ -> core/ -> app/ -> backend/
+    backend_dir = Path(__file__).parent.parent.parent.parent
+    
+    # Resolve relative to backend directory
+    resolved_path = backend_dir / log_path
+    
+    return resolved_path
 
 
 class CLEFLogDispatcher:
@@ -30,16 +57,22 @@ class CLEFLogDispatcher:
         """Initialize the dispatcher."""
         self.seq_url = seq_url.rstrip("/") if seq_url else None
         self.seq_api_key = seq_api_key
-        self.log_directory = Path(log_directory)
+        # Resolve log directory relative to backend directory
+        self.log_directory = _resolve_log_directory(log_directory)
         self.queue: Queue[dict[str, Any]] = Queue(maxsize=queue_max_size)
         self.batch_size = batch_size
         self.flush_interval = flush_interval
         self._running = False
         self._task: asyncio.Task | None = None
         self._client: httpx.AsyncClient | None = None
+        self._current_date = date.today()
+        self._file_handles: dict[str, Any] = {}  # Track open file handles
 
         # Create log directory
         self.log_directory.mkdir(exist_ok=True, parents=True)
+
+        # Initialize rotation check (handle files from previous days)
+        self._rotate_ndjson_files_on_init()
 
         # Track stats
         self.stats = {
@@ -203,16 +236,91 @@ class CLEFLogDispatcher:
             self.stats["file_errors"] += len(batch)
             print(f"Failed to write logs to file: {e}", flush=True)
 
+    def _get_dated_filename(self, base_filename: str) -> str:
+        """Get the appropriate filename based on current date.
+        
+        Today's logs use base_filename (e.g., app.ndjson).
+        Previous days use base_filename_YYYY-MM-DD (e.g., app_2024-01-15.ndjson).
+        """
+        current_date = date.today()
+        
+        # If date changed, rotate old files
+        if current_date != self._current_date:
+            self._rotate_ndjson_files()
+            self._current_date = current_date
+        
+        # Always return base filename for today (rotation happens at day boundary)
+        return base_filename
+
+    def _rotate_ndjson_files_on_init(self) -> None:
+        """Check and rotate NDJSON files on initialization if they're from a previous day."""
+        current_date = date.today()
+        base_files = ["app.ndjson", "access.ndjson"]
+        
+        for base_file in base_files:
+            file_path = self.log_directory / base_file
+            if file_path.exists():
+                # Check file modification time to see if it's from today
+                file_mtime = date.fromtimestamp(file_path.stat().st_mtime)
+                
+                # If file is from a previous day, rename it
+                if file_mtime < current_date and file_path.stat().st_size > 0:
+                    base_name = file_path.stem
+                    extension = file_path.suffix
+                    dated_filename = f"{base_name}_{file_mtime.strftime('%Y-%m-%d')}{extension}"
+                    dated_path = self.log_directory / dated_filename
+                    
+                    try:
+                        file_path.rename(dated_path)
+                    except Exception as e:
+                        print(f"Failed to rotate {base_file} on init: {e}", flush=True)
+
+    def _rotate_ndjson_files(self) -> None:
+        """Rotate NDJSON files when date changes."""
+        yesterday = self._current_date
+        
+        # Files that need rotation
+        base_files = ["app.ndjson", "access.ndjson"]
+        
+        for base_file in base_files:
+            file_path = self.log_directory / base_file
+            
+            # If file exists and has content, rename it with date
+            if file_path.exists() and file_path.stat().st_size > 0:
+                base_name = file_path.stem  # e.g., 'app' from 'app.ndjson'
+                extension = file_path.suffix  # e.g., '.ndjson'
+                dated_filename = f"{base_name}_{yesterday.strftime('%Y-%m-%d')}{extension}"
+                dated_path = self.log_directory / dated_filename
+                
+                # Close any open handle for this file
+                if base_file in self._file_handles:
+                    try:
+                        handle = self._file_handles[base_file]
+                        if hasattr(handle, 'close'):
+                            handle.close()
+                    except Exception:
+                        pass
+                    del self._file_handles[base_file]
+                
+                # Rename the file
+                try:
+                    file_path.rename(dated_path)
+                except Exception as e:
+                    print(f"Failed to rotate {base_file}: {e}", flush=True)
+
     async def _append_to_file(
         self, filename: str, events: list[dict[str, Any]]
     ) -> None:
-        """Append events to NDJSON file."""
-        file_path = self.log_directory / filename
+        """Append events to NDJSON file with daily rotation."""
+        # Get the correct filename (rotates if needed)
+        current_filename = self._get_dated_filename(filename)
+        file_path = self.log_directory / current_filename
 
         # Use aiofiles if available, otherwise sync write in thread pool
         try:
             import aiofiles
 
+            # Open file in append mode
             async with aiofiles.open(file_path, "a") as f:
                 for event in events:
                     await f.write(json.dumps(event, default=str) + "\n")

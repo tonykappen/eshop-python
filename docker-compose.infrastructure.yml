@@ -59,7 +59,7 @@ services:
       - eshop-network
 
   seq:
-    image: datalust/seq:latest
+    image: datalust/seq:2024.3
     container_name: eshop-seq
     environment:
       ACCEPT_EULA: "Y"
@@ -89,8 +89,27 @@ services:
     networks:
       - eshop-network
 
+  keycloak-init:
+    image: postgres:17
+    container_name: eshop-keycloak-init
+    environment:
+      PGPASSWORD: postgres
+    command: >
+      sh -c "
+        until psql -h postgres -U postgres -d eshop -c 'SELECT 1' >/dev/null 2>&1; do
+          sleep 0.5
+        done &&
+        psql -h postgres -U postgres -d eshop -c 'CREATE SCHEMA IF NOT EXISTS keycloak; GRANT ALL PRIVILEGES ON SCHEMA keycloak TO postgres;'
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - eshop-network
+    restart: "no"
+
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.0
     container_name: eshop-keycloak
     environment:
       KC_HEALTH_ENABLED: "true"

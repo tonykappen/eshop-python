@@ -1,6 +1,7 @@
 """Keycloak setup and configuration module with credentials file support."""
 
 import asyncio
+import json
 
 import httpx
 
@@ -99,6 +100,11 @@ class KeycloakSetup:
             # Get master admin token (for realm creation)
             if not await self._get_master_admin_token():
                 logger.log_error_with_context("[FAILED] Failed to get master admin token")
+                return False
+
+            # Verify master admin token is valid by testing it
+            if not await self._verify_master_admin_token():
+                logger.log_error_with_context("[FAILED] Master admin token is invalid")
                 return False
 
             # Create realm
@@ -218,6 +224,30 @@ class KeycloakSetup:
                     return False
         except Exception as e:
             logger.error(f"[FAILED] Failed to get master admin token: {e}")
+            return False
+
+    async def _verify_master_admin_token(self) -> bool:
+        """Verify that master admin token is valid by making a test API call."""
+        try:
+            async with httpx.AsyncClient() as client:
+                # Try to get list of realms - this requires admin privileges
+                response = await client.get(
+                    f"{self.base_url}/admin/realms",
+                    headers={
+                        "Authorization": f"Bearer {self.master_admin_token}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                if response.status_code == 200:
+                    logger.info("[OK] Master admin token verified")
+                    return True
+                else:
+                    logger.error(
+                        f"[FAILED] Master admin token verification failed: {response.status_code} - {response.text}"
+                    )
+                    return False
+        except Exception as e:
+            logger.error(f"[FAILED] Failed to verify master admin token: {e}")
             return False
 
     async def _get_realm_admin_token(self) -> bool:
@@ -343,23 +373,30 @@ class KeycloakSetup:
     async def _create_realm(self) -> bool:
         """Create the eShop realm."""
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                realm_payload = {
+                    "realm": self.realm,
+                    "enabled": True,
+                    "displayName": f"{self.realm.title()} Realm",
+                    "accessTokenLifespan": 7200,  # 2 hours
+                    "accessTokenLifespanForImplicitFlow": 7200,  # 2 hours
+                    "ssoSessionIdleTimeout": 7200,  # 2 hours
+                    "ssoSessionMaxLifespan": 14400,  # 4 hours
+                }
+                
+                logger.debug(f"[DEBUG] Creating realm with payload: {json.dumps(realm_payload)}")
+                
                 response = await client.post(
                     f"{self.base_url}/admin/realms",
                     headers={
                         "Authorization": f"Bearer {self.master_admin_token}",
                         "Content-Type": "application/json",
                     },
-                    json={
-                        "realm": self.realm,
-                        "enabled": True,
-                        "displayName": f"{self.realm.title()} Realm",
-                        "accessTokenLifespan": 7200,  # 2 hours
-                        "accessTokenLifespanForImplicitFlow": 7200,  # 2 hours
-                        "ssoSessionIdleTimeout": 7200,  # 2 hours
-                        "ssoSessionMaxLifespan": 14400,  # 4 hours
-                    },
+                    json=realm_payload,
                 )
+                
+                logger.debug(f"[DEBUG] Realm creation response: {response.status_code}")
+                
                 if response.status_code == 201:
                     logger.info(f"[OK] Realm '{self.realm}' created")
                     return True
@@ -369,10 +406,29 @@ class KeycloakSetup:
                     await self._update_realm_token_config()
                     return True
                 else:
-                    logger.error(f"[FAILED] Failed to create realm: {response.status_code}")
+                    error_msg = response.text if hasattr(response, 'text') else str(response.content)
+                    logger.error(
+                        f"[FAILED] Failed to create realm: {response.status_code} - {error_msg}"
+                    )
+                    logger.error(f"[DEBUG] Request URL: {self.base_url}/admin/realms")
+                    logger.error(f"[DEBUG] Request payload: {json.dumps(realm_payload)}")
+                    logger.error(f"[DEBUG] Response headers: {dict(response.headers)}")
+                    if self.master_admin_token:
+                        logger.debug(f"[DEBUG] Token present (length: {len(self.master_admin_token)})")
+                    else:
+                        logger.error("[DEBUG] No master admin token!")
                     return False
+        except httpx.HTTPStatusError as e:
+            logger.error(f"[FAILED] Realm creation HTTP error: {e.response.status_code}")
+            logger.error(f"[DEBUG] Response: {e.response.text}")
+            return False
+        except httpx.RequestError as e:
+            logger.error(f"[FAILED] Realm creation request error: {e}")
+            return False
         except Exception as e:
             logger.error(f"[FAILED] Realm creation failed: {e}")
+            import traceback
+            logger.error(f"[DEBUG] Traceback: {traceback.format_exc()}")
             return False
 
     async def _update_realm_token_config(self) -> None:

@@ -12,14 +12,14 @@ from app.modules.catalog.domain.exceptions import (
     ProductUpdateError,
     ProductValidationError,
 )
-from app.modules.catalog.domain.models import Product
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.domain.product.models.product import Product
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class UpdateProductCommand(BaseModel):
@@ -29,7 +29,7 @@ class UpdateProductCommand(BaseModel):
     name: str
     description: str
     price: float
-    picture_url: str
+    picture_url: str | None = None  # Optional
     category: list[str]
 
 
@@ -67,8 +67,7 @@ class UpdateProductCommandValidator:
         if not command.description or not command.description.strip():
             errors.append("Description is required")
             
-        if not command.picture_url or not command.picture_url.strip():
-            errors.append("Picture URL is required")
+        # picture_url is now optional, so no validation needed
             
         if not command.category:
             errors.append("At least one category is required")
@@ -123,7 +122,7 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
 
             try:
                 # Store old price for event publishing
-                old_price = float(product.price)
+                old_price = float(product.price.amount) if product.price else 0.0
                 
                 # Update product with new values
                 self._update_product_with_new_values(product, command)
@@ -136,15 +135,16 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 await self.cache_service.invalidate_product(command.id)
                 
                 # Publish price changed event if price changed
-                new_price = float(product.price)
+                new_price = float(product.price.amount) if product.price else 0.0
                 if old_price != new_price:
                     await self._publish_price_changed_event(command.id, old_price, new_price)
 
                 # Invalidate products list cache
                 await self.cache_service.invalidate_products_list()
 
-                logger.log_info_with_context(
+                logger.log_with_context(
                     f"Product updated successfully: {product.name}",
+                    "info",
                     product_id=str(command.id),
                     product_name=product.name,
                 )
@@ -167,12 +167,26 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             command: Update command with new values
         """
         try:
+            from app.modules.catalog.domain.value_objects import Money
+            from decimal import Decimal
+            
+            # Convert float price to Money value object
+            # Use existing currency from product or default to USD
+            currency = product.price.currency if product.price else "USD"
+            price_money = Money(
+                amount=Decimal(str(command.price)),
+                currency=currency
+            )
+            
+            # Use existing image_file if picture_url is not provided, otherwise use the provided value
+            image_file = (command.picture_url or "").strip() if command.picture_url else product.image_file
+            
             product.update(
                 name=command.name,
                 category=command.category,
                 description=command.description,
-                image_file=command.picture_url,  # Map picture_url to image_file for domain model
-                price=command.price,
+                image_file=image_file,  # Map picture_url to image_file for domain model
+                price=price_money,
             )
         except Exception as e:
             raise ProductValidationError(f"Failed to update product: {str(e)}") from e

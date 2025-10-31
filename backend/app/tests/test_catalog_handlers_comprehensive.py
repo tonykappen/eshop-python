@@ -28,8 +28,8 @@ from app.modules.catalog.application.handlers.update_product_handler import (
     UpdateProductHandler,
     UpdateProductResult,
 )
-from app.modules.catalog.contracts.products.dtos import ProductDto
-from app.modules.catalog.contracts.products.features.get_product_by_id import (
+from app.modules.catalog.contracts.product.dtos import ProductDto
+from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
@@ -40,7 +40,7 @@ from app.modules.catalog.domain.exceptions import (
     ProductUpdateError,
     ProductValidationError,
 )
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 
 
 class TestCreateProductHandler:
@@ -97,7 +97,7 @@ class TestCreateProductHandler:
             # Mock repository creation
             with patch('app.modules.catalog.application.handlers.create_product_handler.ProductRepository') as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
-                from app.modules.catalog.domain.models import Product
+                from app.modules.catalog.domain.product.models.product import Product
                 created_product = Product(
                     id=uuid4(),
                     name=sample_command.name,
@@ -439,7 +439,7 @@ class TestGetProductsHandler:
     @pytest.fixture
     def sample_products(self):
         """Sample products for testing."""
-        from app.modules.catalog.domain.models import Product
+        from app.modules.catalog.domain.product.models.product import Product
         
         return [
             Product(

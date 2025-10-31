@@ -367,8 +367,8 @@
                     <input type="number" id="productPrice" step="0.01" min="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label for="productImage">Image URL:</label>
-                    <input type="url" id="productImage" placeholder="https://example.com/image.jpg" required>
+                    <label for="productImage">Image URL (optional):</label>
+                    <input type="text" id="productImage" placeholder="https://example.com/image.jpg">
                 </div>
                 <div class="form-group">
                     <label>Categories:</label>
@@ -486,13 +486,22 @@
             } else {
                 grid.innerHTML = products.map(product => {
                     const actions = getProductActions(product);
+                    // Safely handle all fields to prevent "undefined" display
+                    const name = product.name || 'Unnamed Product';
+                    const description = product.description || 'No description available';
+                    const price = product.price || 0;
+                    const categories = product.category || [];
+                    
                     return `
                         <div class="product-card">
-                            <h3>${escapeHtml(product.name)}</h3>
-                            <div class="product-description">${escapeHtml(product.description)}</div>
-                            <div class="product-price">$${product.price}</div>
+                            <h3>${escapeHtml(name)}</h3>
+                            <div class="product-description">${escapeHtml(description)}</div>
+                            <div class="product-price">$${price}</div>
                             <div class="product-categories">
-                                ${product.category.map(cat => `<span class="product-category">${escapeHtml(cat)}</span>`).join('')}
+                                ${categories.length > 0 
+                                    ? categories.map(cat => `<span class="product-category">${escapeHtml(cat || '')}</span>`).join('')
+                                    : '<span class="product-category">No categories</span>'
+                                }
                             </div>
                             <div class="product-actions">
                                 ${actions}
@@ -523,16 +532,20 @@
         
         // Get appropriate actions based on user role
         function getProductActions(product) {
+            const productId = product.id || '';
+            const productName = product.name || 'Product';
+            const productPrice = product.price || 0;
+            
             if (userRole === 'admin' || userRole === 'manager') {
                 // Admin and Manager can edit/delete products
                 return `
-                    <button class="btn-edit" onclick="editProduct('${product.id}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteProduct('${product.id}')">Delete</button>
+                    <button class="btn-edit" onclick="editProduct('${productId}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteProduct('${productId}')">Delete</button>
                 `;
             } else {
                 // Regular users can only add to cart
                 return `
-                    <button class="btn-add-cart" onclick="addToCart('${product.id}', '${escapeHtml(product.name)}', ${product.price})">Add to Cart</button>
+                    <button class="btn-add-cart" onclick="addToCart('${productId}', '${escapeHtml(productName)}', ${productPrice})">Add to Cart</button>
                 `;
             }
         }
@@ -662,21 +675,31 @@
                     'Authorization': `Bearer ${token}`
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.data) {
                     const product = data.data;
-                    document.getElementById('productName').value = product.name;
-                    document.getElementById('productDescription').value = product.description;
-                    document.getElementById('productPrice').value = product.price;
-                    document.getElementById('productImage').value = product.picture_url;
-                    categories = [...product.category];
+                    document.getElementById('productName').value = product.name || '';
+                    document.getElementById('productDescription').value = product.description || '';
+                    document.getElementById('productPrice').value = product.price || '';
+                    // Handle image_file or picture_url - prevent "undefined" display
+                    const imageUrl = product.image_file || product.picture_url || '';
+                    document.getElementById('productImage').value = imageUrl;
+                    categories = [...(product.category || [])];
                     updateCategoryTags();
                     document.getElementById('productModal').style.display = 'block';
                 }
             })
             .catch(error => {
-                alert('Failed to load product details: ' + error.message);
+                const errorMessage = error instanceof TypeError && error.message.includes('fetch')
+                    ? 'Network error: Unable to connect to server.'
+                    : error.message;
+                alert('Failed to load product details: ' + errorMessage);
             });
         }
         
@@ -717,13 +740,18 @@
         document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const imageUrl = document.getElementById('productImage').value.trim();
             const productData = {
                 name: document.getElementById('productName').value,
                 description: document.getElementById('productDescription').value,
                 price: parseFloat(document.getElementById('productPrice').value),
-                category: categories,
-                picture_url: document.getElementById('productImage').value
+                category: categories
             };
+            
+            // Only include picture_url if provided (make it optional)
+            if (imageUrl) {
+                productData.picture_url = imageUrl;
+            }
             
             try {
                 const url = editingProductId 
@@ -741,8 +769,15 @@
                 });
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to save product');
+                    let errorMessage = 'Failed to save product';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.detail || errorMessage;
+                    } catch (parseError) {
+                        // If response is not JSON, use status text
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
                 }
                 
                 closeProductModal();
@@ -750,7 +785,11 @@
                 alert(editingProductId ? 'Product updated successfully!' : 'Product created successfully!');
                 
             } catch (error) {
-                alert('Failed to save product: ' + error.message);
+                // Handle network errors and other errors
+                const errorMessage = error instanceof TypeError && error.message.includes('fetch')
+                    ? 'Network error: Unable to connect to server. Please check if the backend is running.'
+                    : error.message;
+                alert('Failed to save product: ' + errorMessage);
             }
         });
         

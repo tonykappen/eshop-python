@@ -7,7 +7,7 @@ from faststream import FastStream
 from faststream.rabbit import RabbitBroker, RabbitMessage
 
 from app.config.settings import settings
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.integration_events import (
     ProductCreatedIntegrationEvent,
     ProductDiscontinuedIntegrationEvent,
@@ -15,7 +15,7 @@ from app.modules.catalog.domain.integration_events import (
     ProductPriceChangedIntegrationEvent,
 )
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CatalogEventPublisher:

@@ -20,6 +20,7 @@ from app.core.initialization import (
     initialize_mediator,
     shutdown_logging,
 )
+from app.core.mediator.fastapi_integration import get_mediator
 from app.core.lifecycle.handlers import (
     auth_handler,
     cache_handler,
@@ -35,7 +36,7 @@ from app.core.lifecycle.manager import (
 )
 from app.core.logging.clef_middleware import add_clef_logging_middleware
 from app.core.middleware.auth_middleware import add_auth_middleware
-from app.modules.catalog.api.router import router as catalog_router
+from app.modules.catalog.catalog_module import register_catalog_module_with_fastapi
 
 
 @asynccontextmanager
@@ -49,8 +50,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if container:
         app.state.container = container
 
+    # Update auth handler with app instance before startup
+    set_app_instance(app)
+
+    # Register catalog router with DI integration after initialization
+    register_catalog_router()
+
     # Use the comprehensive lifecycle manager
     async with lifecycle_manager.lifespan_context(app):
+        # Add Keycloak routes after auth handler startup
+        try:
+            from app.core.auth.keycloak import add_keycloak_routes
+            add_keycloak_routes(app)
+        except Exception as e:
+            print(f"Warning: Could not add Keycloak routes: {e}")
+        
         yield
 
 
@@ -83,8 +97,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Set the app instance for lifecycle handlers that need it
-set_app_instance(app)
+# App instance will be set in the lifespan function
 
 # Add CORS middleware
 app.add_middleware(
@@ -117,8 +130,20 @@ if settings.log_enable_request_logging:
 # from app.modules.basket.api.router import router as basket_router
 # from app.modules.ordering.api.router import router as ordering_router
 
-# Include catalog router
-app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
+# Include catalog router with DI integration
+# Note: This will be called after initialization in the lifespan context
+def register_catalog_router():
+    """Register catalog router with DI integration."""
+    try:
+        container = get_app_container()
+        mediator = get_mediator()
+        catalog_router = register_catalog_module_with_fastapi(app, container, mediator)
+        app.include_router(catalog_router)
+    except Exception as e:
+        print(f"Warning: Could not register catalog router: {e}")
+        # Fallback to basic router
+        from app.modules.catalog.api.router import router as catalog_router
+        app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
 app.include_router(health_router)
 

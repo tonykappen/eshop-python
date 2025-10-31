@@ -1,12 +1,11 @@
 # Infrastructure services for eShop application
 # This file can be used independently for development
 # or imported by the main docker-compose.yml
+# Compatible with both docker-compose and podman-compose
 
 services:
   postgres:
-    build:
-      context: ./docker/postgres
-      dockerfile: Dockerfile
+    image: postgres:17
     container_name: eshop-postgres
     environment:
       POSTGRES_USER: postgres
@@ -105,6 +104,7 @@ services:
       KC_DB_SCHEMA: keycloak
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
+      KEYCLOAK_CLIENT_SECRET: "eshop-secure-client-secret-2024"
     ports:
       - "8080:8080"
     command: start-dev

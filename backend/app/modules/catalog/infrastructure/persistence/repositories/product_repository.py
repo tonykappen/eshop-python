@@ -251,7 +251,7 @@ class ProductRepositoryImpl(ProductRepository):
         try:
             product_orm = self._domain_to_orm(product)
             self.session.add(product_orm)
-        await self.session.flush()
+            await self.session.flush()
 
         except Exception as e:
             logger.error(f"Error adding product: {e}")

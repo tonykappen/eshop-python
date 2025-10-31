@@ -7,9 +7,9 @@ from uuid import UUID
 import redis.asyncio as redis
 from app.config.settings import settings
 from app.core.cache.patterns import ICacheService
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class RedisCacheService(ICacheService):

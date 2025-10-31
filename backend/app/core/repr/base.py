@@ -95,8 +95,9 @@ class RequestToCommandMapper(IRequestMapper, Generic[TRequest, TCommand]):
         self, request: TRequest, http_request: Request
     ) -> TCommand:
         """Map request to command using factory."""
-        # Extract command data from request
-        command_data = request.model_dump()
+        # Extract command data from request, excluding unset values so optional fields with defaults work correctly
+        # This allows None to be explicitly passed while omitting fields that weren't provided
+        command_data = request.model_dump(exclude_unset=True)
 
         # Add request context if needed
         if hasattr(self, "_add_request_context"):
@@ -115,8 +116,9 @@ class RequestToQueryMapper(IRequestMapper, Generic[TRequest, TQuery]):
         self, request: TRequest, http_request: Request
     ) -> TQuery:
         """Map request to query using factory."""
-        # Extract query data from request
-        query_data = request.model_dump()
+        # Extract query data from request, excluding unset values so optional fields with defaults work correctly
+        # This allows None to be explicitly passed while omitting fields that weren't provided
+        query_data = request.model_dump(exclude_unset=True)
 
         # Add request context if needed
         if hasattr(self, "_add_request_context"):

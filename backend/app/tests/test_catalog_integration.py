@@ -10,8 +10,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.modules.catalog.contracts.products.dtos import ProductDto
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.contracts.product.dtos import ProductDto
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 
 
 class TestCatalogIntegration:

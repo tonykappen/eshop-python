@@ -37,19 +37,19 @@ class DataSeederManager:
             self.logger.info("No seeders registered")
             return
 
-        self.logger.info(f"🔄 Running {len(self.seeders)} data seeders...")
+        self.logger.info(f"Running {len(self.seeders)} data seeders...")
 
         async with AsyncSessionLocal():
             for seeder_class in self.seeders:
                 try:
                     seeder = seeder_class()
                     await seeder.seed_all_async()
-                    self.logger.info(f"✅ Seeder {seeder_class.__name__} completed")
+                    self.logger.info(f"[OK] Seeder {seeder_class.__name__} completed")
                 except Exception as e:
-                    self.logger.error(f"❌ Seeder {seeder_class.__name__} failed: {e}")
+                    self.logger.error(f"[FAILED] Seeder {seeder_class.__name__} failed: {e}")
                     raise
 
-        self.logger.info("🎉 All data seeders completed successfully")
+        self.logger.info("[OK] All data seeders completed successfully")
 
 
 # Global seeder manager instance

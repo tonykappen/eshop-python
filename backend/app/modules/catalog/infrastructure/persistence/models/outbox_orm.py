@@ -6,10 +6,9 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
 
-Base = declarative_base()
+from app.modules.catalog.infrastructure.persistence.models.base import Base
 
 
 class OutboxMessageStatus(str, Enum):

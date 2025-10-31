@@ -9,7 +9,7 @@ from app.modules.catalog.domain.events import (
     ProductCreatedEvent,
     ProductPriceChangedEvent,
 )
-from app.modules.catalog.domain.models import Product
+from app.modules.catalog.domain.product.models.product import Product
 
 
 class TestProduct:

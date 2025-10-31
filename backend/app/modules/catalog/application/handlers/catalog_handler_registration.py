@@ -26,7 +26,7 @@ def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
         UpdateProductCommand,
         UpdateProductHandler,
     )
-    from app.modules.catalog.contracts.products.features.get_product_by_id import (
+    from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
         GetProductByIdQuery,
     )
 

@@ -91,15 +91,15 @@
         <div class="user-options">
             <h3>Quick Login Options:</h3>
             <div class="user-option">
-                <button onclick="fillCredentials('user', 'password')">Login as User (Shopping)</button>
+                <button onclick="fillCredentials('testuser', 'changeme123')">Login as User (Shopping)</button>
                 <small>Can view products and add to cart</small>
             </div>
             <div class="user-option">
-                <button onclick="fillCredentials('manager', 'password')">Login as Manager (Edit access)</button>
+                <button onclick="fillCredentials('manager', 'changeme123')">Login as Manager (Edit access)</button>
                 <small>Can create, edit, and delete products</small>
             </div>
             <div class="user-option">
-                <button onclick="fillCredentials('adminuser', 'password')">Login as Admin (Full access)</button>
+                <button onclick="fillCredentials('adminuser', 'changeme123')">Login as Admin (Full access)</button>
                 <small>Can create, edit, and delete products</small>
             </div>
         </div>
@@ -134,12 +134,14 @@
                         password: password,
                         grant_type: 'password',
                         client_id: 'eshop-api',
-                        client_secret: 'your-client-secret'
+                        client_secret: 'eshop-secure-client-secret-2024'
                     })
                 });
                 
                 if (!tokenResponse.ok) {
-                    throw new Error('Invalid credentials');
+                    const errorData = await tokenResponse.json().catch(() => ({}));
+                    const errorMessage = errorData.detail || errorData.error_description || 'Invalid credentials';
+                    throw new Error(errorMessage);
                 }
                 
                 const tokenData = await tokenResponse.json();
@@ -153,12 +155,15 @@
                 
             } catch (error) {
                 console.error('Login error:', error);
-                if (error.message.includes('fetch')) {
-                    errorDiv.textContent = 'Login failed: Cannot connect to authentication server. Please ensure Keycloak is running.';
+                errorDiv.style.display = 'block';
+                
+                if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
+                    errorDiv.textContent = 'Login failed: Cannot connect to authentication server. Please ensure the backend is running on localhost:8000.';
+                } else if (error.message.includes('Invalid credentials')) {
+                    errorDiv.textContent = 'Login failed: Invalid username or password. Please check your credentials.';
                 } else {
                     errorDiv.textContent = 'Login failed: ' + error.message;
                 }
-                errorDiv.style.display = 'block';
             }
         });
         

@@ -411,9 +411,9 @@ def provision_keycloak_sync(credentials_path: str | None = None) -> bool:
 
         success = provision_keycloak_sync("keycloak_credentials.yaml")
         if success:
-            print("✅ Keycloak provisioned successfully")
+            print("[OK] Keycloak provisioned successfully")
         else:
-            print("❌ Keycloak provisioning failed")
+            print("[FAILED] Keycloak provisioning failed")
         ```
     """
     try:
@@ -447,7 +447,7 @@ async def provision_keycloak_async(credentials_path: str | None = None) -> bool:
         async def startup():
             success = await provision_keycloak_async()
             if success:
-                logger.info("✅ Keycloak provisioned successfully")
+                logger.info("[OK] Keycloak provisioned successfully")
         ```
     """
     try:
@@ -534,9 +534,9 @@ def validate_credentials_file(credentials_path: str | None = None) -> tuple[bool
 
         is_valid, message = validate_credentials_file()
         if is_valid:
-            print(f"✅ {message}")
+            print(f"[OK] {message}")
         else:
-            print(f"❌ {message}")
+            print(f"[FAILED] {message}")
         ```
     """
     try:

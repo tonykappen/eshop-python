@@ -3,6 +3,6 @@
 from app.modules.catalog.infrastructure.seed.catalog_data_seeder import (
     CatalogDataSeeder,
 )
-from app.modules.catalog.infrastructure.seed.initial_data import InitialData
+from app.modules.catalog.infrastructure.seed.initial_data import CatalogInitialData
 
-__all__ = ["CatalogDataSeeder", "InitialData"]
+__all__ = ["CatalogDataSeeder", "CatalogInitialData"]

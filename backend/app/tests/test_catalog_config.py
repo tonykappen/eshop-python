@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.core.database.session import AsyncSessionLocal
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 
 
 @pytest.fixture(scope="session")
@@ -82,7 +82,7 @@ def sample_product_entity():
 @pytest.fixture
 def sample_product_dto():
     """Sample ProductDto for testing."""
-    from app.modules.catalog.contracts.products.dtos import ProductDto
+    from app.modules.catalog.contracts.product.dtos import ProductDto
     from decimal import Decimal
     from uuid import uuid4
     

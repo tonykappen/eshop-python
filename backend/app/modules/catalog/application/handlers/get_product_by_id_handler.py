@@ -6,18 +6,18 @@ from uuid import UUID
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.contracts.products.dtos import ProductDto
-from app.modules.catalog.contracts.products.features.get_product_by_id import (
+from app.modules.catalog.contracts.product.dtos import ProductDto
+from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
 from app.modules.catalog.domain.exceptions import ProductNotFoundError
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdResult]):
@@ -71,13 +71,32 @@ class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdR
                 raise ProductNotFoundError(query.id)
 
             # Mapping product entity to ProductDto
+            # Convert SKU value object to string
+            sku_str = str(product.sku) if product.sku else ""
+            
+            # Convert Money value object to float and get currency
+            price_float = float(product.price.amount) if product.price else 0.0
+            currency_str = product.price.currency if product.price else "USD"
+            
+            # Convert datetime fields to ISO format strings
+            created_at_str = product.created_at.isoformat() if product.created_at else ""
+            updated_at_str = product.last_modified.isoformat() if product.last_modified else ""
+            
+            # Handle image_file: convert empty strings to None
+            image_file = product.image_file.strip() if product.image_file and product.image_file.strip() else None
+            
             product_dto = ProductDto(
                 id=product.id,
                 name=product.name,
+                sku=sku_str,
                 category=product.category,
                 description=product.description,
-                picture_url=product.image_file,  # Map image_file to picture_url
-                price=product.price,
+                image_file=image_file,
+                price=price_float,
+                currency=currency_str,
+                version=product.version,
+                created_at=created_at_str,
+                updated_at=updated_at_str,
             )
 
             # Cache the product

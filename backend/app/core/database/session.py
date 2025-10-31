@@ -89,10 +89,10 @@ async def create_db_engine() -> None:
         # Log initial pool status
         pool_status = await get_pool_status()
         logger.info(
-            f"✅ Database engine created and connection tested. Pool status: {pool_status}"
+            f"[OK] Database engine created and connection tested. Pool status: {pool_status}"
         )
     except Exception as e:
-        logger.error(f"❌ Database engine creation failed: {e}")
+        logger.error(f"[FAILED] Database engine creation failed: {e}")
         raise DatabaseError(
             message="Database engine creation failed", details=str(e)
         ) from e
@@ -103,12 +103,12 @@ async def close_db_engine() -> None:
     try:
         # Log final pool status before closing
         pool_status = await get_pool_status()
-        logger.info(f"🗄️ Closing database engine. Final pool status: {pool_status}")
+        logger.info(f"[DATABASE] Closing database engine. Final pool status: {pool_status}")
 
         await engine.dispose()
-        logger.info("✅ Database engine closed")
+        logger.info("[OK] Database engine closed")
     except Exception as e:
-        logger.error(f"❌ Database engine close failed: {e}")
+        logger.error(f"[FAILED] Database engine close failed: {e}")
         raise DatabaseError(
             message="Database engine close failed", details=str(e)
         ) from e

@@ -1,5 +1,6 @@
 # eShop Application with Infrastructure Services
 # This file includes infrastructure services from docker-compose.infrastructure.yml
+# Compatible with both docker-compose and podman-compose
 
 version: '3.8'
 
@@ -57,7 +58,7 @@ services:
       KEYCLOAK_SERVER_URL: "http://keycloak:8080"
       KEYCLOAK_REALM: "eshop"
       KEYCLOAK_CLIENT_ID: "eshop-api"
-      KEYCLOAK_CLIENT_SECRET: "your-client-secret"
+      KEYCLOAK_CLIENT_SECRET: "eshop-secure-client-secret-2024"
       KEYCLOAK_CALLBACK_URI: "http://localhost:8000/auth/callback"
       KC_BOOTSTRAP_ADMIN_USERNAME: "admin"
       KC_BOOTSTRAP_ADMIN_PASSWORD: "admin"

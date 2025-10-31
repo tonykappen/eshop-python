@@ -159,7 +159,7 @@ def configure_logging(
             logging.getLogger().addHandler(clef_handler)
 
             get_logger(__name__).info(
-                f"✅ CLEF/SEQ logging configured successfully at {seq_url}"
+                f"[OK] CLEF/SEQ logging configured successfully at {seq_url}"
             )
         except Exception as e:
             # Fallback to console logging if SEQ configuration fails

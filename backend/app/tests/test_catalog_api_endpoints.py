@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from app.main import app
-from app.modules.catalog.contracts.products.dtos import ProductDto
+from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.tests.test_catalog_api_setup import (
     configured_app,
     client,

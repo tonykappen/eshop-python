@@ -3,7 +3,7 @@
 from decimal import Decimal
 
 from app.modules.catalog.application.dvos.product_dvo import ProductDVO
-from app.modules.catalog.contracts.products.dtos import ProductDto
+from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.domain.product.models.product import Product
 from app.modules.catalog.domain.value_objects import Money
 

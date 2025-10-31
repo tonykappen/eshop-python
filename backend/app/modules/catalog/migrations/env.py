@@ -9,20 +9,28 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-# Import your models here
-from app.modules.catalog.infrastructure.persistence.models.product_orm import Base
-from app.modules.catalog.infrastructure.persistence.models.category_orm import Base
-from app.modules.catalog.infrastructure.persistence.models.inventory_item_orm import Base
-from app.modules.catalog.infrastructure.persistence.models.outbox_orm import Base
+# Import your models here to ensure they're registered with Base
+from app.modules.catalog.infrastructure.persistence.models.base import Base
+from app.modules.catalog.infrastructure.persistence.models.product_orm import ProductORM
+from app.modules.catalog.infrastructure.persistence.models.category_orm import CategoryORM
+from app.modules.catalog.infrastructure.persistence.models.inventory_item_orm import InventoryItemORM
+from app.modules.catalog.infrastructure.persistence.models.outbox_orm import OutboxORM
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-config = context.config
-
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# Only access config when Alembic is actually running (context is available)
+# When imported outside Alembic (e.g., during DI scanning), context.config won't exist
+config = None
+try:
+    config = context.config
+    # Interpret the config file for Python logging.
+    # This line sets up loggers basically.
+    if config and config.config_file_name is not None:
+        fileConfig(config.config_file_name)
+except AttributeError:
+    # context.config is not available when module is imported outside of Alembic
+    # This is expected during DI scanning, so we silently ignore it
+    pass
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -36,6 +44,9 @@ target_metadata = Base.metadata
 
 def get_url():
     """Get database URL from environment or config."""
+    if config is None:
+        # Fallback to environment variable if config not available
+        return os.getenv("CATALOG_DB_URL", os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/eshop"))
     return os.getenv("CATALOG_DB_URL", config.get_main_option("sqlalchemy.url"))
 
 
@@ -51,6 +62,14 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    # Ensure config is available
+    global config
+    if config is None:
+        try:
+            config = context.config
+        except AttributeError:
+            raise RuntimeError("Alembic config is not available. Make sure migrations are run via Alembic CLI.")
+    
     url = get_url()
     context.configure(
         url=url,
@@ -78,6 +97,14 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in async mode."""
+    # Ensure config is available
+    global config
+    if config is None:
+        try:
+            config = context.config
+        except AttributeError:
+            raise RuntimeError("Alembic config is not available. Make sure migrations are run via Alembic CLI.")
+    
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
     
@@ -98,9 +125,26 @@ def run_migrations_online() -> None:
     asyncio.run(run_async_migrations())
 
 
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
+# Only run migrations if Alembic context is properly initialized
+# This prevents errors during module imports (e.g., DI scanning)
+# Alembic will explicitly execute this code when running migrations
+# We skip execution during normal imports to avoid proxy initialization errors
+if config is not None:
+    # Check if we're actually being called by Alembic (not just during import)
+    # Alembic sets up the context before calling this module
+    try:
+        # This will fail if the proxy is not initialized
+        is_offline = context.is_offline_mode()
+        if is_offline:
+            run_migrations_offline()
+        else:
+            run_migrations_online()
+    except (AttributeError, RuntimeError) as e:
+        # Only skip if it's a proxy initialization error (expected during imports)
+        # Don't catch general exceptions here - let them propagate so migrations fail properly
+        if "proxy" in str(e).lower() or "not initialized" in str(e).lower():
+            pass
+        else:
+            raise
 
 

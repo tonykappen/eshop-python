@@ -6,8 +6,8 @@ from uuid import uuid4
 from decimal import Decimal
 
 from app.modules.catalog.infrastructure.cache_service import RedisCacheService, CatalogCacheService
-from app.modules.catalog.domain.models import Product
-from app.modules.catalog.contracts.products.dtos import ProductDto
+from app.modules.catalog.domain.product.models.product import Product
+from app.modules.catalog.contracts.product.dtos import ProductDto
 
 
 class TestRedisCacheService:

@@ -15,7 +15,7 @@ class ProductDto(BaseModel):
     sku: str = Field(..., description="Product SKU")
     category: list[str] = Field(..., description="Product categories")
     description: str = Field(..., description="Product description")
-    image_file: str = Field(..., description="Product image file path")
+    image_file: Optional[str] = Field(default=None, description="Product image file path (optional)")
     price: float = Field(..., description="Product price")
     currency: str = Field(default="USD", description="Product currency")
     version: int = Field(..., description="Product version")
@@ -39,7 +39,7 @@ class ProductSummaryDto(BaseModel):
     category: list[str] = Field(..., description="Product categories")
     price: float = Field(..., description="Product price")
     currency: str = Field(default="USD", description="Product currency")
-    image_file: str = Field(..., description="Product image file path")
+    image_file: Optional[str] = Field(default=None, description="Product image file path (optional)")
 
     class Config:
         """Pydantic configuration."""
@@ -59,7 +59,7 @@ class ProductSearchDto(BaseModel):
     description: str = Field(..., description="Product description")
     price: float = Field(..., description="Product price")
     currency: str = Field(default="USD", description="Product currency")
-    image_file: str = Field(..., description="Product image file path")
+    image_file: Optional[str] = Field(default=None, description="Product image file path (optional)")
     relevance_score: Optional[float] = Field(None, description="Search relevance score")
 
     class Config:

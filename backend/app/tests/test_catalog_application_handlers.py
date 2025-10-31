@@ -12,7 +12,7 @@ from app.modules.catalog.application.handlers.create_product_handler import (
     CreateProductHandler,
     CreateProductResult,
 )
-from app.modules.catalog.contracts.products.dtos import ProductDto
+from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.domain.exceptions import (
     ProductCreationError,
     ProductValidationError,

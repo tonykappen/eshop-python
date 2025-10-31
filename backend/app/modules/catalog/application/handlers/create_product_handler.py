@@ -6,22 +6,22 @@ from uuid import UUID
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.contracts.products.dtos import ProductDto
+from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.domain.exceptions import (
     ProductCreationError,
     ProductValidationError,
 )
-from app.modules.catalog.domain.models import Product
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.domain.product.models.product import Product
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
 from pydantic import BaseModel, Field
 from decimal import Decimal
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CreateProductCommand(BaseModel):
@@ -30,7 +30,7 @@ class CreateProductCommand(BaseModel):
     name: str = Field(..., description="Product name")
     description: str = Field(..., description="Product description")
     price: float = Field(..., gt=0, description="Product price")
-    picture_url: str = Field(..., description="Product picture URL")
+    picture_url: str | None = Field(default=None, description="Product picture URL (optional)")
     category: list[str] = Field(..., description="Product categories")
 
 
@@ -64,8 +64,7 @@ class CreateProductCommandValidator:
         if command.price <= 0:
             errors.append("Price must be greater than 0")
             
-        if not command.picture_url or not command.picture_url.strip():
-            errors.append("Picture URL is required")
+        # picture_url is now optional, so no validation needed
             
         if not command.category:
             errors.append("At least one category is required")
@@ -123,8 +122,9 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 # Invalidate products list cache
                 await self.cache_service.invalidate_products_list()
                 
-                logger.log_info_with_context(
+                logger.log_with_context(
                     f"Product created successfully: {saved_product.name}",
+                    "info",
                     product_id=str(saved_product.id),
                     product_name=saved_product.name,
                 )
@@ -162,13 +162,25 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             )
 
         try:
+            from app.modules.catalog.domain.value_objects import Money
+            from decimal import Decimal
+            
+            price_money = Money(
+                amount=Decimal(str(command.price)),
+                currency="USD"  # Default currency
+            )
+            
+            # Use default empty string if picture_url is not provided
+            image_file = (command.picture_url or "").strip() if command.picture_url else ""
+            
             product = Product.create(
                 product_id=uuid4(),
                 name=command.name,
+                sku=f"{command.name.upper().replace(' ', '-')[:20]}-{uuid4().hex[:8]}",  # Generate SKU
                 category=command.category,
                 description=command.description,
-                image_file=command.picture_url,  # Map picture_url to image_file for domain model
-                price=Decimal(str(command.price)),
+                image_file=image_file,  # Map picture_url to image_file for domain model
+                price=price_money,
             )
             return product
         except Exception as e:
@@ -178,13 +190,24 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         """Cache the created product."""
         try:
             # Convert product to DTO for caching
+            sku_str = str(product.sku) if product.sku else ""
+            price_float = float(product.price.amount) if product.price else 0.0
+            currency_str = product.price.currency if product.price else "USD"
+            created_at_str = product.created_at.isoformat() if product.created_at else ""
+            updated_at_str = product.last_modified.isoformat() if product.last_modified else ""
+            
             product_dto = ProductDto(
                 id=product.id,
                 name=product.name,
+                sku=sku_str,
                 category=product.category,
                 description=product.description,
-                picture_url=product.image_file,
-                price=product.price,
+                image_file=product.image_file,
+                price=price_float,
+                currency=currency_str,
+                version=product.version,
+                created_at=created_at_str,
+                updated_at=updated_at_str,
             )
             
             # Cache the product
@@ -211,7 +234,7 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             await self.event_publisher.publish_product_created(
                 product_id=product.id,
                 product_name=product.name,
-                price=float(product.price),
+                price=float(product.price.amount) if product.price else 0.0,
                 category_id=None,  # TODO: Add category support
                 additional_data={
                     "description": product.description,

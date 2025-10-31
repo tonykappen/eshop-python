@@ -10,82 +10,42 @@ from app.core.mediator.mediator import Mediator
 from app.modules.catalog.application.context.request_context import RequestContext
 from app.modules.catalog.application.uow import UnitOfWork
 from app.modules.catalog.domain.product.repository import ProductRepository
-from app.modules.catalog.infrastructure.persistence.db_session import get_session
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
+from app.modules.catalog.domain.category.repository import CategoryRepository
+from app.modules.catalog.domain.inventory.repository import InventoryRepository
+from app.modules.catalog.infrastructure.messaging.bus import IMessageBus
+from app.modules.catalog.infrastructure.messaging.outbox import IOutboxWriter, IOutboxPublisher
+from app.modules.catalog.infrastructure.messaging.domain_dispatcher import DomainEventDispatcher
+from app.modules.catalog.di.providers import (
+    get_catalog_session,
+    get_product_repository,
+    get_category_repository,
+    get_inventory_repository,
+    get_unit_of_work,
+    get_request_context,
+    get_catalog_mediator,
+    get_catalog_message_bus,
+    get_catalog_dispatcher,
+    get_catalog_outbox_writer,
+    get_catalog_outbox_publisher,
+)
 
 logger = logging.getLogger(__name__)
 
 
-async def get_catalog_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Get catalog database session.
-    
-    Yields:
-        AsyncSession: Database session
-    """
-    async with get_session() as session:
-        yield session
-
-
-async def get_product_repository(
-    session: AsyncSession = Depends(get_catalog_session)
-) -> ProductRepository:
-    """
-    Get product repository.
-    
-    Args:
-        session: Database session
-        
-    Returns:
-        ProductRepository: Product repository instance
-    """
-    return ProductRepositoryImpl(session)
-
-
-async def get_unit_of_work(
-    session: AsyncSession = Depends(get_catalog_session)
-) -> UnitOfWork:
-    """
-    Get unit of work.
-    
-    Args:
-        session: Database session
-        
-    Returns:
-        UnitOfWork: Unit of work instance
-    """
-    return UnitOfWork(session)
-
-
-async def get_mediator() -> Mediator:
-    """
-    Get mediator instance.
-    
-    Returns:
-        Mediator: Mediator instance
-    """
-    # This would be injected from the DI container in a real implementation
-    # For now, return a placeholder
-    return None
-
-
-async def get_request_context() -> RequestContext:
-    """
-    Get request context.
-    
-    Returns:
-        RequestContext: Request context instance
-    """
-    # This would extract context from the request in a real implementation
-    # For now, return a default context
-    return RequestContext()
-
+# Re-export providers from DI module
+# These are now properly implemented in the DI providers module
 
 # Dependency aliases for easier imports
 CatalogSession = Depends(get_catalog_session)
 ProductRepo = Depends(get_product_repository)
+CategoryRepo = Depends(get_category_repository)
+InventoryRepo = Depends(get_inventory_repository)
 CatalogUoW = Depends(get_unit_of_work)
-CatalogMediator = Depends(get_mediator)
 CatalogRequestContext = Depends(get_request_context)
+CatalogMediator = Depends(get_catalog_mediator)
+CatalogMessageBus = Depends(get_catalog_message_bus)
+CatalogDispatcher = Depends(get_catalog_dispatcher)
+CatalogOutboxWriter = Depends(get_catalog_outbox_writer)
+CatalogOutboxPublisher = Depends(get_catalog_outbox_publisher)
 
 

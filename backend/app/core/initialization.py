@@ -18,7 +18,7 @@ async def initialize_logging() -> None:
         log_format="json",
         enable_seq=settings.log_enable_seq,
         seq_url=settings.seq_url,
-        seq_api_key=settings.seq_api_key,
+        _seq_api_key=settings.seq_api_key,
         enable_file_logging=settings.log_enable_file,
         log_directory=settings.log_directory,
         separate_server_logs=settings.log_separate_server_logs,

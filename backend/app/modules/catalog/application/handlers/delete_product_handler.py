@@ -11,13 +11,13 @@ from app.modules.catalog.domain.exceptions import (
     ProductNotFoundError,
     ProductDeleteError,
 )
-from app.modules.catalog.infrastructure.product_repository import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
-from app.core.logging.logger import get_logger
+from app.core.logging.base_logger import BaseLogger
 
-logger = get_logger(__name__)
+logger = BaseLogger(__name__)
 
 
 class DeleteProductCommand(BaseModel):
@@ -119,8 +119,9 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 # Invalidate products list cache
                 await self.cache_service.invalidate_products_list()
 
-                logger.log_info_with_context(
+                logger.log_with_context(
                     f"Product deleted successfully: {product.name}",
+                    "info",
                     product_id=str(command.product_id),
                     product_name=product.name,
                 )

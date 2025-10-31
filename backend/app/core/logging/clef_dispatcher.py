@@ -169,7 +169,7 @@ class CLEFLogDispatcher:
         except Exception as e:
             self.stats["seq_errors"] += len(batch)
             # Fallback: write to file if Seq fails
-            await self._write_to_ndjson_batch(batch, fallback=True)
+            await self._write_to_ndjson_batch(batch, _fallback=True)
             # Log error to stderr
             print(f"Failed to send logs to Seq: {e}", flush=True)
 

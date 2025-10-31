@@ -25,8 +25,8 @@ from app.modules.catalog.domain.exceptions import ProductNotFoundError
 from app.modules.catalog.application.handlers.get_products_handler import (
     GetProductsQuery,
 )
-from app.modules.catalog.contracts.products.dtos import ProductDto
-from app.modules.catalog.contracts.products.features.get_product_by_id import (
+from app.modules.catalog.contracts.product.dtos import ProductDto
+from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
@@ -53,7 +53,7 @@ class CreateProductRequest(BaseRequest):
     name: str = Field(..., description="Product name")
     description: str = Field(..., description="Product description")
     price: float = Field(..., gt=0, description="Product price")
-    picture_url: str = Field(..., description="Product picture URL")
+    picture_url: str | None = Field(default=None, description="Product picture URL (optional)")
     category: list[str] = Field(..., description="Product categories")
 
 
@@ -63,7 +63,7 @@ class UpdateProductRequest(BaseRequest):
     name: str = Field(..., description="Product name")
     description: str = Field(..., description="Product description")
     price: float = Field(..., gt=0, description="Product price")
-    picture_url: str = Field(..., description="Product picture URL")
+    picture_url: str | None = Field(default=None, description="Product picture URL (optional)")
     category: list[str] = Field(..., description="Product categories")
 
 

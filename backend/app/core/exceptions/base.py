@@ -110,3 +110,11 @@ class ConfigurationError(BaseError):
     ):
         """Initialize configuration error."""
         super().__init__(message, details)
+
+
+class DomainException(BaseError):
+    """Exception for domain-related errors - matches .NET DomainException pattern."""
+
+    def __init__(self, message: str = "Domain error", details: str | None = None):
+        """Initialize domain error."""
+        super().__init__(message, details)

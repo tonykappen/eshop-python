@@ -12,7 +12,7 @@ from app.modules.catalog.domain.exceptions import (
     ProductValidationError,
 )
 from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 
 
@@ -126,8 +126,8 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         try:
             from app.modules.catalog.domain.value_objects import Money
             
-            # Use default empty string if picture_url is not provided
-            image_file = (command.picture_url or "").strip() if command.picture_url else ""
+            # Use default empty string if picture_url is not provided (optional field)
+            image_file = command.picture_url.strip() if command.picture_url and command.picture_url.strip() else ""
             
             price_money = Money(
                 amount=Decimal(str(command.price)),
@@ -140,7 +140,7 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 sku=f"{command.name.upper().replace(' ', '-')[:20]}-{uuid4().hex[:8]}",  # Generate SKU
                 category=command.category,
                 description=command.description,
-                image_file=image_file,  # Map picture_url to image_file for domain model
+                image_file=image_file,  # Optional: can be empty string
                 price=price_money,
             )
             return product

@@ -15,7 +15,7 @@ class Product(Aggregate):
     sku: SKU = Field(..., description="Product SKU")
     category: list[str] = Field(default_factory=list, description="Product categories")
     description: str = Field(..., description="Product description")
-    image_file: str = Field(..., description="Product image file path")
+    image_file: str = Field(default="", description="Product image file path (optional)")
     price: Money = Field(..., description="Product price")
 
     @field_validator("name")
@@ -36,11 +36,12 @@ class Product(Aggregate):
 
     @field_validator("image_file")
     @classmethod
-    def validate_image_file(cls, v: str) -> str:
-        """Validate image file is not empty."""
-        if not v or not v.strip():
-            raise ValueError("Product image file cannot be empty")
-        return v.strip()
+    def validate_image_file(cls, v: str | None) -> str:
+        """Validate image file - allow empty string for optional images."""
+        if v is None:
+            return ""
+        # Allow empty string (optional field)
+        return v.strip() if v else ""
 
     @field_validator("category")
     @classmethod
@@ -62,8 +63,8 @@ class Product(Aggregate):
         sku: str,
         category: list[str],
         description: str,
-        image_file: str,
-        price: Money,
+        image_file: str = "",
+        price: Money = ...,
     ) -> "Product":
         """
         Create a new product, matching .NET Product.Create static method.
@@ -74,7 +75,7 @@ class Product(Aggregate):
             sku: Product SKU (validated)
             category: List of categories (validated)
             description: Product description (validated)
-            image_file: Image file path (validated)
+            image_file: Image file path (optional, defaults to empty string)
             price: Product price (validated)
             
         Returns:
@@ -84,13 +85,16 @@ class Product(Aggregate):
             ValueError: If any validation fails
         """
         # Validation happens in Pydantic validators
+        # Use empty string if image_file is None or not provided
+        image_file_value = image_file if image_file is not None else ""
+        
         product = cls(
             id=product_id,
             name=name,
             sku=SKU(value=sku),
             category=category,
             description=description,
-            image_file=image_file,
+            image_file=image_file_value,
             price=price,
         )
 
@@ -108,8 +112,8 @@ class Product(Aggregate):
         name: str,
         category: list[str],
         description: str,
-        image_file: str,
-        price: Money,
+        image_file: str = "",
+        price: Money = ...,
     ) -> None:
         """
         Update product details, matching .NET Product.Update method.
@@ -118,7 +122,7 @@ class Product(Aggregate):
             name: New product name (validated)
             category: New categories list (validated)
             description: New description (validated)
-            image_file: New image file path (validated)
+            image_file: New image file path (optional, defaults to empty string)
             price: New price (validated)
             
         Raises:
@@ -128,10 +132,13 @@ class Product(Aggregate):
         old_price = self.price
 
         # Update fields (validation happens in Pydantic validators)
+        # Use empty string if image_file is None or not provided
+        image_file_value = image_file if image_file is not None else ""
+        
         self.name = name
         self.category = category
         self.description = description
-        self.image_file = image_file
+        self.image_file = image_file_value
         self.price = price
 
         # Increment version for any update

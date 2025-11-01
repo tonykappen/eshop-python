@@ -79,7 +79,12 @@ class ProductRepository:
             description = product_orm.description or ""
             image_file = product_orm.image_file or ""
             
-            return Product(
+            # Get timestamps from ORM
+            created_at = getattr(product_orm, 'created_at', None)
+            updated_at = getattr(product_orm, 'updated_at', None)
+            version = getattr(product_orm, 'version', 1)
+            
+            product = Product(
                 id=product_id,
                 name=name,
                 sku=SKU(value=sku_value),
@@ -87,7 +92,12 @@ class ProductRepository:
                 description=description,
                 image_file=image_file,
                 price=price,
+                version=version,
+                created_at=created_at,
+                last_modified=updated_at,  # Entity uses last_modified, not updated_at
             )
+            
+            return product
         except Exception as e:
             logger.error(f"Failed to convert ProductORM to Product: {e}", exc_info=True)
             logger.error(f"ProductORM data: id={product_orm.id}, name={product_orm.name}, "
@@ -97,11 +107,14 @@ class ProductRepository:
             raise ValueError(f"Failed to convert ProductORM to Product: {e}") from e
 
     async def get_by_id(self, product_id: UUID) -> Product | None:
-        """Get a product by ID."""
+        """Get a product by ID (non-deleted only)."""
         product_id_str = str(product_id)
 
         result = await self.session.execute(
-            select(ProductORM).where(ProductORM.id == product_id_str)
+            select(ProductORM).where(
+                ProductORM.id == product_id_str,
+                ProductORM.is_deleted == False
+            )
         )
         orm_product = result.scalar_one_or_none()
 
@@ -112,15 +125,21 @@ class ProductRepository:
         return self._orm_to_domain(orm_product)
 
     async def get_all(self, page: int = 1, page_size: int = 10) -> tuple[list[Product], int]:
-        """Get all products with pagination."""
-        # Get total count
-        count_result = await self.session.execute(select(ProductORM))
-        total_count = len(count_result.scalars().all())
+        """Get all products with pagination (non-deleted only)."""
+        from sqlalchemy import func
+        
+        # Get total count (non-deleted only)
+        count_stmt = select(func.count(ProductORM.id)).where(
+            ProductORM.is_deleted == False
+        )
+        count_result = await self.session.execute(count_stmt)
+        total_count = count_result.scalar() or 0
 
-        # Get paginated results
+        # Get paginated results (non-deleted only)
         offset = (page - 1) * page_size
         result = await self.session.execute(
             select(ProductORM)
+            .where(ProductORM.is_deleted == False)
             .offset(offset)
             .limit(page_size)
             .order_by(ProductORM.created_at.desc())
@@ -132,18 +151,25 @@ class ProductRepository:
         return products, total_count
 
     async def get_by_category(self, category: str, page: int = 1, page_size: int = 10) -> tuple[list[Product], int]:
-        """Get products by category with pagination."""
-        # Get total count for category
-        count_result = await self.session.execute(
-            select(ProductORM).where(ProductORM.categories.contains([category]))
+        """Get products by category with pagination (non-deleted only)."""
+        from sqlalchemy import func
+        
+        # Get total count for category (non-deleted only)
+        count_stmt = select(func.count(ProductORM.id)).where(
+            ProductORM.categories.contains([category]),
+            ProductORM.is_deleted == False
         )
-        total_count = len(count_result.scalars().all())
+        count_result = await self.session.execute(count_stmt)
+        total_count = count_result.scalar() or 0
 
-        # Get paginated results
+        # Get paginated results (non-deleted only)
         offset = (page - 1) * page_size
         result = await self.session.execute(
             select(ProductORM)
-            .where(ProductORM.categories.contains([category]))
+            .where(
+                ProductORM.categories.contains([category]),
+                ProductORM.is_deleted == False
+            )
             .offset(offset)
             .limit(page_size)
             .order_by(ProductORM.created_at.desc())
@@ -155,25 +181,32 @@ class ProductRepository:
         return products, total_count
 
     async def search(self, search_term: str, page: int = 1, page_size: int = 10) -> tuple[list[Product], int]:
-        """Search products by name or description with pagination."""
+        """Search products by name or description with pagination (non-deleted only)."""
+        from sqlalchemy import func, or_
+        
         search_pattern = f"%{search_term}%"
         
-        # Get total count for search
-        count_result = await self.session.execute(
-            select(ProductORM).where(
-                (ProductORM.name.ilike(search_pattern)) |
-                (ProductORM.description.ilike(search_pattern))
-            )
+        # Get total count for search (non-deleted only)
+        count_stmt = select(func.count(ProductORM.id)).where(
+            or_(
+                ProductORM.name.ilike(search_pattern),
+                ProductORM.description.ilike(search_pattern)
+            ),
+            ProductORM.is_deleted == False
         )
-        total_count = len(count_result.scalars().all())
+        count_result = await self.session.execute(count_stmt)
+        total_count = count_result.scalar() or 0
 
-        # Get paginated results
+        # Get paginated results (non-deleted only)
         offset = (page - 1) * page_size
         result = await self.session.execute(
             select(ProductORM)
             .where(
-                (ProductORM.name.ilike(search_pattern)) |
-                (ProductORM.description.ilike(search_pattern))
+                or_(
+                    ProductORM.name.ilike(search_pattern),
+                    ProductORM.description.ilike(search_pattern)
+                ),
+                ProductORM.is_deleted == False
             )
             .offset(offset)
             .limit(page_size)
@@ -264,11 +297,14 @@ class ProductRepository:
         return result.rowcount > 0
 
     async def exists(self, product_id: UUID) -> bool:
-        """Check if a product exists."""
+        """Check if a product exists (non-deleted only)."""
         product_id_str = str(product_id)
         
         result = await self.session.execute(
-            select(ProductORM.id).where(ProductORM.id == product_id_str)
+            select(ProductORM.id).where(
+                ProductORM.id == product_id_str,
+                ProductORM.is_deleted == False
+            )
         )
         
         return result.scalar_one_or_none() is not None

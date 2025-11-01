@@ -11,7 +11,7 @@ from app.modules.catalog.domain.exceptions import (
     ProductNotFoundError,
     ProductDeleteError,
 )
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 
 
@@ -84,8 +84,12 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 raise ProductNotFoundError(command.product_id)
 
             try:
-                # Delete the product
-                success = await repository.delete(command.product_id)
+                # Delete the product with audit trail
+                success = await repository.delete(
+                    command.product_id,
+                    deleted_by=command.deleted_by,
+                    deletion_reason=command.deletion_reason
+                )
                 await session.commit()
 
                 if not success:

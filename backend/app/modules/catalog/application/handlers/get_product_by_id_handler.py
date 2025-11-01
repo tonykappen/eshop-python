@@ -12,7 +12,7 @@ from app.modules.catalog.application.features.product.queries.get_product_by_id.
     GetProductByIdResult,
 )
 from app.modules.catalog.domain.exceptions import ProductNotFoundError
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger

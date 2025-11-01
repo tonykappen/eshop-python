@@ -8,6 +8,8 @@ class DeleteProductCommand(BaseModel):
     """Command to delete a product - matches .NET DeleteProductCommand."""
 
     product_id: UUID
+    deleted_by: UUID | None = None
+    deletion_reason: str | None = None
 
 
 class DeleteProductResult(BaseModel):

@@ -13,7 +13,7 @@ from app.modules.catalog.domain.exceptions import (
     ProductValidationError,
 )
 from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
 from app.core.database.session import AsyncSessionLocal
@@ -181,8 +181,12 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 currency=currency
             )
             
-            # Use existing image_file if picture_url is not provided, otherwise use the provided value
-            image_file = (command.picture_url or "").strip() if command.picture_url else product.image_file
+            # Use provided picture_url if it exists, otherwise keep existing image_file
+            # Handle empty string as valid (optional field)
+            if command.picture_url is not None:
+                image_file = command.picture_url.strip() if command.picture_url.strip() else ""
+            else:
+                image_file = product.image_file or ""
             
             product.update(
                 name=command.name,

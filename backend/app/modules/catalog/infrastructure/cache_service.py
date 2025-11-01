@@ -130,14 +130,14 @@ class CatalogCacheService:
         """Invalidate all cache entries for a product."""
         patterns = [
             self.cache_patterns.product_key(product_id),
-            f"products:list:*:{product_id}:*",  # Any list containing this product
+            f"catalog:products:list:*",  # All product lists (since any list might contain this product)
         ]
         for pattern in patterns:
             await self.cache.invalidate_pattern(pattern)
 
     async def invalidate_products_list(self) -> None:
         """Invalidate all products list cache."""
-        await self.cache.invalidate_pattern("products:list:*")
+        await self.cache.invalidate_pattern("catalog:products:list:*")
 
     async def invalidate_all_catalog(self) -> None:
         """Invalidate all catalog cache."""

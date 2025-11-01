@@ -305,6 +305,27 @@
             cursor: pointer;
             color: #666;
         }
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+        }
+        .form-group input.error, .form-group textarea.error {
+            border-color: #dc3545;
+        }
+        .validation-summary {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid #f5c6cb;
+        }
+        .validation-summary ul {
+            margin: 0;
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -354,21 +375,26 @@
                 <span class="close" onclick="closeProductModal()">&times;</span>
             </div>
             <form id="productForm">
+                <div id="validationSummary" class="validation-summary" style="display: none;"></div>
                 <div class="form-group">
                     <label for="productName">Product Name:</label>
                     <input type="text" id="productName" required>
+                    <span id="productName-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
                     <label for="productDescription">Description:</label>
                     <textarea id="productDescription" required></textarea>
+                    <span id="productDescription-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
                     <label for="productPrice">Price:</label>
                     <input type="number" id="productPrice" step="0.01" min="0.01" required>
+                    <span id="productPrice-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
                     <label for="productImage">Image URL (optional):</label>
                     <input type="text" id="productImage" placeholder="https://example.com/image.jpg">
+                    <span id="productImage-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
                     <label>Categories:</label>
@@ -377,6 +403,7 @@
                         <button type="button" onclick="addCategory()">Add</button>
                     </div>
                     <div id="categoryTags" class="category-tags"></div>
+                    <span id="category-error" class="error-message"></span>
                 </div>
                 <button type="submit" id="submitBtn">Create Product</button>
             </form>
@@ -431,12 +458,16 @@
             document.getElementById('userRole').textContent = userRole;
         }
         
-        // Load cart from localStorage
-        const savedCart = localStorage.getItem('eshop_cart');
-        if (savedCart) {
-            cart = JSON.parse(savedCart);
-            updateCartDisplay();
+        // Load cart from localStorage - use user-specific key (only for regular users)
+        if (userRole !== 'admin' && userRole !== 'manager') {
+            const cartKey = `eshop_cart_${username}`;
+            const savedCart = localStorage.getItem(cartKey);
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+            }
         }
+        // Always call updateCartDisplay to ensure cart section is hidden for admin/manager
+        updateCartDisplay();
         
         // Load products with pagination and search
         async function loadProducts(page = 1, searchTerm = '') {
@@ -530,6 +561,80 @@
             return div.innerHTML;
         }
         
+        // Field name mapping from backend to frontend
+        const fieldNameMap = {
+            'picture_url': 'productImage',
+            'name': 'productName',
+            'description': 'productDescription',
+            'price': 'productPrice',
+            'category': 'category'
+        };
+        
+        function displayValidationErrors(validationErrors) {
+            // Clear previous errors
+            clearValidationErrors();
+            
+            // Group errors by field
+            const errorsByField = {};
+            const summaryErrors = [];
+            
+            validationErrors.forEach(error => {
+                const fieldName = error.field || 'unknown';
+                const message = error.message || 'Validation error';
+                const frontendFieldName = fieldNameMap[fieldName] || fieldName;
+                
+                if (!errorsByField[frontendFieldName]) {
+                    errorsByField[frontendFieldName] = [];
+                }
+                errorsByField[frontendFieldName].push(message);
+                summaryErrors.push(`${fieldName}: ${message}`);
+            });
+            
+            // Display field-specific errors
+            Object.keys(errorsByField).forEach(fieldId => {
+                const inputElement = document.getElementById(fieldId);
+                const errorElement = document.getElementById(`${fieldId}-error`);
+                
+                if (inputElement && errorElement) {
+                    inputElement.classList.add('error');
+                    errorElement.textContent = errorsByField[fieldId].join(', ');
+                    errorElement.style.display = 'block';
+                }
+            });
+            
+            // Display validation summary
+            const summaryElement = document.getElementById('validationSummary');
+            if (summaryElement && summaryErrors.length > 0) {
+                summaryElement.innerHTML = `
+                    <strong>Please fix the following errors:</strong>
+                    <ul>
+                        ${summaryErrors.map(err => `<li>${escapeHtml(err)}</li>`).join('')}
+                    </ul>
+                `;
+                summaryElement.style.display = 'block';
+            }
+        }
+        
+        function clearValidationErrors() {
+            // Clear all error messages
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            
+            // Remove error styling from inputs
+            document.querySelectorAll('.form-group input, .form-group textarea').forEach(el => {
+                el.classList.remove('error');
+            });
+            
+            // Hide validation summary
+            const summaryElement = document.getElementById('validationSummary');
+            if (summaryElement) {
+                summaryElement.style.display = 'none';
+                summaryElement.innerHTML = '';
+            }
+        }
+        
         // Get appropriate actions based on user role
         function getProductActions(product) {
             const productId = product.id || '';
@@ -550,8 +655,17 @@
             }
         }
         
-        // Cart functionality
+        // Cart functionality - helper to get user-specific cart key
+        function getCartKey() {
+            return `eshop_cart_${username}`;
+        }
+        
         function addToCart(productId, productName, price) {
+            // Only regular users can add to cart
+            if (userRole === 'admin' || userRole === 'manager') {
+                return;
+            }
+            
             const existingItem = cart.find(item => item.id === productId);
             
             if (existingItem) {
@@ -565,8 +679,8 @@
                 });
             }
             
-            // Save to localStorage
-            localStorage.setItem('eshop_cart', JSON.stringify(cart));
+            // Save to localStorage with user-specific key
+            localStorage.setItem(getCartKey(), JSON.stringify(cart));
             
             // Update display
             updateCartDisplay();
@@ -577,7 +691,7 @@
         
         function removeFromCart(productId) {
             cart = cart.filter(item => item.id !== productId);
-            localStorage.setItem('eshop_cart', JSON.stringify(cart));
+            localStorage.setItem(getCartKey(), JSON.stringify(cart));
             updateCartDisplay();
         }
         
@@ -588,7 +702,7 @@
                     removeFromCart(productId);
                 } else {
                     item.quantity = newQuantity;
-                    localStorage.setItem('eshop_cart', JSON.stringify(cart));
+                    localStorage.setItem(getCartKey(), JSON.stringify(cart));
                     updateCartDisplay();
                 }
             }
@@ -596,7 +710,7 @@
         
         function clearCart() {
             cart = [];
-            localStorage.removeItem('eshop_cart');
+            localStorage.removeItem(getCartKey());
             updateCartDisplay();
         }
         
@@ -604,6 +718,12 @@
             const cartSection = document.getElementById('cartSection');
             const cartItems = document.getElementById('cartItems');
             const cartTotal = document.getElementById('cartTotal');
+            
+            // Hide cart for admin and manager users
+            if (userRole === 'admin' || userRole === 'manager') {
+                cartSection.style.display = 'none';
+                return;
+            }
             
             if (cart.length === 0) {
                 cartSection.style.display = 'none';
@@ -648,8 +768,11 @@
         }
         
         function logout() {
+            // Clear user-specific data
             localStorage.removeItem('access_token');
             localStorage.removeItem('username');
+            // Clear old shared cart key if it exists (for backward compatibility)
+            localStorage.removeItem('eshop_cart');
             window.location.href = 'index.html';
         }
         
@@ -660,6 +783,7 @@
             document.getElementById('productForm').reset();
             categories = [];
             updateCategoryTags();
+            clearValidationErrors(); // Clear any previous validation errors
             document.getElementById('productModal').style.display = 'block';
         }
         
@@ -667,6 +791,7 @@
             editingProductId = productId;
             document.getElementById('modalTitle').textContent = 'Edit Product';
             document.getElementById('submitBtn').textContent = 'Update Product';
+            clearValidationErrors(); // Clear any previous validation errors
             
             // Find the product data (you might want to store this in a variable)
             // For now, we'll make a request to get the product details
@@ -770,15 +895,34 @@
                 
                 if (!response.ok) {
                     let errorMessage = 'Failed to save product';
+                    let validationErrors = [];
+                    
                     try {
                         const errorData = await response.json();
                         errorMessage = errorData.detail || errorMessage;
+                        
+                        // Extract validation errors if present
+                        if (errorData.validationErrors && Array.isArray(errorData.validationErrors)) {
+                            validationErrors = errorData.validationErrors;
+                        }
                     } catch (parseError) {
                         // If response is not JSON, use status text
                         errorMessage = `HTTP ${response.status}: ${response.statusText}`;
                     }
-                    throw new Error(errorMessage);
+                    
+                    // Display validation errors on the form
+                    if (validationErrors.length > 0) {
+                        displayValidationErrors(validationErrors);
+                    } else {
+                        // No specific validation errors, show generic error
+                        clearValidationErrors();
+                        throw new Error(errorMessage);
+                    }
+                    return; // Don't proceed if there are validation errors
                 }
+                
+                // Clear any previous validation errors
+                clearValidationErrors();
                 
                 closeProductModal();
                 loadProducts(currentPage); // Reload current page
@@ -811,11 +955,23 @@
                     throw new Error(errorData.detail || 'Failed to delete product');
                 }
                 
-                loadProducts(currentPage); // Reload current page
+                // Reload products - refresh the list immediately
+                const searchTerm = document.getElementById('searchTerm').value;
+                await loadProducts(currentPage, searchTerm);
+                
+                // Check if current page is empty and navigate back if needed
+                const grid = document.getElementById('productsGrid');
+                if (grid && grid.textContent.includes('No products found') && currentPage > 1) {
+                    await loadProducts(currentPage - 1, searchTerm);
+                }
+                
                 alert('Product deleted successfully!');
                 
             } catch (error) {
                 alert('Failed to delete product: ' + error.message);
+                // Still reload products even if there was an error to ensure UI is in sync
+                const searchTerm = document.getElementById('searchTerm').value;
+                loadProducts(currentPage, searchTerm);
             }
         }
         

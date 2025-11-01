@@ -9,7 +9,7 @@ from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.contracts.product.dtos import ProductDto
 from .query import GetProductByIdQuery, GetProductByIdResult
 from app.modules.catalog.domain.exceptions import ProductNotFoundError
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 
 

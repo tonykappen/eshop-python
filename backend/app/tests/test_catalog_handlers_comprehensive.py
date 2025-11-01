@@ -40,7 +40,7 @@ from app.modules.catalog.domain.exceptions import (
     ProductUpdateError,
     ProductValidationError,
 )
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 
 
 class TestCreateProductHandler:

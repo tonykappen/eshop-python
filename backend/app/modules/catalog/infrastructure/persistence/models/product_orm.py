@@ -42,6 +42,9 @@ class ProductORM(Base):
     
     # Soft delete
     is_deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    deleted_by: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
+    deletion_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     def __repr__(self) -> str:
         """String representation."""
@@ -64,4 +67,7 @@ class ProductORM(Base):
             "created_by": str(self.created_by) if self.created_by else None,
             "updated_by": str(self.updated_by) if self.updated_by else None,
             "is_deleted": self.is_deleted,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
+            "deleted_by": str(self.deleted_by) if self.deleted_by else None,
+            "deletion_reason": self.deletion_reason,
         }

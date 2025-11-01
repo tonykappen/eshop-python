@@ -118,7 +118,7 @@ class CreateProductCommand(ICommand[dict]):
     name: str
     description: str
     price: float
-    picture_url: str
+    picture_url: str | None = None  # Optional field
     category: list[str]
 
 
@@ -324,18 +324,138 @@ async def delete_product(
     Demonstrates: HTTP Request -> Command -> Result -> HTTP Response
     RBAC: Requires command access (admin, manager roles only)
     """
-    # Create command endpoint using factory
+    # Extract user information from request for audit trail
+    user_id = None
+    user = getattr(http_request.state, "user", None)
+    if user and hasattr(user, "sub"):
+        try:
+            user_id = UUID(user.sub)
+        except (ValueError, AttributeError):
+            pass  # Keep as None if user.sub is not a valid UUID
+    
+    # Create custom mapper that includes user context
+    class DeleteProductCommandMapper:
+        """Custom mapper that adds user context to delete command."""
+        
+        async def map_to_command_or_query(
+            self, request: DeleteProductRequest, http_request: Request
+        ) -> DeleteProductCommand:
+            """Map HTTP request to delete command with user context."""
+            user_id = None
+            user = getattr(http_request.state, "user", None)
+            if user and hasattr(user, "sub"):
+                try:
+                    user_id = UUID(user.sub)
+                except (ValueError, AttributeError):
+                    pass
+            
+            return DeleteProductCommand(
+                product_id=request.product_id,
+                deleted_by=user_id,
+                deletion_reason=None  # Can be extended to accept from request body
+            )
+    
+    # Create command endpoint using factory with custom mapper
     endpoint: Any = factory.create_command_endpoint(
         command_factory=DeleteProductCommand,
         result_mapper=None,  # Will use default response mapper
     )
+    
+    # Override the request mapper with our custom one
+    endpoint.request_mapper = DeleteProductCommandMapper()
 
-    # Create the command with product ID
-    command = DeleteProductCommand(product_id=product_id)
+    # Create the HTTP request model (though we'll use the mapper)
+    request_model = DeleteProductRequest(product_id=product_id)
 
     # Execute the REPR pattern flow
-    response = await endpoint.execute(http_request, command)
+    response = await endpoint.execute(http_request, request_model)
 
     # Extract the result and return DeleteProductResponse
     result = response.data  # This will be DeleteProductResult
     return DeleteProductResponse(success=result.is_success)
+
+
+# Admin endpoints for managing deleted products
+@router.get("/admin/deleted", response_model=ProductsResponse)
+async def get_deleted_products(
+    http_request: Request,
+    page: int = 1,
+    page_size: int = 10,
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Admin only access
+    _: Any = Depends(require_command_access()),
+) -> ProductsResponse:
+    """
+    Get deleted products (admin only).
+    
+    RBAC: Requires command access (admin only)
+    """
+    # Use direct repository access for admin operations
+    from app.core.database.session import AsyncSessionLocal
+    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
+    
+    async with AsyncSessionLocal() as session:
+        repository = ProductRepositoryImpl(session)
+        products, total_count = await repository.get_deleted_products(page, page_size)
+        
+        # Convert to DTOs
+        from app.modules.catalog.application.mappers.product_mapper import ProductMapper
+        product_dtos = [ProductMapper.to_dto(product) for product in products]
+        
+        total_pages = (total_count + page_size - 1) // page_size
+        
+        return ProductsResponse(
+            data=product_dtos,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            total_count=total_count,
+        )
+
+
+@router.post("/admin/restore/{product_id}", response_model=DeleteProductResponse)
+async def restore_product(
+    product_id: UUID,
+    http_request: Request,
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    # RBAC: Admin only access
+    _: Any = Depends(require_command_access()),
+) -> DeleteProductResponse:
+    """
+    Restore a deleted product (admin only).
+    
+    RBAC: Requires command access (admin only)
+    """
+    # Extract user information from request
+    user_id = None
+    user = getattr(http_request.state, "user", None)
+    if user and hasattr(user, "sub"):
+        try:
+            user_id = UUID(user.sub)
+        except (ValueError, AttributeError):
+            pass
+    
+    # Use direct repository access for admin operations
+    from app.core.database.session import AsyncSessionLocal
+    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
+    from app.modules.catalog.domain.exceptions import ProductNotFoundError
+    
+    async with AsyncSessionLocal() as session:
+        repository = ProductRepositoryImpl(session)
+        
+        # Check if product exists and is deleted
+        deleted_product = await repository.get_deleted_by_id(product_id)
+        if not deleted_product:
+            raise ProductNotFoundError(product_id)
+        
+        success = await repository.restore_product(product_id, restored_by=user_id)
+        await session.commit()
+        
+        if success:
+            # Invalidate cache
+            from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
+            cache_service = CatalogCacheService(RedisCacheService())
+            await cache_service.invalidate_product(product_id)
+            await cache_service.invalidate_products_list()
+        
+        return DeleteProductResponse(success=success)

@@ -11,7 +11,7 @@ from app.core.mediator.handler_registry import IRequestHandler
 from app.core.pagination.models import PaginatedResult
 from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository_legacy import ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger

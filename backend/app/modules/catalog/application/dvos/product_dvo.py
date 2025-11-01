@@ -48,5 +48,3 @@ class ProductDVO(BaseModel):
             "updated_at": self.updated_at,
             "is_active": self.is_active,
         }
-
-

@@ -1,15 +1,16 @@
 """Category repository implementation."""
 
 import logging
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.domain.category.models.category import Category
 from app.modules.catalog.domain.category.repository import CategoryRepository
-from app.modules.catalog.infrastructure.persistence.models.category_orm import CategoryORM
+from app.modules.catalog.infrastructure.persistence.models.category_orm import (
+    CategoryORM,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,30 +21,29 @@ class CategoryRepositoryImpl(CategoryRepository):
     def __init__(self, session: AsyncSession):
         """
         Initialize the repository.
-        
+
         Args:
             session: Database session
         """
         self.session = session
 
-    async def get_by_id(self, category_id: UUID) -> Optional[Category]:
+    async def get_by_id(self, category_id: UUID) -> Category | None:
         """
         Get category by ID.
-        
+
         Args:
             category_id: Category ID
-            
+
         Returns:
             Category if found, None otherwise
         """
         try:
             stmt = select(CategoryORM).where(
-                CategoryORM.id == category_id,
-                CategoryORM.is_deleted == False
+                CategoryORM.id == category_id, CategoryORM.is_deleted is False
             )
             result = await self.session.execute(stmt)
             category_orm = result.scalar_one_or_none()
-            
+
             if category_orm:
                 return self._orm_to_domain(category_orm)
             return None
@@ -52,97 +52,103 @@ class CategoryRepositoryImpl(CategoryRepository):
             logger.error(f"Error getting category by ID {category_id}: {e}")
             raise
 
-    async def get_by_name(self, name: str) -> Optional[Category]:
+    async def get_by_name(self, name: str) -> Category | None:
         """
         Get category by name.
-        
+
         Args:
             name: Category name
-            
+
         Returns:
             Category if found, None otherwise
         """
         try:
             stmt = select(CategoryORM).where(
-                CategoryORM.name == name,
-                CategoryORM.is_deleted == False
+                CategoryORM.name == name, CategoryORM.is_deleted is False
             )
             result = await self.session.execute(stmt)
             category_orm = result.scalar_one_or_none()
-            
+
             if category_orm:
                 return self._orm_to_domain(category_orm)
             return None
-            
+
         except Exception as e:
             logger.error(f"Error getting category by name {name}: {e}")
             raise
 
-    async def get_by_parent_id(self, parent_id: UUID) -> List[Category]:
+    async def get_by_parent_id(self, parent_id: UUID) -> list[Category]:
         """
         Get categories by parent ID.
-        
+
         Args:
             parent_id: Parent category ID
-            
+
         Returns:
             List of categories with the parent ID
         """
         try:
             stmt = select(CategoryORM).where(
-                CategoryORM.parent_id == parent_id,
-                CategoryORM.is_deleted == False
+                CategoryORM.parent_id == parent_id, CategoryORM.is_deleted is False
             )
             result = await self.session.execute(stmt)
             categories_orm = result.scalars().all()
-            
-            return [self._orm_to_domain(category_orm) for category_orm in categories_orm]
-            
+
+            return [
+                self._orm_to_domain(category_orm) for category_orm in categories_orm
+            ]
+
         except Exception as e:
             logger.error(f"Error getting categories by parent ID {parent_id}: {e}")
             raise
 
-    async def get_active_categories(self) -> List[Category]:
+    async def get_active_categories(self) -> list[Category]:
         """
         Get all active categories.
-        
+
         Returns:
             List of active categories
         """
         try:
             stmt = select(CategoryORM).where(
-                CategoryORM.is_active == True,
-                CategoryORM.is_deleted == False
+                CategoryORM.is_active is True, CategoryORM.is_deleted is False
             )
             result = await self.session.execute(stmt)
             categories_orm = result.scalars().all()
-            
-            return [self._orm_to_domain(category_orm) for category_orm in categories_orm]
-            
+
+            return [
+                self._orm_to_domain(category_orm) for category_orm in categories_orm
+            ]
+
         except Exception as e:
             logger.error(f"Error getting active categories: {e}")
             raise
 
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Category]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[Category]:
         """
         Get all categories with pagination.
-        
+
         Args:
             skip: Number of categories to skip
             limit: Maximum number of categories to return
-            
+
         Returns:
             List of categories
         """
         try:
-            stmt = select(CategoryORM).where(
-                CategoryORM.is_deleted == False
-            ).offset(skip).limit(limit)
+            stmt = (
+                select(CategoryORM)
+                .where(CategoryORM.is_deleted is False)
+                .offset(skip)
+                .limit(limit)
+            )
             result = await self.session.execute(stmt)
             categories_orm = result.scalars().all()
-            
-            return [self._orm_to_domain(category_orm) for category_orm in categories_orm]
-            
+
+            return [
+                self._orm_to_domain(category_orm) for category_orm in categories_orm
+            ]
+
         except Exception as e:
             logger.error(f"Error getting all categories: {e}")
             raise
@@ -150,18 +156,19 @@ class CategoryRepositoryImpl(CategoryRepository):
     async def count(self) -> int:
         """
         Get total count of categories.
-        
+
         Returns:
             Total number of categories
         """
         try:
             from sqlalchemy import func
+
             stmt = select(func.count(CategoryORM.id)).where(
-                CategoryORM.is_deleted == False
+                CategoryORM.is_deleted is False
             )
             result = await self.session.execute(stmt)
             return result.scalar() or 0
-            
+
         except Exception as e:
             logger.error(f"Error counting categories: {e}")
             raise
@@ -169,21 +176,20 @@ class CategoryRepositoryImpl(CategoryRepository):
     async def exists_by_name(self, name: str) -> bool:
         """
         Check if category exists by name.
-        
+
         Args:
             name: Category name
-            
+
         Returns:
             True if category exists, False otherwise
         """
         try:
             stmt = select(CategoryORM.id).where(
-                CategoryORM.name == name,
-                CategoryORM.is_deleted == False
+                CategoryORM.name == name, CategoryORM.is_deleted is False
             )
             result = await self.session.execute(stmt)
             return result.scalar_one_or_none() is not None
-            
+
         except Exception as e:
             logger.error(f"Error checking category existence by name {name}: {e}")
             raise
@@ -191,7 +197,7 @@ class CategoryRepositoryImpl(CategoryRepository):
     async def add(self, category: Category) -> None:
         """
         Add a new category.
-        
+
         Args:
             category: Category to add
         """
@@ -207,22 +213,24 @@ class CategoryRepositoryImpl(CategoryRepository):
     async def update(self, category: Category) -> None:
         """
         Update an existing category.
-        
+
         Args:
             category: Category to update
         """
         try:
-            stmt = update(CategoryORM).where(
-                CategoryORM.id == category.id
-            ).values(
-                name=category.name,
-                description=category.description,
-                parent_id=category.parent_id,
-                is_active=category.is_active,
-                version=category.version,
+            stmt = (
+                update(CategoryORM)
+                .where(CategoryORM.id == category.id)
+                .values(
+                    name=category.name,
+                    description=category.description,
+                    parent_id=category.parent_id,
+                    is_active=category.is_active,
+                    version=category.version,
+                )
             )
             await self.session.execute(stmt)
-            
+
         except Exception as e:
             logger.error(f"Error updating category: {e}")
             raise
@@ -230,18 +238,18 @@ class CategoryRepositoryImpl(CategoryRepository):
     async def delete(self, category_id: UUID) -> None:
         """
         Delete a category (soft delete).
-        
+
         Args:
             category_id: Category ID to delete
         """
         try:
-            stmt = update(CategoryORM).where(
-                CategoryORM.id == category_id
-            ).values(
-                is_deleted=True
+            stmt = (
+                update(CategoryORM)
+                .where(CategoryORM.id == category_id)
+                .values(is_deleted=True)
             )
             await self.session.execute(stmt)
-            
+
         except Exception as e:
             logger.error(f"Error deleting category: {e}")
             raise
@@ -249,10 +257,10 @@ class CategoryRepositoryImpl(CategoryRepository):
     def _orm_to_domain(self, category_orm: CategoryORM) -> Category:
         """
         Convert ORM model to domain model.
-        
+
         Args:
             category_orm: Category ORM model
-            
+
         Returns:
             Category domain model
         """
@@ -268,10 +276,10 @@ class CategoryRepositoryImpl(CategoryRepository):
     def _domain_to_orm(self, category: Category) -> CategoryORM:
         """
         Convert domain model to ORM model.
-        
+
         Args:
             category: Category domain model
-            
+
         Returns:
             Category ORM model
         """

@@ -1,8 +1,5 @@
 """Create product request contract."""
 
-from decimal import Decimal
-from typing import Optional
-
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -15,7 +12,9 @@ class CreateProductRequest(BaseModel):
     description: str = Field(..., description="Product description", min_length=1)
     image_file: str = Field(..., description="Product image file path", min_length=1)
     price: float = Field(..., description="Product price", gt=0)
-    currency: str = Field(default="USD", description="Product currency", min_length=3, max_length=3)
+    currency: str = Field(
+        default="USD", description="Product currency", min_length=3, max_length=3
+    )
 
     @field_validator("name")
     @classmethod
@@ -31,12 +30,14 @@ class CreateProductRequest(BaseModel):
         """Validate product SKU."""
         if not v or not v.strip():
             raise ValueError("Product SKU cannot be empty")
-        
+
         # Convert to uppercase and validate format
         v = v.strip().upper()
         if not v.replace("-", "").replace("_", "").isalnum():
-            raise ValueError("Product SKU must contain only letters, numbers, hyphens, and underscores")
-        
+            raise ValueError(
+                "Product SKU must contain only letters, numbers, hyphens, and underscores"
+            )
+
         return v
 
     @field_validator("category")
@@ -45,14 +46,14 @@ class CreateProductRequest(BaseModel):
         """Validate product categories."""
         if not v:
             raise ValueError("Product must have at least one category")
-        
+
         # Clean and validate categories
         cleaned_categories = []
         for cat in v:
             if not cat or not cat.strip():
                 raise ValueError("Category cannot be empty")
             cleaned_categories.append(cat.strip())
-        
+
         return cleaned_categories
 
     @field_validator("description")
@@ -89,6 +90,7 @@ class CreateProductRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "name": "iPhone 15 Pro",
@@ -97,8 +99,6 @@ class CreateProductRequest(BaseModel):
                 "description": "Latest iPhone with advanced camera system and A17 Pro chip",
                 "image_file": "/images/iphone-15-pro.jpg",
                 "price": 999.00,
-                "currency": "USD"
+                "currency": "USD",
             }
         }
-
-

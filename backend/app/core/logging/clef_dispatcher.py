@@ -18,27 +18,27 @@ except ImportError:
 
 def _resolve_log_directory(log_directory: str) -> Path:
     """Resolve log directory path relative to backend directory.
-    
+
     Args:
         log_directory: Relative or absolute log directory path
-        
+
     Returns:
         Resolved absolute Path to log directory
     """
     log_path = Path(log_directory)
-    
+
     # If already absolute, return as is
     if log_path.is_absolute():
         return log_path
-    
+
     # Get the backend directory (parent of app directory)
     # __file__ is in backend/app/core/logging/clef_dispatcher.py
     # So we go: clef_dispatcher.py -> logging/ -> core/ -> app/ -> backend/
     backend_dir = Path(__file__).parent.parent.parent.parent
-    
+
     # Resolve relative to backend directory
     resolved_path = backend_dir / log_path
-    
+
     return resolved_path
 
 
@@ -238,17 +238,17 @@ class CLEFLogDispatcher:
 
     def _get_dated_filename(self, base_filename: str) -> str:
         """Get the appropriate filename based on current date.
-        
+
         Today's logs use base_filename (e.g., app.ndjson).
         Previous days use base_filename_YYYY-MM-DD (e.g., app_2024-01-15.ndjson).
         """
         current_date = date.today()
-        
+
         # If date changed, rotate old files
         if current_date != self._current_date:
             self._rotate_ndjson_files()
             self._current_date = current_date
-        
+
         # Always return base filename for today (rotation happens at day boundary)
         return base_filename
 
@@ -256,20 +256,22 @@ class CLEFLogDispatcher:
         """Check and rotate NDJSON files on initialization if they're from a previous day."""
         current_date = date.today()
         base_files = ["app.ndjson", "access.ndjson"]
-        
+
         for base_file in base_files:
             file_path = self.log_directory / base_file
             if file_path.exists():
                 # Check file modification time to see if it's from today
                 file_mtime = date.fromtimestamp(file_path.stat().st_mtime)
-                
+
                 # If file is from a previous day, rename it
                 if file_mtime < current_date and file_path.stat().st_size > 0:
                     base_name = file_path.stem
                     extension = file_path.suffix
-                    dated_filename = f"{base_name}_{file_mtime.strftime('%Y-%m-%d')}{extension}"
+                    dated_filename = (
+                        f"{base_name}_{file_mtime.strftime('%Y-%m-%d')}{extension}"
+                    )
                     dated_path = self.log_directory / dated_filename
-                    
+
                     try:
                         file_path.rename(dated_path)
                     except Exception as e:
@@ -278,30 +280,32 @@ class CLEFLogDispatcher:
     def _rotate_ndjson_files(self) -> None:
         """Rotate NDJSON files when date changes."""
         yesterday = self._current_date
-        
+
         # Files that need rotation
         base_files = ["app.ndjson", "access.ndjson"]
-        
+
         for base_file in base_files:
             file_path = self.log_directory / base_file
-            
+
             # If file exists and has content, rename it with date
             if file_path.exists() and file_path.stat().st_size > 0:
                 base_name = file_path.stem  # e.g., 'app' from 'app.ndjson'
                 extension = file_path.suffix  # e.g., '.ndjson'
-                dated_filename = f"{base_name}_{yesterday.strftime('%Y-%m-%d')}{extension}"
+                dated_filename = (
+                    f"{base_name}_{yesterday.strftime('%Y-%m-%d')}{extension}"
+                )
                 dated_path = self.log_directory / dated_filename
-                
+
                 # Close any open handle for this file
                 if base_file in self._file_handles:
                     try:
                         handle = self._file_handles[base_file]
-                        if hasattr(handle, 'close'):
+                        if hasattr(handle, "close"):
                             handle.close()
                     except Exception:
                         pass
                     del self._file_handles[base_file]
-                
+
                 # Rename the file
                 try:
                     file_path.rename(dated_path)

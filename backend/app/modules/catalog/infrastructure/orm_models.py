@@ -1,13 +1,12 @@
 """SQLAlchemy ORM models for the Catalog module."""
 
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID  # noqa: N811
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database.base import Base
@@ -27,23 +26,27 @@ class ProductORM(Base):
     sku: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     image_file: Mapped[str] = mapped_column(String(500), nullable=False)
-    
+
     # Price information (matching migration schema)
     price_amount: Mapped[str] = mapped_column(String(20), nullable=False)
     price_currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    
+
     # Categories
     categories: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
-    
+
     # Version for optimistic locking
     version: Mapped[int] = mapped_column(nullable=False)
 
     # Audit fields (matching migration schema)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    created_by: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
-    updated_by: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
-    
+    created_by: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), nullable=True
+    )
+    updated_by: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), nullable=True
+    )
+
     # Soft delete
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False)
 

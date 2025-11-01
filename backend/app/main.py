@@ -20,7 +20,6 @@ from app.core.initialization import (
     initialize_mediator,
     shutdown_logging,
 )
-from app.core.mediator.fastapi_integration import get_mediator
 from app.core.lifecycle.handlers import (
     auth_handler,
     cache_handler,
@@ -35,6 +34,7 @@ from app.core.lifecycle.manager import (
     register_startup_callback,
 )
 from app.core.logging.clef_middleware import add_clef_logging_middleware
+from app.core.mediator.fastapi_integration import get_mediator
 from app.core.middleware.auth_middleware import add_auth_middleware
 from app.modules.catalog.catalog_module import register_catalog_module_with_fastapi
 
@@ -61,10 +61,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Add Keycloak routes after auth handler startup
         try:
             from app.core.auth.keycloak import add_keycloak_routes
+
             add_keycloak_routes(app)
         except Exception as e:
             print(f"Warning: Could not add Keycloak routes: {e}")
-        
+
         yield
 
 
@@ -130,6 +131,7 @@ if settings.log_enable_request_logging:
 # from app.modules.basket.api.router import router as basket_router
 # from app.modules.ordering.api.router import router as ordering_router
 
+
 # Include catalog router with DI integration
 # Note: This will be called after initialization in the lifespan context
 def register_catalog_router():
@@ -143,7 +145,10 @@ def register_catalog_router():
         print(f"Warning: Could not register catalog router: {e}")
         # Fallback to basic router
         from app.modules.catalog.api.router import router as catalog_router
+
         app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
+
+
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
 app.include_router(health_router)
 

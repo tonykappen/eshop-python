@@ -18,14 +18,14 @@ class TestMainApplication:
         mock = MagicMock()
         mock.name = "eShop Test"
         mock.version = "1.0.0"
-        mock.host = "0.0.0.0"
+        mock.host = "0.0.0.0"  # nosec B104
         mock.port = 8000
         mock.debug = False
         mock.log_level = "INFO"
         mock.log_enable_seq = False
         mock.seq_url = "http://localhost:5341"
         mock.log_enable_file = False
-        mock.log_directory = "/tmp/logs"
+        mock.log_directory = "/tmp/logs"  # nosec B108
         mock.log_separate_server_logs = False
         mock.log_enable_request_logging = True
         mock.log_request_body = True
@@ -370,7 +370,7 @@ class TestMainApplication:
     ) -> None:
         """Test main entry point when run directly."""
         # Configure mock settings
-        mock_settings.host = "0.0.0.0"
+        mock_settings.host = "0.0.0.0"  # nosec B104
         mock_settings.port = 8000
         mock_settings.debug = False
         mock_settings.log_level = "INFO"

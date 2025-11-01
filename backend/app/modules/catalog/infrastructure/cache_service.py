@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import redis.asyncio as redis
+
 from app.config.settings import settings
 from app.core.cache.patterns import ICacheService
 from app.core.logging.base_logger import BaseLogger
@@ -37,7 +38,7 @@ class RedisCacheService(ICacheService):
             value = await self.redis_client.get(key)
             if value is None:
                 return None
-            
+
             # Try to deserialize JSON, fallback to string
             try:
                 return json.loads(value)
@@ -111,17 +112,28 @@ class CatalogCacheService:
         key = self.cache_patterns.product_key(product_id)
         return await self.cache.get(key)
 
-    async def set_product(self, product_id: UUID, product_data: dict, ttl: int | None = None) -> None:
+    async def set_product(
+        self, product_id: UUID, product_data: dict, ttl: int | None = None
+    ) -> None:
         """Cache product data."""
         key = self.cache_patterns.product_key(product_id)
         await self.cache.set(key, product_data, ttl)
 
-    async def get_products_list(self, page: int, size: int, filters: dict | None = None) -> dict | None:
+    async def get_products_list(
+        self, page: int, size: int, filters: dict | None = None
+    ) -> dict | None:
         """Get products list from cache."""
         key = self.cache_patterns.products_list_key(page, size, filters)
         return await self.cache.get(key)
 
-    async def set_products_list(self, page: int, size: int, products_data: dict, filters: dict | None = None, ttl: int | None = None) -> None:
+    async def set_products_list(
+        self,
+        page: int,
+        size: int,
+        products_data: dict,
+        filters: dict | None = None,
+        ttl: int | None = None,
+    ) -> None:
         """Cache products list."""
         key = self.cache_patterns.products_list_key(page, size, filters)
         await self.cache.set(key, products_data, ttl)
@@ -130,7 +142,7 @@ class CatalogCacheService:
         """Invalidate all cache entries for a product."""
         patterns = [
             self.cache_patterns.product_key(product_id),
-            f"catalog:products:list:*",  # All product lists (since any list might contain this product)
+            "catalog:products:list:*",  # All product lists (since any list might contain this product)
         ]
         for pattern in patterns:
             await self.cache.invalidate_pattern(pattern)

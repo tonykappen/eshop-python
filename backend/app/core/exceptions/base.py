@@ -112,7 +112,7 @@ class ConfigurationError(BaseError):
         super().__init__(message, details)
 
 
-class DomainException(BaseError):
+class DomainException(BaseError):  # noqa: N818
     """Exception for domain-related errors - matches .NET DomainException pattern."""
 
     def __init__(self, message: str = "Domain error", details: str | None = None):

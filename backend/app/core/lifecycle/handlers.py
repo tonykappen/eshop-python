@@ -31,7 +31,9 @@ class DatabaseLifecycleHandler:
 
     async def startup(self) -> None:
         """Initialize database connections and run migrations/seeding."""
-        logger.log_with_context("[DATABASE] Initializing database connections...", "info")
+        logger.log_with_context(
+            "[DATABASE] Initializing database connections...", "info"
+        )
         try:
             # Create database engine
             await create_db_engine()
@@ -50,7 +52,9 @@ class DatabaseLifecycleHandler:
                 "[OK] Database initialization completed successfully", "info"
             )
         except Exception as e:
-            logger.log_error_with_context("[FAILED] Database initialization failed", error=e)
+            logger.log_error_with_context(
+                "[FAILED] Database initialization failed", error=e
+            )
             raise
 
     async def shutdown(self) -> None:
@@ -121,9 +125,13 @@ class CacheLifecycleHandler:
                 logger.log_with_context("Redis client closed", "info")
 
             self.is_connected = False
-            logger.log_with_context("[OK] Cache connections closed successfully", "info")
+            logger.log_with_context(
+                "[OK] Cache connections closed successfully", "info"
+            )
         except Exception as e:
-            logger.log_error_with_context("[FAILED] Error closing cache connections", error=e)
+            logger.log_error_with_context(
+                "[FAILED] Error closing cache connections", error=e
+            )
 
     async def _verify_cache_connectivity(self) -> None:
         """Verify cache connectivity during startup."""
@@ -143,7 +151,9 @@ class MessagingLifecycleHandler:
 
     async def startup(self) -> None:
         """Initialize messaging connections."""
-        logger.log_with_context("[MESSAGING] Initializing messaging connections...", "info")
+        logger.log_with_context(
+            "[MESSAGING] Initializing messaging connections...", "info"
+        )
         try:
             # Initialize RabbitMQ connection
             # import aio_pika
@@ -205,14 +215,18 @@ class AuthenticationLifecycleHandler:
 
     async def startup(self, app_instance: Any = None) -> None:
         """Initialize authentication services."""
-        logger.log_with_context("[AUTH] Initializing authentication services...", "info")
+        logger.log_with_context(
+            "[AUTH] Initializing authentication services...", "info"
+        )
         try:
             # Use provided app instance or fall back to stored one
             if app_instance:
                 self.app = app_instance
-            
+
             # Setup Keycloak (realm, client, roles, users)
-            logger.log_with_context("[SETUP] Setting up Keycloak configuration...", "info")
+            logger.log_with_context(
+                "[SETUP] Setting up Keycloak configuration...", "info"
+            )
             try:
                 setup_success = await setup_keycloak_async()
                 if setup_success:
@@ -252,7 +266,9 @@ class AuthenticationLifecycleHandler:
             logger.log_with_context("Authentication services already shutdown", "info")
             return
 
-        logger.log_with_context("[AUTH] Shutting down authentication services...", "info")
+        logger.log_with_context(
+            "[AUTH] Shutting down authentication services...", "info"
+        )
         try:
             # Clean up Keycloak client resources
             if self.keycloak_client:
@@ -281,7 +297,9 @@ class AuthenticationLifecycleHandler:
         try:
             from app.core.auth.keycloak import keycloak_service
 
-            logger.log_with_context("[SETUP] Force initializing Keycloak service...", "info")
+            logger.log_with_context(
+                "[SETUP] Force initializing Keycloak service...", "info"
+            )
             keycloak_service.force_initialize()
 
             logger.log_with_context(
@@ -301,10 +319,11 @@ class AuthenticationLifecycleHandler:
             # Try to get from the global auth_handler instance
             try:
                 from app.core.lifecycle.handlers import auth_handler
+
                 app_instance = auth_handler.app
             except Exception:
                 pass
-        
+
         if not app_instance:
             logger.log_warning_with_context(
                 "[WARNING] No app instance available - skipping Keycloak routes"
@@ -337,7 +356,9 @@ class HealthCheckLifecycleHandler:
 
     async def startup(self) -> None:
         """Initialize health check services."""
-        logger.log_with_context("[HEALTH] Initializing health check services...", "info")
+        logger.log_with_context(
+            "[HEALTH] Initializing health check services...", "info"
+        )
         try:
             # Initialize health service
             # from app.core.health.health_service import health_service
@@ -362,7 +383,9 @@ class HealthCheckLifecycleHandler:
             logger.log_with_context("Health check services already shutdown", "info")
             return
 
-        logger.log_with_context("[HEALTH] Shutting down health check services...", "info")
+        logger.log_with_context(
+            "[HEALTH] Shutting down health check services...", "info"
+        )
         try:
             # Stop health monitoring if any background tasks exist
             self.is_running = False

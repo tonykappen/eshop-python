@@ -1,13 +1,14 @@
 """CreateProduct endpoint - FastAPI endpoint for product creation."""
 
-from fastapi import APIRouter, Depends, Request
 from typing import Any
 
+from fastapi import APIRouter, Depends, Request
+
+from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.catalog.utils import get_endpoint_factory
-from app.core.auth.rbac import require_command_access
+
 from .command import CreateProductCommand, CreateProductResult
-from .handler import CreateProductHandler
 
 router = APIRouter()
 

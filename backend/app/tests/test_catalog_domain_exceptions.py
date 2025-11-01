@@ -1,8 +1,6 @@
 """Tests for Catalog domain exceptions."""
 
-from uuid import UUID, uuid4
-
-import pytest
+from uuid import uuid4
 
 from app.modules.catalog.domain.exceptions import (
     ProductCreationError,
@@ -19,17 +17,17 @@ class TestProductNotFoundError:
         """Test ProductNotFoundError initialization."""
         product_id = uuid4()
         error = ProductNotFoundError(product_id)
-        
+
         assert error.product_id == product_id
         assert str(product_id) in str(error)
-        assert "Entity \"Product\"" in str(error)
+        assert 'Entity "Product"' in str(error)
         assert "was not found" in str(error)
 
     def test_product_not_found_error_with_string_id(self):
         """Test ProductNotFoundError with string product ID."""
         product_id = str(uuid4())
         error = ProductNotFoundError(product_id)
-        
+
         assert error.product_id == product_id
         assert product_id in str(error)
 
@@ -37,9 +35,9 @@ class TestProductNotFoundError:
         """Test ProductNotFoundError inheritance."""
         product_id = uuid4()
         error = ProductNotFoundError(product_id)
-        
+
         assert isinstance(error, Exception)
-        assert hasattr(error, 'product_id')
+        assert hasattr(error, "product_id")
 
 
 class TestProductCreationError:
@@ -49,7 +47,7 @@ class TestProductCreationError:
         """Test ProductCreationError initialization."""
         message = "Failed to create product"
         error = ProductCreationError(message)
-        
+
         assert error.message == message
         assert message in str(error)
 
@@ -58,7 +56,7 @@ class TestProductCreationError:
         message = "Failed to create product"
         details = "Database connection failed"
         error = ProductCreationError(message, details)
-        
+
         assert error.message == message
         assert error.details == details
         assert message in str(error)
@@ -67,10 +65,10 @@ class TestProductCreationError:
     def test_product_creation_error_inheritance(self):
         """Test ProductCreationError inheritance."""
         error = ProductCreationError("Test message")
-        
+
         assert isinstance(error, Exception)
-        assert hasattr(error, 'message')
-        assert hasattr(error, 'details')
+        assert hasattr(error, "message")
+        assert hasattr(error, "details")
 
 
 class TestProductUpdateError:
@@ -80,7 +78,7 @@ class TestProductUpdateError:
         """Test ProductUpdateError initialization."""
         message = "Failed to update product"
         error = ProductUpdateError(message)
-        
+
         assert error.message == message
         assert message in str(error)
 
@@ -89,7 +87,7 @@ class TestProductUpdateError:
         message = "Failed to update product"
         details = "Validation failed"
         error = ProductUpdateError(message, details)
-        
+
         assert error.message == message
         assert error.details == details
         assert message in str(error)
@@ -98,10 +96,10 @@ class TestProductUpdateError:
     def test_product_update_error_inheritance(self):
         """Test ProductUpdateError inheritance."""
         error = ProductUpdateError("Test message")
-        
+
         assert isinstance(error, Exception)
-        assert hasattr(error, 'message')
-        assert hasattr(error, 'details')
+        assert hasattr(error, "message")
+        assert hasattr(error, "details")
 
 
 class TestProductDeleteError:
@@ -111,7 +109,7 @@ class TestProductDeleteError:
         """Test ProductDeleteError initialization."""
         message = "Failed to delete product"
         error = ProductDeleteError(message)
-        
+
         assert error.message == message
         assert message in str(error)
 
@@ -120,7 +118,7 @@ class TestProductDeleteError:
         message = "Failed to delete product"
         details = "Foreign key constraint"
         error = ProductDeleteError(message, details)
-        
+
         assert error.message == message
         assert error.details == details
         assert message in str(error)
@@ -129,10 +127,10 @@ class TestProductDeleteError:
     def test_product_delete_error_inheritance(self):
         """Test ProductDeleteError inheritance."""
         error = ProductDeleteError("Test message")
-        
+
         assert isinstance(error, Exception)
-        assert hasattr(error, 'message')
-        assert hasattr(error, 'details')
+        assert hasattr(error, "message")
+        assert hasattr(error, "details")
 
 
 class TestExceptionChaining:
@@ -140,9 +138,9 @@ class TestExceptionChaining:
 
     def test_exception_basic_chaining(self):
         """Test basic exception chaining without cause parameter."""
-        original_error = ValueError("Original error")
+        ValueError("Original error")
         wrapped_error = ProductCreationError("Wrapped error")
-        
+
         assert "Wrapped error" in str(wrapped_error)
         assert isinstance(wrapped_error, Exception)
 
@@ -150,7 +148,7 @@ class TestExceptionChaining:
         """Test that exception context is preserved."""
         try:
             raise ValueError("Original error")
-        except ValueError as e:
+        except ValueError:
             wrapped_error = ProductUpdateError("Wrapped error")
             assert "Wrapped error" in str(wrapped_error)
             assert isinstance(wrapped_error, Exception)
@@ -160,7 +158,7 @@ class TestExceptionChaining:
         original = RuntimeError("Database error")
         intermediate = ProductCreationError("Creation failed")
         final = ProductUpdateError("Update failed")
-        
+
         assert "Update failed" in str(final)
         assert "Creation failed" in str(intermediate)
         assert "Database error" in str(original)
@@ -174,8 +172,8 @@ class TestExceptionMessages:
         product_id = uuid4()
         error = ProductNotFoundError(product_id)
         message = str(error)
-        
-        assert "Entity \"Product\"" in message
+
+        assert 'Entity "Product"' in message
         assert str(product_id) in message
         assert "was not found" in message
 
@@ -183,7 +181,7 @@ class TestExceptionMessages:
         """Test ProductCreationError message format."""
         error = ProductCreationError("Test message", "Test details")
         message = str(error)
-        
+
         assert "Test message" in message
         # Note: details are not included in str() representation
 
@@ -191,7 +189,7 @@ class TestExceptionMessages:
         """Test ProductUpdateError message format."""
         error = ProductUpdateError("Test message", "Test details")
         message = str(error)
-        
+
         assert "Test message" in message
         # Note: details are not included in str() representation
 
@@ -199,7 +197,7 @@ class TestExceptionMessages:
         """Test ProductDeleteError message format."""
         error = ProductDeleteError("Test message", "Test details")
         message = str(error)
-        
+
         assert "Test message" in message
         # Note: details are not included in str() representation
 
@@ -207,7 +205,7 @@ class TestExceptionMessages:
         """Test error messages without details."""
         error = ProductCreationError("Simple message")
         message = str(error)
-        
+
         assert "Simple message" in message
         assert "Details" not in message
 
@@ -215,6 +213,6 @@ class TestExceptionMessages:
         """Test error messages with None details."""
         error = ProductCreationError("Test message", None)
         message = str(error)
-        
+
         assert "Test message" in message
         assert "None" not in message

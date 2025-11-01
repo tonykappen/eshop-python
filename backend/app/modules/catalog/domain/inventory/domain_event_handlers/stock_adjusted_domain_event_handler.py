@@ -1,3 +1,4 @@
+# isort: skip_file
 """Stock adjusted domain event handler."""
 
 import logging
@@ -17,7 +18,7 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
     async def handle(self, event: StockAdjustedDomainEvent) -> None:
         """
         Handle stock adjusted domain event.
-        
+
         Args:
             event: The stock adjusted domain event
         """
@@ -26,18 +27,18 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
             f"{event.old_quantity} -> {event.new_quantity} "
             f"(adjustment: {event.adjustment:+d})"
         )
-        
+
         # Here you would typically:
         # 1. Update read models
         # 2. Send notifications
         # 3. Check reorder thresholds
         # 4. Publish integration events
-        
+
         # Check if stock is low after adjustment
         if event.inventory_item.is_low_stock:
             logger.warning(f"Low stock alert for product {event.product_id}")
             # await self._send_low_stock_alert(event.inventory_item)
-        
+
         # Check if out of stock
         if event.inventory_item.is_out_of_stock:
             logger.error(f"Out of stock alert for product {event.product_id}")
@@ -57,5 +58,3 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
         """Publish integration event for stock adjustment."""
         # Implementation would go here
         pass
-
-

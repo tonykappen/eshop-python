@@ -1,7 +1,7 @@
 """Clock service for time operations."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class IClock(ABC):
@@ -11,7 +11,7 @@ class IClock(ABC):
     def now(self) -> datetime:
         """
         Get current UTC time.
-        
+
         Returns:
             Current UTC datetime
         """
@@ -21,7 +21,7 @@ class IClock(ABC):
     def now_iso(self) -> str:
         """
         Get current UTC time as ISO string.
-        
+
         Returns:
             Current UTC datetime as ISO string
         """
@@ -34,16 +34,16 @@ class Clock(IClock):
     def now(self) -> datetime:
         """
         Get current UTC time.
-        
+
         Returns:
             Current UTC datetime
         """
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     def now_iso(self) -> str:
         """
         Get current UTC time as ISO string.
-        
+
         Returns:
             Current UTC datetime as ISO string
         """
@@ -56,16 +56,16 @@ class FixedClock(IClock):
     def __init__(self, fixed_time: datetime | None = None):
         """
         Initialize with a fixed time.
-        
+
         Args:
             fixed_time: Fixed time to return (defaults to current time)
         """
-        self.fixed_time = fixed_time or datetime.now(timezone.utc)
+        self.fixed_time = fixed_time or datetime.now(UTC)
 
     def now(self) -> datetime:
         """
         Get the fixed time.
-        
+
         Returns:
             Fixed datetime
         """
@@ -74,7 +74,7 @@ class FixedClock(IClock):
     def now_iso(self) -> str:
         """
         Get the fixed time as ISO string.
-        
+
         Returns:
             Fixed datetime as ISO string
         """
@@ -83,10 +83,8 @@ class FixedClock(IClock):
     def set_time(self, new_time: datetime) -> None:
         """
         Set a new fixed time.
-        
+
         Args:
             new_time: New fixed time
         """
         self.fixed_time = new_time
-
-

@@ -1,26 +1,45 @@
 """Dependency injection providers for catalog module."""
 
 import logging
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 from functools import lru_cache
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.mediator.mediator import Mediator
-from app.modules.catalog.application.uow import UnitOfWork
 from app.modules.catalog.application.context.request_context import RequestContext
-from app.modules.catalog.domain.product.repository import ProductRepository
+from app.modules.catalog.application.uow import UnitOfWork
+from app.modules.catalog.di.container import get_catalog_container
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.infrastructure.persistence.db_session import get_engine, get_session_maker
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
-from app.modules.catalog.infrastructure.persistence.repositories.category_repository import CategoryRepositoryImpl
-from app.modules.catalog.infrastructure.persistence.repositories.inventory_repository import InventoryRepositoryImpl
-from app.modules.catalog.infrastructure.messaging.bus import IMessageBus, InMemoryMessageBus, RabbitMQMessageBus
-from app.modules.catalog.infrastructure.messaging.outbox import IOutboxWriter, IOutboxPublisher, OutboxWriter, OutboxPublisher
-from app.modules.catalog.infrastructure.messaging.domain_dispatcher import DomainEventDispatcher
-from app.modules.catalog.di.container import get_catalog_container
+from app.modules.catalog.domain.product.repository import ProductRepository
+from app.modules.catalog.infrastructure.messaging.bus import (
+    IMessageBus,
+    InMemoryMessageBus,
+)
+from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
+    DomainEventDispatcher,
+)
+from app.modules.catalog.infrastructure.messaging.outbox import (
+    IOutboxPublisher,
+    IOutboxWriter,
+    OutboxPublisher,
+    OutboxWriter,
+)
+from app.modules.catalog.infrastructure.persistence.db_session import (
+    get_engine,
+    get_session_maker,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.category_repository import (
+    CategoryRepositoryImpl,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.inventory_repository import (
+    InventoryRepositoryImpl,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+    ProductRepositoryImpl,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +49,7 @@ logger = logging.getLogger(__name__)
 def get_catalog_engine() -> AsyncEngine:
     """
     Get catalog database engine.
-    
+
     Returns:
         AsyncEngine: Database engine
     """
@@ -41,7 +60,7 @@ def get_catalog_engine() -> AsyncEngine:
 def get_catalog_session_maker() -> async_sessionmaker[AsyncSession]:
     """
     Get catalog session maker.
-    
+
     Returns:
         async_sessionmaker: Session maker
     """
@@ -51,7 +70,7 @@ def get_catalog_session_maker() -> async_sessionmaker[AsyncSession]:
 async def get_catalog_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Get catalog database session.
-    
+
     Yields:
         AsyncSession: Database session
     """
@@ -65,14 +84,14 @@ async def get_catalog_session() -> AsyncGenerator[AsyncSession, None]:
 
 # Repository providers
 async def get_product_repository(
-    session: AsyncSession = Depends(get_catalog_session)
+    session: AsyncSession = Depends(get_catalog_session),
 ) -> ProductRepository:
     """
     Get product repository.
-    
+
     Args:
         session: Database session
-        
+
     Returns:
         ProductRepository: Product repository instance
     """
@@ -80,14 +99,14 @@ async def get_product_repository(
 
 
 async def get_category_repository(
-    session: AsyncSession = Depends(get_catalog_session)
+    session: AsyncSession = Depends(get_catalog_session),
 ) -> CategoryRepository:
     """
     Get category repository.
-    
+
     Args:
         session: Database session
-        
+
     Returns:
         CategoryRepository: Category repository instance
     """
@@ -95,14 +114,14 @@ async def get_category_repository(
 
 
 async def get_inventory_repository(
-    session: AsyncSession = Depends(get_catalog_session)
+    session: AsyncSession = Depends(get_catalog_session),
 ) -> InventoryRepository:
     """
     Get inventory repository.
-    
+
     Args:
         session: Database session
-        
+
     Returns:
         InventoryRepository: Inventory repository instance
     """
@@ -111,14 +130,14 @@ async def get_inventory_repository(
 
 # Application layer providers
 async def get_unit_of_work(
-    session: AsyncSession = Depends(get_catalog_session)
+    session: AsyncSession = Depends(get_catalog_session),
 ) -> UnitOfWork:
     """
     Get unit of work.
-    
+
     Args:
         session: Database session
-        
+
     Returns:
         UnitOfWork: Unit of work instance
     """
@@ -128,7 +147,7 @@ async def get_unit_of_work(
 async def get_request_context() -> RequestContext:
     """
     Get request context.
-    
+
     Returns:
         RequestContext: Request context instance
     """
@@ -142,7 +161,7 @@ async def get_request_context() -> RequestContext:
 def get_catalog_message_bus() -> IMessageBus:
     """
     Get catalog message bus.
-    
+
     Returns:
         IMessageBus: Message bus instance
     """
@@ -155,7 +174,7 @@ def get_catalog_message_bus() -> IMessageBus:
 def get_catalog_dispatcher() -> DomainEventDispatcher:
     """
     Get catalog domain event dispatcher.
-    
+
     Returns:
         DomainEventDispatcher: Domain event dispatcher instance
     """
@@ -163,14 +182,14 @@ def get_catalog_dispatcher() -> DomainEventDispatcher:
 
 
 async def get_catalog_outbox_writer(
-    session: AsyncSession = Depends(get_catalog_session)
+    session: AsyncSession = Depends(get_catalog_session),
 ) -> IOutboxWriter:
     """
     Get catalog outbox writer.
-    
+
     Args:
         session: Database session
-        
+
     Returns:
         IOutboxWriter: Outbox writer instance
     """
@@ -179,15 +198,15 @@ async def get_catalog_outbox_writer(
 
 async def get_catalog_outbox_publisher(
     outbox_writer: IOutboxWriter = Depends(get_catalog_outbox_writer),
-    message_bus: IMessageBus = Depends(get_catalog_message_bus)
+    message_bus: IMessageBus = Depends(get_catalog_message_bus),
 ) -> IOutboxPublisher:
     """
     Get catalog outbox publisher.
-    
+
     Args:
         outbox_writer: Outbox writer
         message_bus: Message bus
-        
+
     Returns:
         IOutboxPublisher: Outbox publisher instance
     """
@@ -198,7 +217,7 @@ async def get_catalog_outbox_publisher(
 async def get_catalog_mediator() -> Mediator:
     """
     Get catalog mediator.
-    
+
     Returns:
         Mediator: Mediator instance
     """
@@ -217,7 +236,7 @@ async def get_catalog_mediator() -> Mediator:
 def get_catalog_container_provider():
     """
     Get catalog container provider.
-    
+
     Returns:
         CatalogContainer: Container instance
     """

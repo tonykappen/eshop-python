@@ -9,7 +9,7 @@ class InvalidPrice(DomainException):
     def __init__(self, price: str, reason: str = ""):
         """
         Initialize the exception.
-        
+
         Args:
             price: The invalid price
             reason: Reason why the price is invalid
@@ -28,7 +28,7 @@ class NegativePrice(DomainException):
     def __init__(self, price: str):
         """
         Initialize the exception.
-        
+
         Args:
             price: The negative price
         """
@@ -39,8 +39,6 @@ class NegativePrice(DomainException):
 class ZeroPrice(DomainException):
     """Exception raised when a product price is zero."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the exception."""
         super().__init__("Price cannot be zero")
-
-

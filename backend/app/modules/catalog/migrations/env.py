@@ -4,17 +4,14 @@ import asyncio
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
+
 # Import your models here to ensure they're registered with Base
 from app.modules.catalog.infrastructure.persistence.models.base import Base
-from app.modules.catalog.infrastructure.persistence.models.product_orm import ProductORM
-from app.modules.catalog.infrastructure.persistence.models.category_orm import CategoryORM
-from app.modules.catalog.infrastructure.persistence.models.inventory_item_orm import InventoryItemORM
-from app.modules.catalog.infrastructure.persistence.models.outbox_orm import OutboxORM
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -46,7 +43,12 @@ def get_url():
     """Get database URL from environment or config."""
     if config is None:
         # Fallback to environment variable if config not available
-        return os.getenv("CATALOG_DB_URL", os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/eshop"))
+        return os.getenv(
+            "CATALOG_DB_URL",
+            os.getenv(
+                "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/eshop"
+            ),
+        )
     return os.getenv("CATALOG_DB_URL", config.get_main_option("sqlalchemy.url"))
 
 
@@ -68,8 +70,10 @@ def run_migrations_offline() -> None:
         try:
             config = context.config
         except AttributeError:
-            raise RuntimeError("Alembic config is not available. Make sure migrations are run via Alembic CLI.")
-    
+            raise RuntimeError(  # noqa: B904
+                "Alembic config is not available. Make sure migrations are run via Alembic CLI."
+            )
+
     url = get_url()
     context.configure(
         url=url,
@@ -103,11 +107,13 @@ async def run_async_migrations() -> None:
         try:
             config = context.config
         except AttributeError:
-            raise RuntimeError("Alembic config is not available. Make sure migrations are run via Alembic CLI.")
-    
+            raise RuntimeError(  # noqa: B904
+                "Alembic config is not available. Make sure migrations are run via Alembic CLI."
+            )
+
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
-    
+
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
@@ -146,5 +152,3 @@ if config is not None:
             pass
         else:
             raise
-
-

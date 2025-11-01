@@ -5,8 +5,9 @@ from app.core.mediator.handler_registry import HandlerRegistry
 
 def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
     """Register catalog module handlers with the mediator."""
-    from app.modules.catalog.api.endpoints.products import (
-        CreateProductCommand,
+    from app.modules.catalog.api.endpoints.products import CreateProductCommand
+    from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
+        GetProductByIdQuery,
     )
     from app.modules.catalog.application.handlers.create_product_handler import (
         CreateProductHandler,
@@ -25,9 +26,6 @@ def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
     from app.modules.catalog.application.handlers.update_product_handler import (
         UpdateProductCommand,
         UpdateProductHandler,
-    )
-    from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
-        GetProductByIdQuery,
     )
 
     # Register handlers with their corresponding query/command types

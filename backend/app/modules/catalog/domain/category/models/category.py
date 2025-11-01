@@ -41,16 +41,16 @@ class Category(Aggregate):
     ) -> "Category":
         """
         Create a new category.
-        
+
         Args:
             category_id: Unique identifier for the category
             name: Category name (validated)
             description: Category description (validated)
             parent_id: Parent category ID (optional)
-            
+
         Returns:
             Created Category instance with domain events
-            
+
         Raises:
             ValueError: If any validation fails
         """
@@ -74,11 +74,11 @@ class Category(Aggregate):
     def update(self, name: str, description: str) -> None:
         """
         Update category details.
-        
+
         Args:
             name: New category name (validated)
             description: New description (validated)
-            
+
         Raises:
             ValueError: If any validation fails
         """
@@ -95,5 +95,3 @@ class Category(Aggregate):
         """Activate the category."""
         self.is_active = True
         self.increment_version()
-
-

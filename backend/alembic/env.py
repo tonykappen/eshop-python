@@ -1,13 +1,13 @@
+# isort: skip_file
 """Alembic environment configuration."""
 
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
-
 # Import all models to ensure they are registered with SQLAlchemy
-from app.core.database.base import Base
+from app.core.database.base import Base  # noqa: E402
 
 # Import catalog models
 

@@ -39,7 +39,9 @@ class GreaterThanRule(ValidationRule):
         """Initialize the rule."""
         self.field_name = field_name
         self.threshold = threshold
-        self.custom_message = custom_message or f"{field_name} must be greater than {threshold}"
+        self.custom_message = (
+            custom_message or f"{field_name} must be greater than {threshold}"
+        )
 
     def validate(self, value: Any) -> list[str]:
         """Validate that value is greater than threshold."""
@@ -58,7 +60,9 @@ class NotEmptyListRule(ValidationRule):
     def __init__(self, field_name: str, custom_message: str | None = None) -> None:
         """Initialize the rule."""
         self.field_name = field_name
-        self.custom_message = custom_message or f"{field_name} must have at least one item"
+        self.custom_message = (
+            custom_message or f"{field_name} must have at least one item"
+        )
 
     def validate(self, value: Any) -> list[str]:
         """Validate that list is not empty."""
@@ -81,13 +85,13 @@ class AbstractValidator(ABC, Generic[T]):
     def validate(self, obj: T) -> list[str]:
         """Validate an object and return list of error messages."""
         errors = []
-        
+
         for field_name, rules in self._rules.items():
             value = getattr(obj, field_name, None)
             for rule in rules:
                 field_errors = rule.validate(value)
                 errors.extend(field_errors)
-        
+
         return errors
 
     def add_rule(self, field_name: str, rule: ValidationRule) -> None:
@@ -111,7 +115,9 @@ class RuleBuilder:
         self.validator.add_rule(self.field_name, rule)
         return self
 
-    def greater_than(self, threshold: float, custom_message: str | None = None) -> "RuleBuilder":
+    def greater_than(
+        self, threshold: float, custom_message: str | None = None
+    ) -> "RuleBuilder":
         """Add a greater than rule."""
         rule = GreaterThanRule(self.field_name, threshold, custom_message)
         self.validator.add_rule(self.field_name, rule)

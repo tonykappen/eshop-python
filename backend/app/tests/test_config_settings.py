@@ -24,7 +24,7 @@ class TestSettings:
             assert settings.environment == "development"
 
             # Test server defaults
-            assert settings.host == "0.0.0.0"
+            assert settings.host == "0.0.0.0"  # nosec B104
             assert settings.port == 8000
 
             # Test security defaults

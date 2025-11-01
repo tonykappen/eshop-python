@@ -1,8 +1,9 @@
 """Test RabbitMQ messaging integration for catalog module."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
+
+import pytest
 
 from app.modules.catalog.infrastructure.event_publisher import (
     CatalogEventPublisher,
@@ -16,7 +17,9 @@ class TestCatalogEventPublisher:
     @pytest.fixture
     def event_publisher(self):
         """Create event publisher with mocked broker."""
-        with patch('app.modules.catalog.infrastructure.event_publisher.RabbitBroker') as mock_broker_class:
+        with patch(
+            "app.modules.catalog.infrastructure.event_publisher.RabbitBroker"
+        ) as mock_broker_class:
             mock_broker = AsyncMock()
             mock_broker_class.return_value = mock_broker
             publisher = CatalogEventPublisher()
@@ -39,7 +42,7 @@ class TestCatalogEventPublisher:
             product_name=product_name,
             price=price,
             category_id=category_id,
-            **additional_data
+            **additional_data,
         )
 
         # Assert
@@ -72,7 +75,7 @@ class TestCatalogEventPublisher:
             old_price=old_price,
             new_price=new_price,
             price_change_reason=price_change_reason,
-            **additional_data
+            **additional_data,
         )
 
         # Assert
@@ -103,7 +106,7 @@ class TestCatalogEventPublisher:
             old_quantity=old_quantity,
             new_quantity=new_quantity,
             warehouse_id=warehouse_id,
-            **additional_data
+            **additional_data,
         )
 
         # Assert
@@ -134,7 +137,7 @@ class TestCatalogEventPublisher:
             discontinuation_date=discontinuation_date,
             reason=reason,
             replacement_product_id=replacement_product_id,
-            **additional_data
+            **additional_data,
         )
 
         # Assert
@@ -190,7 +193,9 @@ class TestCatalogEventPublisherFactory:
         # Clear any existing instance
         CatalogEventPublisherFactory._instance = None
 
-        with patch('app.modules.catalog.infrastructure.event_publisher.CatalogEventPublisher') as mock_publisher_class:
+        with patch(
+            "app.modules.catalog.infrastructure.event_publisher.CatalogEventPublisher"
+        ) as mock_publisher_class:
             mock_publisher = AsyncMock()
             mock_publisher_class.return_value = mock_publisher
 
@@ -230,14 +235,16 @@ class TestIntegrationEventData:
 
     def test_product_created_event_structure(self):
         """Test ProductCreatedIntegrationEvent data structure."""
-        from app.modules.catalog.domain.integration_events import ProductCreatedIntegrationEvent
+        from app.modules.catalog.domain.integration_events import (
+            ProductCreatedIntegrationEvent,
+        )
 
         product_id = uuid4()
         event = ProductCreatedIntegrationEvent(
             product_id=product_id,
             product_name="Test Product",
             price=99.99,
-            category_id=uuid4()
+            category_id=uuid4(),
         )
 
         # Assert auto-generated fields
@@ -253,14 +260,16 @@ class TestIntegrationEventData:
 
     def test_product_price_changed_event_structure(self):
         """Test ProductPriceChangedIntegrationEvent data structure."""
-        from app.modules.catalog.domain.integration_events import ProductPriceChangedIntegrationEvent
+        from app.modules.catalog.domain.integration_events import (
+            ProductPriceChangedIntegrationEvent,
+        )
 
         product_id = uuid4()
         event = ProductPriceChangedIntegrationEvent(
             product_id=product_id,
             old_price=99.99,
             new_price=89.99,
-            price_change_reason="Sale"
+            price_change_reason="Sale",
         )
 
         # Assert auto-generated fields

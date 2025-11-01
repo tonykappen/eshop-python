@@ -4,8 +4,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID  # noqa: N811
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.modules.catalog.infrastructure.persistence.models.base import Base
@@ -13,6 +13,7 @@ from app.modules.catalog.infrastructure.persistence.models.base import Base
 
 class OutboxMessageStatus(str, Enum):
     """Status of outbox message."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     PUBLISHED = "published"
@@ -26,22 +27,28 @@ class OutboxORM(Base):
     __table_args__ = {"schema": "catalog"}
 
     # Primary key
-    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
-    
+    id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+
     # Event information
     event_type: Mapped[str] = mapped_column(String(255), nullable=False)
     event_data: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string
-    
+
     # Status and processing
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default=OutboxMessageStatus.PENDING)
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default=OutboxMessageStatus.PENDING
+    )
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    
+
     # Correlation
     correlation_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
@@ -60,8 +67,8 @@ class OutboxORM(Base):
             "max_retries": self.max_retries,
             "error_message": self.error_message,
             "created_at": self.created_at.isoformat(),
-            "processed_at": self.processed_at.isoformat() if self.processed_at else None,
+            "processed_at": (
+                self.processed_at.isoformat() if self.processed_at else None
+            ),
             "correlation_id": self.correlation_id,
         }
-
-

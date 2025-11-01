@@ -1,20 +1,18 @@
 """CreateProductHandler with 1-1 parity to .NET implementation."""
 
-import asyncio
-from typing import Any
-from uuid import UUID
+from decimal import Decimal
 
+from app.core.database.session import AsyncSessionLocal
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.domain.exceptions import (
     ProductCreationError,
     ProductValidationError,
 )
 from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
-from app.core.database.session import AsyncSessionLocal
-
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+    ProductRepositoryImpl as ProductRepository,
+)
 
 from .command import CreateProductCommand, CreateProductResult
 
@@ -25,29 +23,29 @@ class CreateProductCommandValidator:
     def validate(self, command: CreateProductCommand) -> list[str]:
         """
         Validate the create product command.
-        
+
         Args:
             command: The command to validate
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         if not command.name or not command.name.strip():
             errors.append("Name is required")
-            
+
         if not command.description or not command.description.strip():
             errors.append("Description is required")
-            
+
         if command.price <= 0:
             errors.append("Price must be greater than 0")
-            
+
         # picture_url is now optional, so no validation needed
-            
+
         if not command.category:
             errors.append("At least one category is required")
-            
+
         return errors
 
 
@@ -90,13 +88,12 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 repository = ProductRepository(session)
                 saved_product = await repository.add(product)
                 await session.commit()
-                
+
                 return CreateProductResult(id=saved_product.id)
             except Exception as e:
                 await session.rollback()
                 raise ProductCreationError(
-                    message="Failed to save product to database", 
-                    details=str(e)
+                    message="Failed to save product to database", details=str(e)
                 ) from e
 
     def _create_new_product(self, command: CreateProductCommand) -> Product:
@@ -125,15 +122,19 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
         try:
             from app.modules.catalog.domain.value_objects import Money
-            
+
             # Use default empty string if picture_url is not provided (optional field)
-            image_file = command.picture_url.strip() if command.picture_url and command.picture_url.strip() else ""
-            
+            image_file = (
+                command.picture_url.strip()
+                if command.picture_url and command.picture_url.strip()
+                else ""
+            )
+
             price_money = Money(
                 amount=Decimal(str(command.price)),
-                currency="USD"  # Default currency
+                currency="USD",  # Default currency
             )
-            
+
             product = Product.create(
                 product_id=uuid4(),
                 name=command.name,
@@ -146,4 +147,3 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             return product
         except Exception as e:
             raise ProductValidationError(f"Failed to create product: {str(e)}") from e
-

@@ -52,7 +52,9 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
         self.logger = BaseLogger(__name__)
 
     async def handle(
-        self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
+        self,
+        request: TRequest,
+        next_handler: Callable[[], Awaitable[TResponse]],  # noqa: ARG002
     ) -> TResponse:
         """Handle validation - matches .NET ValidationBehavior.Handle()."""
         # Temporarily disabled for debugging

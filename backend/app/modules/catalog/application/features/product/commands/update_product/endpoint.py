@@ -1,12 +1,14 @@
 """UpdateProduct endpoint - FastAPI endpoint for product updates."""
 
-from fastapi import APIRouter, Depends, Request
 from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, Request
+
+from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.catalog.utils import get_endpoint_factory
-from app.core.auth.rbac import require_command_access
+
 from .command import UpdateProductCommand, UpdateProductResult
 
 router = APIRouter()

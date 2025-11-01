@@ -1,3 +1,4 @@
+# isort: skip_file
 """Inventory item domain model."""
 
 from uuid import UUID
@@ -14,7 +15,9 @@ class InventoryItem(Aggregate):
     quantity: int = Field(..., description="Available quantity", ge=0)
     reserved_quantity: int = Field(default=0, description="Reserved quantity", ge=0)
     reorder_threshold: int = Field(default=10, description="Reorder threshold", ge=0)
-    max_stock_threshold: int = Field(default=1000, description="Max stock threshold", ge=0)
+    max_stock_threshold: int = Field(
+        default=1000, description="Max stock threshold", ge=0
+    )
 
     @field_validator("quantity")
     @classmethod
@@ -59,17 +62,17 @@ class InventoryItem(Aggregate):
     ) -> "InventoryItem":
         """
         Create a new inventory item.
-        
+
         Args:
             inventory_item_id: Unique identifier for the inventory item
             product_id: Product ID
             quantity: Initial quantity
             reorder_threshold: Reorder threshold
             max_stock_threshold: Max stock threshold
-            
+
         Returns:
             Created InventoryItem instance
-            
+
         Raises:
             ValueError: If any validation fails
         """
@@ -100,17 +103,17 @@ class InventoryItem(Aggregate):
     def adjust_stock(self, quantity: int) -> None:
         """
         Adjust stock quantity.
-        
+
         Args:
             quantity: Quantity to adjust (positive to add, negative to subtract)
-            
+
         Raises:
             ValueError: If adjustment would result in negative quantity
         """
         new_quantity = self.quantity + quantity
         if new_quantity < 0:
             raise ValueError("Cannot adjust stock below zero")
-        
+
         old_quantity = self.quantity
         self.quantity = new_quantity
         self.increment_version()
@@ -119,6 +122,7 @@ class InventoryItem(Aggregate):
         from app.modules.catalog.domain.inventory.domain_events.stock_adjusted_domain_event import (
             StockAdjustedDomainEvent,
         )
+
         self.add_domain_event(
             StockAdjustedDomainEvent(
                 inventory_item=self,
@@ -131,19 +135,19 @@ class InventoryItem(Aggregate):
     def reserve_stock(self, quantity: int) -> None:
         """
         Reserve stock quantity.
-        
+
         Args:
             quantity: Quantity to reserve
-            
+
         Raises:
             ValueError: If not enough available stock
         """
         if quantity <= 0:
             raise ValueError("Reservation quantity must be positive")
-        
+
         if self.available_quantity < quantity:
             raise ValueError("Not enough available stock to reserve")
-        
+
         self.reserved_quantity += quantity
         self.increment_version()
 
@@ -151,6 +155,7 @@ class InventoryItem(Aggregate):
         from app.modules.catalog.domain.inventory.domain_events.stock_reserved_domain_event import (
             StockReservedDomainEvent,
         )
+
         self.add_domain_event(
             StockReservedDomainEvent(
                 inventory_item=self,
@@ -161,40 +166,38 @@ class InventoryItem(Aggregate):
     def release_reservation(self, quantity: int) -> None:
         """
         Release reserved stock quantity.
-        
+
         Args:
             quantity: Quantity to release from reservation
-            
+
         Raises:
             ValueError: If not enough reserved stock
         """
         if quantity <= 0:
             raise ValueError("Release quantity must be positive")
-        
+
         if self.reserved_quantity < quantity:
             raise ValueError("Not enough reserved stock to release")
-        
+
         self.reserved_quantity -= quantity
         self.increment_version()
 
     def consume_reserved_stock(self, quantity: int) -> None:
         """
         Consume reserved stock (remove from both reserved and total).
-        
+
         Args:
             quantity: Quantity to consume
-            
+
         Raises:
             ValueError: If not enough reserved stock
         """
         if quantity <= 0:
             raise ValueError("Consumption quantity must be positive")
-        
+
         if self.reserved_quantity < quantity:
             raise ValueError("Not enough reserved stock to consume")
-        
+
         self.reserved_quantity -= quantity
         self.quantity -= quantity
         self.increment_version()
-
-

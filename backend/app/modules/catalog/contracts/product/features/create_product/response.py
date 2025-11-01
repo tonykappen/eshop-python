@@ -17,6 +17,7 @@ class CreateProductResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "success": True,
@@ -33,9 +34,7 @@ class CreateProductResponse(BaseModel):
                     "currency": "USD",
                     "version": 1,
                     "created_at": "2024-01-15T10:30:00Z",
-                    "updated_at": "2024-01-15T10:30:00Z"
-                }
+                    "updated_at": "2024-01-15T10:30:00Z",
+                },
             }
         }
-
-

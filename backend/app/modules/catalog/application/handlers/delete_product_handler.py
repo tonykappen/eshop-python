@@ -1,21 +1,27 @@
 """DeleteProductHandler with 1-1 parity to .NET implementation."""
 
-import asyncio
-from typing import Any
 from uuid import UUID
+
 from pydantic import BaseModel
 
+from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.exceptions import (
-    ProductNotFoundError,
     ProductDeleteError,
+    ProductNotFoundError,
 )
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
-from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
-from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
-from app.core.database.session import AsyncSessionLocal
-from app.core.logging.base_logger import BaseLogger
+from app.modules.catalog.infrastructure.cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.event_publisher import (
+    CatalogEventPublisherFactory,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+    ProductRepositoryImpl as ProductRepository,
+)
 
 logger = BaseLogger(__name__)
 
@@ -41,18 +47,18 @@ class DeleteProductCommandValidator:
     def validate(self, command: DeleteProductCommand) -> list[str]:
         """
         Validate the delete product command.
-        
+
         Args:
             command: The command to validate
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         if not command.product_id:
             errors.append("Product Id is required")
-            
+
         return errors
 
 
@@ -86,6 +92,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         errors = validator.validate(command)
         if errors:
             from app.modules.catalog.domain.exceptions import ProductValidationError
+
             raise ProductValidationError(
                 f"Command validation failed: {', '.join(errors)}"
             )
@@ -96,7 +103,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         # Use real database repository
         async with AsyncSessionLocal() as session:
             repository = ProductRepository(session)
-            
+
             # Check if product exists and get product details for event
             product = await repository.get_by_id(command.product_id)
             if not product:
@@ -107,7 +114,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 success = await repository.delete(
                     command.product_id,
                     deleted_by=command.deleted_by,
-                    deletion_reason=command.deletion_reason
+                    deletion_reason=command.deletion_reason,
                 )
                 await session.commit()
 
@@ -118,13 +125,13 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
 
                 # Invalidate cache for this product
                 await self.cache_service.invalidate_product(command.product_id)
-                
+
                 # Publish product deleted event
                 await self._publish_product_deleted_event(product)
-                
+
                 # Also publish discontinued event (for backward compatibility/analytics)
                 await self._publish_product_discontinued_event(product)
-                
+
                 # Invalidate products list cache
                 await self.cache_service.invalidate_products_list()
 
@@ -139,16 +146,16 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
             except Exception as e:
                 await session.rollback()
                 raise ProductDeleteError(
-                    message="Failed to delete product from database", 
-                    details=str(e)
+                    message="Failed to delete product from database", details=str(e)
                 ) from e
 
     async def _publish_product_deleted_event(self, product) -> None:
         """Publish product deleted integration event."""
         try:
             from datetime import datetime
+
             deleted_at = datetime.now().isoformat()
-            
+
             await self.event_publisher.publish_product_deleted(
                 product_id=product.id,
                 product_name=product.name,
@@ -157,9 +164,9 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 additional_data={
                     "price": float(product.price.amount) if product.price else 0.0,
                     "categories": product.category,
-                }
+                },
             )
-            
+
             logger.log_debug_with_context(
                 f"Published ProductDeleted event for {product.id}",
                 product_id=str(product.id),
@@ -176,6 +183,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         """Publish product discontinued integration event (for backward compatibility)."""
         try:
             from datetime import datetime
+
             await self.event_publisher.publish_product_discontinued(
                 product_id=product.id,
                 discontinuation_date=datetime.now().isoformat(),
@@ -183,9 +191,9 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 additional_data={
                     "product_name": product.name,
                     "deleted_at": datetime.now().isoformat(),
-                }
+                },
             )
-            
+
             logger.log_debug_with_context(
                 f"Published ProductDiscontinued event for {product.id}",
                 product_id=str(product.id),
@@ -197,4 +205,3 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 error=e,
                 product_id=str(product.id),
             )
-

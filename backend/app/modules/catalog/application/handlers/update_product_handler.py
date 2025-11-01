@@ -1,10 +1,11 @@
 """UpdateProductHandler with 1-1 parity to .NET implementation."""
 
-import asyncio
-from typing import Any
 from uuid import UUID
+
 from pydantic import BaseModel
 
+from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.exceptions import (
@@ -13,11 +14,16 @@ from app.modules.catalog.domain.exceptions import (
     ProductValidationError,
 )
 from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
-from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
-from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
-from app.core.database.session import AsyncSessionLocal
-from app.core.logging.base_logger import BaseLogger
+from app.modules.catalog.infrastructure.cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.event_publisher import (
+    CatalogEventPublisherFactory,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+    ProductRepositoryImpl as ProductRepository,
+)
 
 logger = BaseLogger(__name__)
 
@@ -46,32 +52,32 @@ class UpdateProductCommandValidator:
     def validate(self, command: UpdateProductCommand) -> list[str]:
         """
         Validate the update product command.
-        
+
         Args:
             command: The command to validate
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         if not command.id:
             errors.append("Id is required")
-            
+
         if not command.name or not command.name.strip():
             errors.append("Name is required")
-            
+
         if command.price <= 0:
             errors.append("Price must be greater than 0")
-            
+
         if not command.description or not command.description.strip():
             errors.append("Description is required")
-            
+
         # picture_url is now optional, so no validation needed
-            
+
         if not command.category:
             errors.append("At least one category is required")
-            
+
         return errors
 
 
@@ -114,7 +120,7 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
         # Use real database repository
         async with AsyncSessionLocal() as session:
             repository = ProductRepository(session)
-            
+
             # Find the product
             product = await repository.get_by_id(command.id)
             if product is None:
@@ -123,7 +129,7 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             try:
                 # Store old price for event publishing
                 old_price = float(product.price.amount) if product.price else 0.0
-                
+
                 # Update product with new values
                 self._update_product_with_new_values(product, command)
 
@@ -133,14 +139,16 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
 
                 # Invalidate cache for this product
                 await self.cache_service.invalidate_product(command.id)
-                
+
                 # Publish product updated event
                 await self._publish_product_updated_event(product)
-                
+
                 # Publish price changed event if price changed (separate event for price tracking)
                 new_price = float(product.price.amount) if product.price else 0.0
                 if old_price != new_price:
-                    await self._publish_price_changed_event(command.id, old_price, new_price)
+                    await self._publish_price_changed_event(
+                        command.id, old_price, new_price
+                    )
 
                 # Invalidate products list cache
                 await self.cache_service.invalidate_products_list()
@@ -156,38 +164,38 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             except Exception as e:
                 await session.rollback()
                 raise ProductUpdateError(
-                    message="Failed to update product in database",
-                    details=str(e)
+                    message="Failed to update product in database", details=str(e)
                 ) from e
 
-
-    def _update_product_with_new_values(self, product: Product, command: UpdateProductCommand) -> None:
+    def _update_product_with_new_values(
+        self, product: Product, command: UpdateProductCommand
+    ) -> None:
         """
         Update product with new values - matches .NET UpdateProductWithNewValues method.
-        
+
         Args:
             product: Product entity to update
             command: Update command with new values
         """
         try:
-            from app.modules.catalog.domain.value_objects import Money
             from decimal import Decimal
-            
+
+            from app.modules.catalog.domain.value_objects import Money
+
             # Convert float price to Money value object
             # Use existing currency from product or default to USD
             currency = product.price.currency if product.price else "USD"
-            price_money = Money(
-                amount=Decimal(str(command.price)),
-                currency=currency
-            )
-            
+            price_money = Money(amount=Decimal(str(command.price)), currency=currency)
+
             # Use provided picture_url if it exists, otherwise keep existing image_file
             # Handle empty string as valid (optional field)
             if command.picture_url is not None:
-                image_file = command.picture_url.strip() if command.picture_url.strip() else ""
+                image_file = (
+                    command.picture_url.strip() if command.picture_url.strip() else ""
+                )
             else:
                 image_file = product.image_file or ""
-            
+
             product.update(
                 name=command.name,
                 category=command.category,
@@ -210,9 +218,9 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 image_file=product.image_file,
                 additional_data={
                     "updated_at": "now",  # TODO: Add proper timestamp
-                }
+                },
             )
-            
+
             logger.log_debug_with_context(
                 f"Published ProductUpdated event for {product.id}",
                 product_id=str(product.id),
@@ -225,7 +233,9 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 product_id=str(product.id),
             )
 
-    async def _publish_price_changed_event(self, product_id: UUID, old_price: float, new_price: float) -> None:
+    async def _publish_price_changed_event(
+        self, product_id: UUID, old_price: float, new_price: float
+    ) -> None:
         """Publish product price changed integration event."""
         try:
             await self.event_publisher.publish_product_price_changed(
@@ -235,9 +245,9 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 price_change_reason="Product update",
                 additional_data={
                     "updated_at": "now",  # TODO: Add proper timestamp
-                }
+                },
             )
-            
+
             logger.log_debug_with_context(
                 f"Published ProductPriceChanged event for {product_id}",
                 product_id=str(product_id),
@@ -250,4 +260,3 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 error=e,
                 product_id=str(product_id),
             )
-

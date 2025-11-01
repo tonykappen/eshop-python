@@ -46,7 +46,9 @@ class DataSeederManager:
                     await seeder.seed_all_async()
                     self.logger.info(f"[OK] Seeder {seeder_class.__name__} completed")
                 except Exception as e:
-                    self.logger.error(f"[FAILED] Seeder {seeder_class.__name__} failed: {e}")
+                    self.logger.error(
+                        f"[FAILED] Seeder {seeder_class.__name__} failed: {e}"
+                    )
                     raise
 
         self.logger.info("[OK] All data seeders completed successfully")
@@ -68,10 +70,23 @@ async def run_seeding() -> None:
 
 async def check_if_data_exists(table_name: str, schema: str = "public") -> bool:
     """Check if data exists in a table - used by seeders to avoid duplicate seeding."""
+    # Validate table and schema names to prevent SQL injection
+    # Only allow alphanumeric, underscore, and dash characters
+    import re
+
+    if not re.match(r"^[a-zA-Z0-9_-]+$", table_name):
+        raise ValueError(f"Invalid table name: {table_name}")
+    if not re.match(r"^[a-zA-Z0-9_-]+$", schema):
+        raise ValueError(f"Invalid schema name: {schema}")
+
     async with AsyncSessionLocal() as session:
         try:
+            # Use SQLAlchemy's identifier quoting for safety
+            from sqlalchemy import text
+
+            # Table and schema names are validated, so safe to use
             result = await session.execute(
-                text(f"SELECT COUNT(*) FROM {schema}.{table_name}")
+                text(f'SELECT COUNT(*) FROM "{schema}"."{table_name}"')  # nosec B608
             )
             count = result.scalar()
             return count is not None and count > 0

@@ -1,9 +1,11 @@
 """CreateProductHandler with 1-1 parity to .NET implementation."""
 
-import asyncio
-from typing import Any
 from uuid import UUID
 
+from pydantic import BaseModel, Field
+
+from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.contracts.product.dtos import ProductDto
@@ -12,14 +14,16 @@ from app.modules.catalog.domain.exceptions import (
     ProductValidationError,
 )
 from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
-from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
-from app.modules.catalog.infrastructure.event_publisher import CatalogEventPublisherFactory
-from app.core.database.session import AsyncSessionLocal
-from app.core.logging.base_logger import BaseLogger
-
-from pydantic import BaseModel, Field
-from decimal import Decimal
+from app.modules.catalog.infrastructure.cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.event_publisher import (
+    CatalogEventPublisherFactory,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+    ProductRepositoryImpl as ProductRepository,
+)
 
 logger = BaseLogger(__name__)
 
@@ -30,7 +34,9 @@ class CreateProductCommand(BaseModel):
     name: str = Field(..., description="Product name")
     description: str = Field(..., description="Product description")
     price: float = Field(..., gt=0, description="Product price")
-    picture_url: str | None = Field(default=None, description="Product picture URL (optional)")
+    picture_url: str | None = Field(
+        default=None, description="Product picture URL (optional)"
+    )
     category: list[str] = Field(..., description="Product categories")
 
 
@@ -46,29 +52,29 @@ class CreateProductCommandValidator:
     def validate(self, command: CreateProductCommand) -> list[str]:
         """
         Validate the create product command.
-        
+
         Args:
             command: The command to validate
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         if not command.name or not command.name.strip():
             errors.append("Name is required")
-            
+
         if not command.description or not command.description.strip():
             errors.append("Description is required")
-            
+
         if command.price <= 0:
             errors.append("Price must be greater than 0")
-            
+
         # picture_url is now optional, so no validation needed
-            
+
         if not command.category:
             errors.append("At least one category is required")
-            
+
         return errors
 
 
@@ -112,29 +118,28 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 repository = ProductRepository(session)
                 saved_product = await repository.add(product)
                 await session.commit()
-                
+
                 # Cache the created product
                 await self._cache_product(saved_product)
-                
+
                 # Publish integration event
                 await self._publish_product_created_event(saved_product)
-                
+
                 # Invalidate products list cache
                 await self.cache_service.invalidate_products_list()
-                
+
                 logger.log_with_context(
                     f"Product created successfully: {saved_product.name}",
                     "info",
                     product_id=str(saved_product.id),
                     product_name=saved_product.name,
                 )
-                
+
                 return CreateProductResult(id=saved_product.id)
             except Exception as e:
                 await session.rollback()
                 raise ProductCreationError(
-                    message="Failed to save product to database", 
-                    details=str(e)
+                    message="Failed to save product to database", details=str(e)
                 ) from e
 
     def _create_new_product(self, command: CreateProductCommand) -> Product:
@@ -162,17 +167,22 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             )
 
         try:
-            from app.modules.catalog.domain.value_objects import Money
             from decimal import Decimal
-            
+
+            from app.modules.catalog.domain.value_objects import Money
+
             price_money = Money(
                 amount=Decimal(str(command.price)),
-                currency="USD"  # Default currency
+                currency="USD",  # Default currency
             )
-            
+
             # Use default empty string if picture_url is not provided (optional field)
-            image_file = command.picture_url.strip() if command.picture_url and command.picture_url.strip() else ""
-            
+            image_file = (
+                command.picture_url.strip()
+                if command.picture_url and command.picture_url.strip()
+                else ""
+            )
+
             product = Product.create(
                 product_id=uuid4(),
                 name=command.name,
@@ -193,9 +203,13 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             sku_str = str(product.sku) if product.sku else ""
             price_float = float(product.price.amount) if product.price else 0.0
             currency_str = product.price.currency if product.price else "USD"
-            created_at_str = product.created_at.isoformat() if product.created_at else ""
-            updated_at_str = product.last_modified.isoformat() if product.last_modified else ""
-            
+            created_at_str = (
+                product.created_at.isoformat() if product.created_at else ""
+            )
+            updated_at_str = (
+                product.last_modified.isoformat() if product.last_modified else ""
+            )
+
             product_dto = ProductDto(
                 id=product.id,
                 name=product.name,
@@ -209,14 +223,14 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 created_at=created_at_str,
                 updated_at=updated_at_str,
             )
-            
+
             # Cache the product
             await self.cache_service.set_product(
                 product.id,
                 product_dto.model_dump(),
-                ttl=3600  # 1 hour TTL
+                ttl=3600,  # 1 hour TTL
             )
-            
+
             logger.log_debug_with_context(
                 f"Cached product {product.id}",
                 product_id=str(product.id),
@@ -240,9 +254,9 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                     "description": product.description,
                     "picture_url": product.image_file,
                     "categories": product.category,
-                }
+                },
             )
-            
+
             logger.log_debug_with_context(
                 f"Published ProductCreated event for {product.id}",
                 product_id=str(product.id),
@@ -253,4 +267,3 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 error=e,
                 product_id=str(product.id),
             )
-

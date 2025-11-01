@@ -1,5 +1,6 @@
 """Product endpoints demonstrating enhanced REPR pattern with CQRS and RBAC."""
 
+import contextlib
 from typing import Any
 from uuid import UUID
 
@@ -21,21 +22,21 @@ from app.core.repr.base import (
     PaginatedRequest,
     PaginatedResponse,
 )
-from app.modules.catalog.domain.exceptions import ProductNotFoundError
-from app.modules.catalog.application.handlers.get_products_handler import (
-    GetProductsQuery,
-)
-from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
-from app.modules.catalog.application.handlers.update_product_handler import (
-    UpdateProductCommand,
-)
 from app.modules.catalog.application.handlers.delete_product_handler import (
     DeleteProductCommand,
 )
+from app.modules.catalog.application.handlers.get_products_handler import (
+    GetProductsQuery,
+)
+from app.modules.catalog.application.handlers.update_product_handler import (
+    UpdateProductCommand,
+)
+from app.modules.catalog.contracts.product.dtos import ProductDto
+from app.modules.catalog.domain.exceptions import ProductNotFoundError
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -50,21 +51,41 @@ class GetProductRequest(BaseRequest):
 class CreateProductRequest(BaseRequest):
     """HTTP request for creating a new product."""
 
-    name: str = Field(..., description="Product name")
-    description: str = Field(..., description="Product description")
-    price: float = Field(..., gt=0, description="Product price")
-    picture_url: str | None = Field(default=None, description="Product picture URL (optional)")
-    category: list[str] = Field(..., description="Product categories")
+    name: str = Field(
+        ..., min_length=1, max_length=200, description="Product name"
+    )
+    description: str = Field(
+        ..., min_length=1, max_length=5000, description="Product description"
+    )
+    price: float = Field(..., gt=0, description="Product price (must be > 0)")
+    picture_url: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Product picture URL (optional)",
+    )
+    category: list[str] = Field(
+        ..., min_length=1, description="Product categories (at least one required)"
+    )
 
 
 class UpdateProductRequest(BaseRequest):
     """HTTP request for updating an existing product."""
 
-    name: str = Field(..., description="Product name")
-    description: str = Field(..., description="Product description")
-    price: float = Field(..., gt=0, description="Product price")
-    picture_url: str | None = Field(default=None, description="Product picture URL (optional)")
-    category: list[str] = Field(..., description="Product categories")
+    name: str = Field(
+        ..., min_length=1, max_length=200, description="Product name"
+    )
+    description: str = Field(
+        ..., min_length=1, max_length=5000, description="Product description"
+    )
+    price: float = Field(..., gt=0, description="Product price (must be > 0)")
+    picture_url: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Product picture URL (optional)",
+    )
+    category: list[str] = Field(
+        ..., min_length=1, description="Product categories (at least one required)"
+    )
 
 
 class DeleteProductRequest(BaseRequest):
@@ -166,8 +187,12 @@ async def get_product_by_id(
     # Create custom result mapper to extract product from GetProductByIdResult
     class GetProductByIdResultMapper:
         """Custom mapper to extract product from GetProductByIdResult."""
-        
-        async def map_to_response(self, result: GetProductByIdResult, original_request: Request) -> ProductResponse:
+
+        async def map_to_response(
+            self,
+            result: GetProductByIdResult,
+            original_request: Request,  # noqa: ARG002
+        ) -> ProductResponse:
             """Map GetProductByIdResult to ProductResponse."""
             if result.product is None:
                 raise ProductNotFoundError(product_id)
@@ -325,18 +350,17 @@ async def delete_product(
     RBAC: Requires command access (admin, manager roles only)
     """
     # Extract user information from request for audit trail
-    user_id = None
     user = getattr(http_request.state, "user", None)
     if user and hasattr(user, "sub"):
         try:
-            user_id = UUID(user.sub)
-        except (ValueError, AttributeError):
+            UUID(user.sub)
+        except (ValueError, AttributeError):  # noqa: SIM105
             pass  # Keep as None if user.sub is not a valid UUID
-    
+
     # Create custom mapper that includes user context
     class DeleteProductCommandMapper:
         """Custom mapper that adds user context to delete command."""
-        
+
         async def map_to_command_or_query(
             self, request: DeleteProductRequest, http_request: Request
         ) -> DeleteProductCommand:
@@ -344,23 +368,21 @@ async def delete_product(
             user_id = None
             user = getattr(http_request.state, "user", None)
             if user and hasattr(user, "sub"):
-                try:
+                with contextlib.suppress(ValueError, AttributeError):
                     user_id = UUID(user.sub)
-                except (ValueError, AttributeError):
-                    pass
-            
+
             return DeleteProductCommand(
                 product_id=request.product_id,
                 deleted_by=user_id,
-                deletion_reason=None  # Can be extended to accept from request body
+                deletion_reason=None,  # Can be extended to accept from request body
             )
-    
+
     # Create command endpoint using factory with custom mapper
     endpoint: Any = factory.create_command_endpoint(
         command_factory=DeleteProductCommand,
         result_mapper=None,  # Will use default response mapper
     )
-    
+
     # Override the request mapper with our custom one
     endpoint.request_mapper = DeleteProductCommandMapper()
 
@@ -378,32 +400,35 @@ async def delete_product(
 # Admin endpoints for managing deleted products
 @router.get("/admin/deleted", response_model=ProductsResponse)
 async def get_deleted_products(
-    http_request: Request,
+    http_request: Request,  # noqa: ARG001
     page: int = 1,
     page_size: int = 10,
-    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),  # noqa: ARG001
     # RBAC: Admin only access
     _: Any = Depends(require_command_access()),
 ) -> ProductsResponse:
     """
     Get deleted products (admin only).
-    
+
     RBAC: Requires command access (admin only)
     """
     # Use direct repository access for admin operations
     from app.core.database.session import AsyncSessionLocal
-    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
-    
+    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+        ProductRepositoryImpl,
+    )
+
     async with AsyncSessionLocal() as session:
         repository = ProductRepositoryImpl(session)
         products, total_count = await repository.get_deleted_products(page, page_size)
-        
+
         # Convert to DTOs
         from app.modules.catalog.application.mappers.product_mapper import ProductMapper
+
         product_dtos = [ProductMapper.to_dto(product) for product in products]
-        
+
         total_pages = (total_count + page_size - 1) // page_size
-        
+
         return ProductsResponse(
             data=product_dtos,
             page=page,
@@ -416,46 +441,50 @@ async def get_deleted_products(
 @router.post("/admin/restore/{product_id}", response_model=DeleteProductResponse)
 async def restore_product(
     product_id: UUID,
-    http_request: Request,
-    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
+    http_request: Request,  # noqa: ARG001
+    factory: CQRSEndpointFactory = Depends(get_endpoint_factory),  # noqa: ARG001
     # RBAC: Admin only access
     _: Any = Depends(require_command_access()),
 ) -> DeleteProductResponse:
     """
     Restore a deleted product (admin only).
-    
+
     RBAC: Requires command access (admin only)
     """
     # Extract user information from request
     user_id = None
     user = getattr(http_request.state, "user", None)
     if user and hasattr(user, "sub"):
-        try:
+        with contextlib.suppress(ValueError, AttributeError):
             user_id = UUID(user.sub)
-        except (ValueError, AttributeError):
-            pass
-    
+
     # Use direct repository access for admin operations
     from app.core.database.session import AsyncSessionLocal
-    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
     from app.modules.catalog.domain.exceptions import ProductNotFoundError
-    
+    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+        ProductRepositoryImpl,
+    )
+
     async with AsyncSessionLocal() as session:
         repository = ProductRepositoryImpl(session)
-        
+
         # Check if product exists and is deleted
         deleted_product = await repository.get_deleted_by_id(product_id)
         if not deleted_product:
             raise ProductNotFoundError(product_id)
-        
+
         success = await repository.restore_product(product_id, restored_by=user_id)
         await session.commit()
-        
+
         if success:
             # Invalidate cache
-            from app.modules.catalog.infrastructure.cache_service import CatalogCacheService, RedisCacheService
+            from app.modules.catalog.infrastructure.cache_service import (
+                CatalogCacheService,
+                RedisCacheService,
+            )
+
             cache_service = CatalogCacheService(RedisCacheService())
             await cache_service.invalidate_product(product_id)
             await cache_service.invalidate_products_list()
-        
+
         return DeleteProductResponse(success=success)

@@ -2,11 +2,15 @@
 
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
 from app.core.mediator.cancellation import CancellationToken
+from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
+    GetProductByIdQuery,
+    GetProductByIdResult,
+)
 from app.modules.catalog.application.handlers.create_product_handler import (
     CreateProductCommand,
     CreateProductHandler,
@@ -29,10 +33,6 @@ from app.modules.catalog.application.handlers.update_product_handler import (
     UpdateProductResult,
 )
 from app.modules.catalog.contracts.product.dtos import ProductDto
-from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
-    GetProductByIdQuery,
-    GetProductByIdResult,
-)
 from app.modules.catalog.domain.exceptions import (
     ProductCreationError,
     ProductDeleteError,
@@ -40,7 +40,9 @@ from app.modules.catalog.domain.exceptions import (
     ProductUpdateError,
     ProductValidationError,
 )
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
+    ProductRepositoryImpl as ProductRepository,
+)
 
 
 class TestCreateProductHandler:
@@ -60,7 +62,7 @@ class TestCreateProductHandler:
             description="A test product description",
             price=Decimal("99.99"),
             picture_url="https://example.com/image.jpg",
-            category=["Electronics", "Gadgets"]
+            category=["Electronics", "Gadgets"],
         )
 
     @pytest.fixture
@@ -88,23 +90,30 @@ class TestCreateProductHandler:
         return session
 
     @pytest.mark.asyncio
-    async def test_handle_success(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_success(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test successful product creation."""
-        with patch('app.modules.catalog.application.handlers.create_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.create_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
+
             # Mock repository creation
-            with patch('app.modules.catalog.application.handlers.create_product_handler.ProductRepository') as mock_repo_class:
+            with patch(
+                "app.modules.catalog.application.handlers.create_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 from app.modules.catalog.domain.product.models.product import Product
+
                 created_product = Product(
                     id=uuid4(),
                     name=sample_command.name,
                     description=sample_command.description,
                     price=Decimal(str(sample_command.price)),
                     image_file=sample_command.picture_url,
-                    category=sample_command.category
+                    category=sample_command.category,
                 )
                 mock_repository.add.return_value = created_product
 
@@ -116,13 +125,19 @@ class TestCreateProductHandler:
                 mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_database_error(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_database_error(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test product creation with database error."""
-        with patch('app.modules.catalog.application.handlers.create_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.create_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.create_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.create_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.add.side_effect = Exception("Database error")
 
@@ -133,7 +148,9 @@ class TestCreateProductHandler:
                 mock_session.rollback.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_validation_error(self, handler, mock_repository, mock_session):
+    async def test_handle_validation_error(
+        self, handler, mock_repository, mock_session  # noqa: ARG002
+    ):
         """Test product creation with validation error."""
         # Create invalid command with empty name
         invalid_command = CreateProductCommand(
@@ -168,7 +185,7 @@ class TestGetProductByIdHandler:
             description="A test product description",
             price=Decimal("99.99"),
             picture_url="https://example.com/image.jpg",
-            category=["Electronics", "Gadgets"]
+            category=["Electronics", "Gadgets"],
         )
 
     @pytest.fixture
@@ -188,15 +205,21 @@ class TestGetProductByIdHandler:
         return session
 
     @pytest.mark.asyncio
-    async def test_handle_success(self, handler, sample_query, sample_product_dto, mock_repository, mock_session):
+    async def test_handle_success(
+        self, handler, sample_query, sample_product_dto, mock_repository, mock_session
+    ):
         """Test successful product retrieval."""
-        with patch('app.modules.catalog.application.handlers.get_product_by_id_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.get_product_by_id_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.get_product_by_id_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.get_product_by_id_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
-                
+
                 # Mock the product entity
                 mock_product = MagicMock()
                 mock_product.id = sample_product_dto.id
@@ -205,7 +228,7 @@ class TestGetProductByIdHandler:
                 mock_product.price = sample_product_dto.price
                 mock_product.image_file = sample_product_dto.picture_url
                 mock_product.category = sample_product_dto.category
-                
+
                 mock_repository.get_by_id.return_value = mock_product
 
                 result = await handler.handle(sample_query, CancellationToken())
@@ -216,13 +239,19 @@ class TestGetProductByIdHandler:
                 assert result.product.name == sample_product_dto.name
 
     @pytest.mark.asyncio
-    async def test_handle_product_not_found(self, handler, sample_query, mock_repository, mock_session):
+    async def test_handle_product_not_found(
+        self, handler, sample_query, mock_repository, mock_session
+    ):
         """Test product retrieval when product not found."""
-        with patch('app.modules.catalog.application.handlers.get_product_by_id_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.get_product_by_id_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.get_product_by_id_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.get_product_by_id_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.get_by_id.return_value = None
 
@@ -266,15 +295,21 @@ class TestUpdateProductHandler:
         return session
 
     @pytest.mark.asyncio
-    async def test_handle_success(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_success(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test successful product update."""
-        with patch('app.modules.catalog.application.handlers.update_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.update_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.update_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.update_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
-                
+
                 # Mock existing product
                 mock_product = MagicMock()
                 mock_product.id = sample_command.id
@@ -283,7 +318,7 @@ class TestUpdateProductHandler:
                 mock_product.price = Decimal("99.99")
                 mock_product.image_file = "original.jpg"
                 mock_product.category = ["Original"]
-                
+
                 mock_repository.get_by_id.return_value = mock_product
 
                 result = await handler.handle(sample_command, CancellationToken())
@@ -294,13 +329,19 @@ class TestUpdateProductHandler:
                 mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_product_not_found(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_product_not_found(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test product update when product not found."""
-        with patch('app.modules.catalog.application.handlers.update_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.update_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.update_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.update_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.get_by_id.return_value = None
 
@@ -310,15 +351,21 @@ class TestUpdateProductHandler:
                 assert str(sample_command.id) in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_handle_database_error(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_database_error(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test product update with database error."""
-        with patch('app.modules.catalog.application.handlers.update_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.update_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.update_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.update_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
-                
+
                 # Mock existing product
                 mock_product = MagicMock()
                 mock_repository.get_by_id.return_value = mock_product
@@ -358,13 +405,19 @@ class TestDeleteProductHandler:
         return session
 
     @pytest.mark.asyncio
-    async def test_handle_success(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_success(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test successful product deletion."""
-        with patch('app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.delete_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.delete_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.exists.return_value = True
                 mock_repository.delete.return_value = True
@@ -373,17 +426,25 @@ class TestDeleteProductHandler:
 
                 assert isinstance(result, DeleteProductResult)
                 assert result.is_success is True
-                mock_repository.delete.assert_called_once_with(sample_command.product_id)
+                mock_repository.delete.assert_called_once_with(
+                    sample_command.product_id
+                )
                 mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_product_not_found(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_product_not_found(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test product deletion when product not found."""
-        with patch('app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.delete_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.delete_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.exists.return_value = False
 
@@ -393,13 +454,19 @@ class TestDeleteProductHandler:
                 assert str(sample_command.product_id) in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_handle_delete_failure(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_delete_failure(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test product deletion when delete operation fails."""
-        with patch('app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.delete_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.delete_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.exists.return_value = True
                 mock_repository.delete.return_value = False
@@ -410,13 +477,19 @@ class TestDeleteProductHandler:
                 assert "Failed to delete product from database" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_handle_database_error(self, handler, sample_command, mock_repository, mock_session):
+    async def test_handle_database_error(
+        self, handler, sample_command, mock_repository, mock_session
+    ):
         """Test product deletion with database error."""
-        with patch('app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal') as mock_session_local:
+        with patch(
+            "app.modules.catalog.application.handlers.delete_product_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.delete_product_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.delete_product_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
                 mock_repository.exists.return_value = True
                 mock_repository.delete.side_effect = Exception("Database error")
@@ -440,7 +513,7 @@ class TestGetProductsHandler:
     def sample_products(self):
         """Sample products for testing."""
         from app.modules.catalog.domain.product.models.product import Product
-        
+
         return [
             Product(
                 id=uuid4(),
@@ -448,7 +521,7 @@ class TestGetProductsHandler:
                 description="Description 1",
                 price=Decimal("99.99"),
                 image_file="image1.jpg",
-                category=["Electronics"]
+                category=["Electronics"],
             ),
             Product(
                 id=uuid4(),
@@ -456,8 +529,8 @@ class TestGetProductsHandler:
                 description="Description 2",
                 price=Decimal("149.99"),
                 image_file="image2.jpg",
-                category=["Gadgets"]
-            )
+                category=["Gadgets"],
+            ),
         ]
 
     @pytest.fixture
@@ -472,20 +545,27 @@ class TestGetProductsHandler:
         return session
 
     @pytest.mark.asyncio
-    async def test_handle_success(self, handler, sample_products, mock_repository, mock_session):
+    async def test_handle_success(
+        self, handler, sample_products, mock_repository, mock_session
+    ):
         """Test successful products retrieval."""
-        from app.modules.catalog.application.handlers.get_products_handler import GetProductsQuery
-        from app.core.pagination.models import PaginatedResult
+        from app.modules.catalog.application.handlers.get_products_handler import (
+            GetProductsQuery,
+        )
 
         query = GetProductsQuery(page=1, page_size=10)
-        
-        with patch('app.modules.catalog.application.handlers.get_products_handler.AsyncSessionLocal') as mock_session_local:
+
+        with patch(
+            "app.modules.catalog.application.handlers.get_products_handler.AsyncSessionLocal"
+        ) as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
-            
-            with patch('app.modules.catalog.application.handlers.get_products_handler.ProductRepository') as mock_repo_class:
+
+            with patch(
+                "app.modules.catalog.application.handlers.get_products_handler.ProductRepository"
+            ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
-                
+
                 # Mock repository methods
                 mock_repository.get_all.return_value = (sample_products, 2)
 

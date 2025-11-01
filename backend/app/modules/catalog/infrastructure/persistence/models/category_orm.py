@@ -3,8 +3,8 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, Boolean
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID  # noqa: N811
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.modules.catalog.infrastructure.persistence.models.base import Base
@@ -17,23 +17,35 @@ class CategoryORM(Base):
     __table_args__ = {"schema": "catalog"}
 
     # Primary key
-    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
-    
+    id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+
     # Category information
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    parent_id: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
-    
+    parent_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), nullable=True
+    )
+
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    
+
     # Audit fields
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
-    updated_by: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
-    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    created_by: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), nullable=True
+    )
+    updated_by: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), nullable=True
+    )
+
     # Soft delete
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
@@ -56,5 +68,3 @@ class CategoryORM(Base):
             "updated_by": str(self.updated_by) if self.updated_by else None,
             "is_deleted": self.is_deleted,
         }
-
-

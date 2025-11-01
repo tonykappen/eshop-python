@@ -16,16 +16,16 @@ class Money(BaseModel):
     @classmethod
     def validate_amount(cls, v: Any) -> Decimal:
         """Validate that amount is non-negative."""
-        if isinstance(v, (int, float, str)):
+        if isinstance(v, int | float | str):
             amount = Decimal(str(v))
         elif isinstance(v, Decimal):
             amount = v
         else:
             raise ValueError("Amount must be a number")
-        
+
         if amount < 0:
             raise ValueError("Amount cannot be negative")
-        
+
         return amount
 
     @field_validator("currency")
@@ -73,5 +73,3 @@ class Money(BaseModel):
     def is_positive(self) -> bool:
         """Check if amount is positive."""
         return self.amount > 0
-
-

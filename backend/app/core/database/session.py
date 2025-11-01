@@ -103,7 +103,9 @@ async def close_db_engine() -> None:
     try:
         # Log final pool status before closing
         pool_status = await get_pool_status()
-        logger.info(f"[DATABASE] Closing database engine. Final pool status: {pool_status}")
+        logger.info(
+            f"[DATABASE] Closing database engine. Final pool status: {pool_status}"
+        )
 
         await engine.dispose()
         logger.info("[OK] Database engine closed")

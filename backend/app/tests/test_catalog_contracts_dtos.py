@@ -1,16 +1,16 @@
 """Tests for Catalog contracts and DTOs."""
 
 from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
-from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
+from app.modules.catalog.contracts.product.dtos import ProductDto
 
 
 class TestProductDto:
@@ -25,9 +25,9 @@ class TestProductDto:
             description="A test product description",
             price=Decimal("99.99"),
             picture_url="https://example.com/image.jpg",
-            category=["Electronics", "Gadgets"]
+            category=["Electronics", "Gadgets"],
         )
-        
+
         assert dto.id == product_id
         assert dto.name == "Test Product"
         assert dto.description == "A test product description"
@@ -44,9 +44,9 @@ class TestProductDto:
             description="Minimal description",
             price=Decimal("0.01"),
             picture_url="image.jpg",
-            category=["General"]
+            category=["General"],
         )
-        
+
         assert dto.id == product_id
         assert dto.name == "Minimal Product"
         assert dto.price == Decimal("0.01")
@@ -60,11 +60,11 @@ class TestProductDto:
             description="A test product description",
             price=Decimal("99.99"),
             picture_url="https://example.com/image.jpg",
-            category=["Electronics", "Gadgets"]
+            category=["Electronics", "Gadgets"],
         )
-        
+
         data = dto.dict()
-        
+
         assert data["id"] == product_id  # UUID is kept as UUID object in dict()
         assert data["name"] == "Test Product"
         assert data["description"] == "A test product description"
@@ -81,11 +81,11 @@ class TestProductDto:
             "description": "A test product description",
             "price": "99.99",
             "picture_url": "https://example.com/image.jpg",
-            "category": ["Electronics", "Gadgets"]
+            "category": ["Electronics", "Gadgets"],
         }
-        
+
         dto = ProductDto(**data)
-        
+
         assert dto.id == product_id
         assert dto.name == "Test Product"
         assert dto.price == Decimal("99.99")
@@ -93,7 +93,7 @@ class TestProductDto:
     def test_product_dto_validation_errors(self):
         """Test ProductDto validation with invalid data."""
         product_id = uuid4()
-        
+
         # Test missing required fields
         with pytest.raises(ValidationError) as exc_info:
             ProductDto(
@@ -102,11 +102,11 @@ class TestProductDto:
                 description="Test description",
                 price=Decimal("99.99"),
                 picture_url="image.jpg",
-                category=["Electronics"]
+                category=["Electronics"],
             )
-        
+
         assert "name" in str(exc_info.value)
-        
+
         # Test invalid price
         with pytest.raises(ValidationError) as exc_info:
             ProductDto(
@@ -115,9 +115,9 @@ class TestProductDto:
                 description="Test description",
                 price="invalid_price",  # Invalid price
                 picture_url="image.jpg",
-                category=["Electronics"]
+                category=["Electronics"],
             )
-        
+
         assert "price" in str(exc_info.value)
 
     def test_product_dto_empty_category(self):
@@ -129,9 +129,9 @@ class TestProductDto:
             description="Test description",
             price=Decimal("99.99"),
             picture_url="image.jpg",
-            category=[]  # Empty category list
+            category=[],  # Empty category list
         )
-        
+
         assert dto.category == []
 
     def test_product_dto_large_decimal_price(self):
@@ -143,9 +143,9 @@ class TestProductDto:
             description="Very expensive product",
             price=Decimal("999999.99"),
             picture_url="image.jpg",
-            category=["Luxury"]
+            category=["Luxury"],
         )
-        
+
         assert dto.price == Decimal("999999.99")
 
     def test_product_dto_unicode_name(self):
@@ -157,9 +157,9 @@ class TestProductDto:
             description="Unicode description",
             price=Decimal("99.99"),
             picture_url="image.jpg",
-            category=["Unicode"]
+            category=["Unicode"],
         )
-        
+
         assert dto.name == "Tëst Pröduct 产品测试"
 
     def test_product_dto_long_description(self):
@@ -172,9 +172,9 @@ class TestProductDto:
             description=long_description,
             price=Decimal("99.99"),
             picture_url="image.jpg",
-            category=["Test"]
+            category=["Test"],
         )
-        
+
         assert dto.description == long_description
         assert len(dto.description) == 1000
 
@@ -186,46 +186,46 @@ class TestGetProductByIdQuery:
         """Test GetProductByIdQuery with valid UUID."""
         product_id = uuid4()
         query = GetProductByIdQuery(id=product_id)
-        
+
         assert query.id == product_id
 
     def test_get_product_by_id_query_string_id(self):
         """Test GetProductByIdQuery with string UUID."""
         product_id = uuid4()
         query = GetProductByIdQuery(id=str(product_id))
-        
+
         assert query.id == product_id
 
     def test_get_product_by_id_query_serialization(self):
         """Test GetProductByIdQuery serialization."""
         product_id = uuid4()
         query = GetProductByIdQuery(id=product_id)
-        
+
         data = query.dict()
-        
+
         assert data["id"] == product_id  # UUID is kept as UUID object in dict()
 
     def test_get_product_by_id_query_deserialization(self):
         """Test GetProductByIdQuery deserialization."""
         product_id = uuid4()
         data = {"id": str(product_id)}
-        
+
         query = GetProductByIdQuery(**data)
-        
+
         assert query.id == product_id
 
     def test_get_product_by_id_query_validation_error(self):
         """Test GetProductByIdQuery with invalid UUID."""
         with pytest.raises(ValidationError) as exc_info:
             GetProductByIdQuery(id="invalid-uuid")
-        
+
         assert "id" in str(exc_info.value)
 
     def test_get_product_by_id_query_missing_id(self):
         """Test GetProductByIdQuery with missing ID."""
         with pytest.raises(ValidationError) as exc_info:
             GetProductByIdQuery()
-        
+
         assert "id" in str(exc_info.value)
 
 
@@ -241,18 +241,18 @@ class TestGetProductByIdResult:
             description="Test description",
             price=Decimal("99.99"),
             picture_url="image.jpg",
-            category=["Electronics"]
+            category=["Electronics"],
         )
-        
+
         result = GetProductByIdResult(product=product)
-        
+
         assert result.product == product
         assert result.product.id == product_id
 
     def test_get_product_by_id_result_without_product(self):
         """Test GetProductByIdResult without product (None)."""
         result = GetProductByIdResult(product=None)
-        
+
         assert result.product is None
 
     def test_get_product_by_id_result_serialization(self):
@@ -264,21 +264,23 @@ class TestGetProductByIdResult:
             description="Test description",
             price=Decimal("99.99"),
             picture_url="image.jpg",
-            category=["Electronics"]
+            category=["Electronics"],
         )
-        
+
         result = GetProductByIdResult(product=product)
         data = result.dict()
-        
+
         assert "product" in data
-        assert data["product"]["id"] == product_id  # UUID is kept as UUID object in dict()
+        assert (
+            data["product"]["id"] == product_id
+        )  # UUID is kept as UUID object in dict()
         assert data["product"]["name"] == "Test Product"
 
     def test_get_product_by_id_result_serialization_none(self):
         """Test GetProductByIdResult serialization with None product."""
         result = GetProductByIdResult(product=None)
         data = result.dict()
-        
+
         assert data["product"] is None
 
     def test_get_product_by_id_result_deserialization(self):
@@ -291,12 +293,12 @@ class TestGetProductByIdResult:
                 "description": "Test description",
                 "price": "99.99",
                 "picture_url": "image.jpg",
-                "category": ["Electronics"]
+                "category": ["Electronics"],
             }
         }
-        
+
         result = GetProductByIdResult(**data)
-        
+
         assert result.product is not None
         assert result.product.id == product_id
         assert result.product.name == "Test Product"
@@ -304,9 +306,9 @@ class TestGetProductByIdResult:
     def test_get_product_by_id_result_deserialization_none(self):
         """Test GetProductByIdResult deserialization with None product."""
         data = {"product": None}
-        
+
         result = GetProductByIdResult(**data)
-        
+
         assert result.product is None
 
 
@@ -316,7 +318,7 @@ class TestDTOEdgeCases:
     def test_product_dto_zero_price_validation_error(self):
         """Test ProductDto with zero price raises validation error."""
         product_id = uuid4()
-        
+
         with pytest.raises(ValidationError) as exc_info:
             ProductDto(
                 id=product_id,
@@ -324,9 +326,9 @@ class TestDTOEdgeCases:
                 description="Free product",
                 price=Decimal("0.00"),  # This should fail validation
                 picture_url="image.jpg",
-                category=["Free"]
+                category=["Free"],
             )
-        
+
         assert "price" in str(exc_info.value)
         assert "greater than 0" in str(exc_info.value)
 
@@ -339,9 +341,9 @@ class TestDTOEdgeCases:
             description="Very cheap product",
             price=Decimal("0.01"),
             picture_url="image.jpg",
-            category=["Cheap"]
+            category=["Cheap"],
         )
-        
+
         assert dto.price == Decimal("0.01")
 
     def test_product_dto_special_characters(self):
@@ -353,9 +355,9 @@ class TestDTOEdgeCases:
             description="Description with émojis 🚀 and spëcial chars",
             price=Decimal("99.99"),
             picture_url="https://example.com/image-with-special-chars.jpg",
-            category=["Special", "Unicode", "Test"]
+            category=["Special", "Unicode", "Test"],
         )
-        
+
         assert dto.name == "Product with Special Ch@rs!"
         assert "émojis" in dto.description
         assert "🚀" in dto.description
@@ -370,9 +372,9 @@ class TestDTOEdgeCases:
             description="Test description",
             price=Decimal("99.99"),
             picture_url=long_url,
-            category=["Test"]
+            category=["Test"],
         )
-        
+
         assert dto.picture_url == long_url
         assert len(dto.picture_url) > 1000
 
@@ -386,9 +388,9 @@ class TestDTOEdgeCases:
             description="Test description",
             price=Decimal("99.99"),
             picture_url="image.jpg",
-            category=many_categories
+            category=many_categories,
         )
-        
+
         assert len(dto.category) == 100
         assert dto.category[0] == "Category0"
         assert dto.category[-1] == "Category99"

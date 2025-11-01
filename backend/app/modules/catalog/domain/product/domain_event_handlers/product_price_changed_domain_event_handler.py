@@ -11,13 +11,15 @@ from app.modules.catalog.domain.product.domain_events.product_price_changed_doma
 logger = logging.getLogger(__name__)
 
 
-class ProductPriceChangedDomainEventHandler(DomainEventHandler[ProductPriceChangedDomainEvent]):
+class ProductPriceChangedDomainEventHandler(
+    DomainEventHandler[ProductPriceChangedDomainEvent]
+):
     """Handler for product price changed domain events."""
 
     async def handle(self, event: ProductPriceChangedDomainEvent) -> None:
         """
         Handle product price changed domain event.
-        
+
         Args:
             event: The product price changed domain event
         """
@@ -25,23 +27,23 @@ class ProductPriceChangedDomainEventHandler(DomainEventHandler[ProductPriceChang
             f"Product price changed: {event.product_name} (ID: {event.product_id}, SKU: {event.product_sku})"
         )
         logger.info(f"New price: {event.new_price}")
-        
+
         # Here you would typically:
         # 1. Update read models
         # 2. Send notifications
         # 3. Update search indexes
         # 4. Publish integration events
         # 5. Update pricing analytics
-        
+
         # For now, just log the event
         logger.info("Price change processed")
-        
+
         # Example: Update pricing analytics
         # await self._update_pricing_analytics(event.product)
-        
+
         # Example: Send notification
         # await self._send_price_change_notification(event.product)
-        
+
         # Example: Publish integration event
         # await self._publish_integration_event(event.product)
 
@@ -59,5 +61,3 @@ class ProductPriceChangedDomainEventHandler(DomainEventHandler[ProductPriceChang
         """Publish integration event for price change."""
         # Implementation would go here
         pass
-
-

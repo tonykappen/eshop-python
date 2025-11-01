@@ -1,3 +1,4 @@
+# isort: skip_file
 """Alembic environment for Ordering module."""
 
 from logging.config import fileConfig

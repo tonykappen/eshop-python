@@ -1,7 +1,7 @@
 """Category created integration event v1."""
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -16,16 +16,18 @@ class CategoryCreatedIntegrationEventV1(BaseModel):
     event_version: str = Field(default="1.0", description="Event version")
     occurred_at: datetime = Field(..., description="When the event occurred")
     source: str = Field(default="catalog-service", description="Event source")
-    
+
     # Event data
     category_id: UUID = Field(..., description="Category ID")
     category_name: str = Field(..., description="Category name")
     category_description: str = Field(..., description="Category description")
     parent_category_id: UUID | None = Field(None, description="Parent category ID")
     is_root_category: bool = Field(..., description="Whether this is a root category")
-    
+
     # Additional context
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
     @classmethod
     def create(
@@ -34,23 +36,23 @@ class CategoryCreatedIntegrationEventV1(BaseModel):
         category_name: str,
         category_description: str,
         parent_category_id: UUID | None = None,
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> "CategoryCreatedIntegrationEventV1":
         """
         Create a new category created integration event.
-        
+
         Args:
             category_id: Category ID
             category_name: Category name
             category_description: Category description
             parent_category_id: Parent category ID
             metadata: Additional metadata
-            
+
         Returns:
             CategoryCreatedIntegrationEventV1 instance
         """
         import uuid
-        
+
         return cls(
             event_id=uuid.uuid4(),
             occurred_at=datetime.utcnow(),
@@ -62,7 +64,7 @@ class CategoryCreatedIntegrationEventV1(BaseModel):
             metadata=metadata or {},
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary."""
         return {
             "event_id": str(self.event_id),
@@ -73,9 +75,9 @@ class CategoryCreatedIntegrationEventV1(BaseModel):
             "category_id": str(self.category_id),
             "category_name": self.category_name,
             "category_description": self.category_description,
-            "parent_category_id": str(self.parent_category_id) if self.parent_category_id else None,
+            "parent_category_id": (
+                str(self.parent_category_id) if self.parent_category_id else None
+            ),
             "is_root_category": self.is_root_category,
             "metadata": self.metadata,
         }
-
-

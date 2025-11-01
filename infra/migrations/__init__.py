@@ -1,9 +1,8 @@
 """Infrastructure migrations for external services like Keycloak."""
 
-from sqlalchemy import text
-
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
+from sqlalchemy import text
 
 logger = BaseLogger(__name__)
 
@@ -40,4 +39,3 @@ async def run_infrastructure_migrations() -> None:
     except Exception as e:
         logger.error(f"[FAILED] Infrastructure migration execution failed: {e}")
         raise
-

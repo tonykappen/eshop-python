@@ -1,7 +1,7 @@
 """Product price changed integration event v1."""
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -12,11 +12,13 @@ class ProductPriceChangedIntegrationEventV1(BaseModel):
 
     # Event metadata
     event_id: UUID = Field(..., description="Unique event ID")
-    event_type: str = Field(default="product.price_changed.v1", description="Event type")
+    event_type: str = Field(
+        default="product.price_changed.v1", description="Event type"
+    )
     event_version: str = Field(default="1.0", description="Event version")
     occurred_at: datetime = Field(..., description="When the event occurred")
     source: str = Field(default="catalog-service", description="Event source")
-    
+
     # Event data
     product_id: UUID = Field(..., description="Product ID")
     product_name: str = Field(..., description="Product name")
@@ -25,9 +27,11 @@ class ProductPriceChangedIntegrationEventV1(BaseModel):
     new_price_amount: float = Field(..., description="New price amount")
     price_currency: str = Field(default="USD", description="Price currency")
     price_change_percentage: float = Field(..., description="Price change percentage")
-    
+
     # Additional context
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
     @classmethod
     def create(
@@ -38,11 +42,11 @@ class ProductPriceChangedIntegrationEventV1(BaseModel):
         old_price_amount: float,
         new_price_amount: float,
         price_currency: str = "USD",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> "ProductPriceChangedIntegrationEventV1":
         """
         Create a new product price changed integration event.
-        
+
         Args:
             product_id: Product ID
             product_name: Product name
@@ -51,18 +55,20 @@ class ProductPriceChangedIntegrationEventV1(BaseModel):
             new_price_amount: New price amount
             price_currency: Price currency
             metadata: Additional metadata
-            
+
         Returns:
             ProductPriceChangedIntegrationEventV1 instance
         """
         import uuid
-        
+
         # Calculate price change percentage
         if old_price_amount == 0:
             price_change_percentage = 0.0
         else:
-            price_change_percentage = ((new_price_amount - old_price_amount) / old_price_amount) * 100
-        
+            price_change_percentage = (
+                (new_price_amount - old_price_amount) / old_price_amount
+            ) * 100
+
         return cls(
             event_id=uuid.uuid4(),
             occurred_at=datetime.utcnow(),
@@ -76,7 +82,7 @@ class ProductPriceChangedIntegrationEventV1(BaseModel):
             metadata=metadata or {},
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary."""
         return {
             "event_id": str(self.event_id),
@@ -93,5 +99,3 @@ class ProductPriceChangedIntegrationEventV1(BaseModel):
             "price_change_percentage": self.price_change_percentage,
             "metadata": self.metadata,
         }
-
-

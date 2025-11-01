@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# isort: skip_file
 """CLI script to provision Keycloak from credentials file.
 
 Usage:
@@ -24,14 +25,14 @@ from pathlib import Path
 # Add parent directory to path to allow imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import argparse
+import argparse  # noqa: E402
 
-from app.core.auth.rbac import (
+from app.core.auth.rbac import (  # noqa: E402
     load_credentials_config,
     provision_keycloak_sync,
     validate_credentials_file,
 )
-from app.core.logging.base_logger import BaseLogger
+from app.core.logging.base_logger import BaseLogger  # noqa: E402
 
 logger = BaseLogger(__name__)
 

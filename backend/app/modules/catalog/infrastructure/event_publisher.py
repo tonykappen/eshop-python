@@ -5,7 +5,7 @@ from uuid import UUID
 
 import aio_pika
 from faststream import FastStream
-from faststream.rabbit import RabbitBroker, RabbitMessage
+from faststream.rabbit import RabbitBroker
 
 from app.config.settings import settings
 from app.core.logging.base_logger import BaseLogger
@@ -41,7 +41,7 @@ class CatalogEventPublisher:
         if not self._is_connected:
             try:
                 # Check if broker is already connected (FastStream broker connection state)
-                if hasattr(self.broker, 'is_connected') and self.broker.is_connected:
+                if hasattr(self.broker, "is_connected") and self.broker.is_connected:
                     self._is_connected = True
                 else:
                     # Connect the broker
@@ -52,66 +52,78 @@ class CatalogEventPublisher:
                 logger.warning(f"Failed to connect broker: {e}")
                 self._is_connected = False
                 raise
-        
+
         # Ensure exchange is declared
         await self._ensure_exchange()
 
     async def _ensure_exchange(self) -> None:
         """Ensure the catalog.events exchange exists.
-        
+
         Note: FastStream will auto-declare exchanges when publishing.
         We declare it here to ensure it exists with the right configuration
         (topic exchange, durable) before FastStream tries to use it.
         """
         if self._exchange_declared:
             return
-        
+
         try:
             # Get the connection from the broker after it's connected
             # FastStream broker wraps aio_pika connection
-            connection = getattr(self.broker, '_connection', None) or getattr(self.broker, 'connection', None)
-            
+            connection = getattr(self.broker, "_connection", None) or getattr(
+                self.broker, "connection", None
+            )
+
             if connection:
                 # Create a channel to declare the exchange
                 channel = await connection.channel()
-                
+
                 # Declare the exchange as DIRECT exchange (non-durable) to match FastStream's default
                 # FastStream auto-declares exchanges as DIRECT when publishing, so we match that behavior
                 # This prevents conflicts if the exchange already exists
-                exchange = await channel.declare_exchange(
+                await channel.declare_exchange(
                     self.exchange_name,
                     type=aio_pika.ExchangeType.DIRECT,
                     durable=False,
-                    auto_delete=False
+                    auto_delete=False,
                 )
-                
+
                 # Close the channel (broker manages its own channels for publishing)
                 await channel.close()
-                
+
                 self._exchange_declared = True
-                logger.debug(f"Exchange '{self.exchange_name}' declared as DIRECT (matching FastStream default)")
+                logger.debug(
+                    f"Exchange '{self.exchange_name}' declared as DIRECT (matching FastStream default)"
+                )
             else:
                 logger.warning("Could not access broker connection to declare exchange")
                 # Mark as attempted to avoid infinite retry
                 # FastStream will handle it during publish
                 self._exchange_declared = True
-                
+
         except aio_pika.exceptions.ChannelClosed as e:
             # Channel was closed, but exchange might still be declared
             if "406" in str(e) or "precondition_failed" in str(e).lower():
                 self._exchange_declared = True
-                logger.debug(f"Exchange '{self.exchange_name}' already exists (possibly declared by FastStream)")
+                logger.debug(
+                    f"Exchange '{self.exchange_name}' already exists (possibly declared by FastStream)"
+                )
             else:
                 logger.warning(f"Channel error declaring exchange: {e}")
                 self._exchange_declared = True
         except Exception as e:
             # If exchange already exists (406 PRECONDITION_FAILED), that's fine
             error_str = str(e).lower()
-            if "already exists" in error_str or "406" in error_str or "precondition_failed" in error_str:
+            if (
+                "already exists" in error_str
+                or "406" in error_str
+                or "precondition_failed" in error_str
+            ):
                 self._exchange_declared = True
                 logger.debug(f"Exchange '{self.exchange_name}' already exists")
             else:
-                logger.warning(f"Could not declare exchange '{self.exchange_name}': {e}. FastStream will handle it during publish.")
+                logger.warning(
+                    f"Could not declare exchange '{self.exchange_name}': {e}. FastStream will handle it during publish."
+                )
             # Mark as attempted so we don't retry indefinitely
             self._exchange_declared = True
 
@@ -127,7 +139,7 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             event = ProductCreatedIntegrationEvent(
                 product_id=product_id,
                 product_name=product_name,
@@ -135,16 +147,18 @@ class CatalogEventPublisher:
                 category_id=category_id,
                 **additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
                 routing_key=event.routing_key,
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductCreated event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductCreated event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductCreated event for product {product_id}: {e}"
+            )
 
     async def publish_product_price_changed(
         self,
@@ -158,7 +172,7 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             event = ProductPriceChangedIntegrationEvent(
                 product_id=product_id,
                 old_price=old_price,
@@ -166,16 +180,18 @@ class CatalogEventPublisher:
                 price_change_reason=price_change_reason,
                 **additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
                 routing_key=event.routing_key,
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductPriceChanged event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductPriceChanged event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductPriceChanged event for product {product_id}: {e}"
+            )
 
     async def publish_product_inventory_updated(
         self,
@@ -189,7 +205,7 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             event = ProductInventoryUpdatedIntegrationEvent(
                 product_id=product_id,
                 old_quantity=old_quantity,
@@ -197,16 +213,20 @@ class CatalogEventPublisher:
                 warehouse_id=warehouse_id,
                 **additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
                 routing_key=event.routing_key,
                 exchange=self.exchange_name,
             )
-            
-            logger.info(f"Published ProductInventoryUpdated event for product {product_id}")
+
+            logger.info(
+                f"Published ProductInventoryUpdated event for product {product_id}"
+            )
         except Exception as e:
-            logger.error(f"Failed to publish ProductInventoryUpdated event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductInventoryUpdated event for product {product_id}: {e}"
+            )
 
     async def publish_product_updated(
         self,
@@ -222,7 +242,7 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             event = ProductUpdatedIntegrationEvent(
                 product_id=product_id,
                 product_name=product_name,
@@ -232,16 +252,18 @@ class CatalogEventPublisher:
                 image_file=image_file,
                 **additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
                 routing_key=event.routing_key,
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductUpdated event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductUpdated event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductUpdated event for product {product_id}: {e}"
+            )
 
     async def publish_product_deleted(
         self,
@@ -255,7 +277,7 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             event = ProductDeletedIntegrationEvent(
                 product_id=product_id,
                 product_name=product_name,
@@ -263,16 +285,18 @@ class CatalogEventPublisher:
                 reason=reason,
                 **additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
                 routing_key=event.routing_key,
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductDeleted event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductDeleted event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductDeleted event for product {product_id}: {e}"
+            )
 
     async def publish_product_discontinued(
         self,
@@ -286,7 +310,7 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             event = ProductDiscontinuedIntegrationEvent(
                 product_id=product_id,
                 discontinuation_date=discontinuation_date,
@@ -294,16 +318,18 @@ class CatalogEventPublisher:
                 replacement_product_id=replacement_product_id,
                 **additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
                 routing_key=event.routing_key,
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductDiscontinued event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductDiscontinued event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductDiscontinued event for product {product_id}: {e}"
+            )
 
     async def start(self) -> None:
         """Start the event publisher."""

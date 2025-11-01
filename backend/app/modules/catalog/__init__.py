@@ -6,7 +6,7 @@ try:
     from app.modules.catalog.infrastructure.seed.catalog_data_seeder import (
         CatalogDataSeeder,
     )
-    
+
     # Register the catalog seeder
     register_seeder(CatalogDataSeeder)
 except ImportError:

@@ -56,5 +56,3 @@ class InventoryAvailabilityView(BaseModel):
             "stock_percentage": self.stock_percentage,
             "last_updated": self.last_updated,
         }
-
-

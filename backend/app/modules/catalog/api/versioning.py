@@ -1,7 +1,7 @@
 """API versioning configuration for catalog module."""
 
 import logging
-from typing import Dict, Any
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -13,7 +13,7 @@ class CatalogAPIVersioning:
 
     # API base prefix
     API_BASE_PREFIX = "/api/v1/catalog"
-    
+
     # OpenAPI tags
     OPENAPI_TAGS = [
         {
@@ -37,7 +37,7 @@ class CatalogAPIVersioning:
             "description": "Health check endpoints",
         },
     ]
-    
+
     # API metadata
     API_METADATA = {
         "title": "Catalog API",
@@ -57,7 +57,7 @@ class CatalogAPIVersioning:
     def create_catalog_router() -> APIRouter:
         """
         Create the main catalog router with versioning.
-        
+
         Returns:
             APIRouter: Configured router
         """
@@ -70,15 +70,17 @@ class CatalogAPIVersioning:
                 500: {"description": "Internal server error"},
             },
         )
-        
-        logger.info(f"Created catalog router with prefix: {CatalogAPIVersioning.API_BASE_PREFIX}")
+
+        logger.info(
+            f"Created catalog router with prefix: {CatalogAPIVersioning.API_BASE_PREFIX}"
+        )
         return router
 
     @staticmethod
     def create_products_router() -> APIRouter:
         """
         Create the products router.
-        
+
         Returns:
             APIRouter: Configured router
         """
@@ -91,14 +93,14 @@ class CatalogAPIVersioning:
                 422: {"description": "Validation error"},
             },
         )
-        
+
         return router
 
     @staticmethod
     def create_categories_router() -> APIRouter:
         """
         Create the categories router.
-        
+
         Returns:
             APIRouter: Configured router
         """
@@ -111,14 +113,14 @@ class CatalogAPIVersioning:
                 422: {"description": "Validation error"},
             },
         )
-        
+
         return router
 
     @staticmethod
     def create_inventory_router() -> APIRouter:
         """
         Create the inventory router.
-        
+
         Returns:
             APIRouter: Configured router
         """
@@ -130,14 +132,14 @@ class CatalogAPIVersioning:
                 422: {"description": "Validation error"},
             },
         )
-        
+
         return router
 
     @staticmethod
     def create_health_router() -> APIRouter:
         """
         Create the health router.
-        
+
         Returns:
             APIRouter: Configured router
         """
@@ -148,14 +150,14 @@ class CatalogAPIVersioning:
                 503: {"description": "Service unavailable"},
             },
         )
-        
+
         return router
 
     @staticmethod
-    def get_api_info() -> Dict[str, Any]:
+    def get_api_info() -> dict[str, Any]:
         """
         Get API information.
-        
+
         Returns:
             Dict with API information
         """
@@ -170,20 +172,20 @@ class CatalogAPIVersioning:
     def setup_openapi_tags(app) -> None:
         """
         Set up OpenAPI tags for the FastAPI app.
-        
+
         Args:
             app: FastAPI application instance
         """
         if hasattr(app, "openapi_tags"):
             app.openapi_tags = CatalogAPIVersioning.OPENAPI_TAGS
-        
+
         logger.info("Set up OpenAPI tags for catalog module")
 
     @staticmethod
     def setup_api_metadata(app) -> None:
         """
         Set up API metadata for the FastAPI app.
-        
+
         Args:
             app: FastAPI application instance
         """
@@ -191,7 +193,5 @@ class CatalogAPIVersioning:
         for key, value in CatalogAPIVersioning.API_METADATA.items():
             if hasattr(app, key):
                 setattr(app, key, value)
-        
+
         logger.info("Set up API metadata for catalog module")
-
-

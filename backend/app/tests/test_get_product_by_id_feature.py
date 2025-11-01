@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.modules.catalog.contracts.product.dtos import ProductDto
 from app.modules.catalog.application.features.product.queries.get_product_by_id.query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
+from app.modules.catalog.contracts.product.dtos import ProductDto
 
 
 class TestGetProductByIdQuery:

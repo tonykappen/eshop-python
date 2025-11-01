@@ -97,6 +97,7 @@ async def run_migrations() -> None:
         # Run infrastructure migrations first (Keycloak schema, etc.)
         # Import here to avoid import errors when Alembic runs
         from infra.migrations import run_infrastructure_migrations
+
         await run_infrastructure_migrations()
 
         # Ensure module schemas exist
@@ -119,9 +120,7 @@ async def run_module_migrations(module_config: dict) -> None:
     module_path_str = module_config["path"]
     schema_name = module_config["schema"]
 
-    logger.info(
-        f"Running migrations for module: {module_name} (schema: {schema_name})"
-    )
+    logger.info(f"Running migrations for module: {module_name} (schema: {schema_name})")
 
     try:
         # Determine backend directory (project root)
@@ -133,10 +132,10 @@ async def run_module_migrations(module_config: dict) -> None:
             backend_root = cwd
         else:
             backend_root = cwd
-        
+
         # Build absolute path to module directory
         module_path = backend_root / module_path_str
-        
+
         # Check if alembic configuration exists
         alembic_ini_path = module_path / "alembic.ini"
         if not alembic_ini_path.exists():
@@ -151,18 +150,22 @@ async def run_module_migrations(module_config: dict) -> None:
             # Fallback to "alembic" for backwards compatibility
             migrations_dir = module_path / "alembic"
             if not migrations_dir.exists():
-                logger.warning(f"[WARNING] No migrations directory found for module {module_name}")
+                logger.warning(
+                    f"[WARNING] No migrations directory found for module {module_name}"
+                )
                 return
-        
+
         # Run migrations using Alembic command
         # Set PYTHONPATH to include project root so both 'app' and 'infra' modules can be found
         env = dict(os.environ)
-        project_root = backend_root.parent if backend_root.name == "backend" else backend_root
+        project_root = (
+            backend_root.parent if backend_root.name == "backend" else backend_root
+        )
         pythonpath = str(project_root)
         if "PYTHONPATH" in env:
             pythonpath = f"{pythonpath}:{env['PYTHONPATH']}"
         env["PYTHONPATH"] = pythonpath
-        
+
         # Change working directory to module directory so script_location is resolved correctly
         # Alembic resolves script_location relative to cwd, not the config file location
         # Use relative path to alembic.ini since we're running from module_path
@@ -196,7 +199,9 @@ async def run_module_migrations(module_config: dict) -> None:
             logger.info(f"[OK] Migrations completed for module: {module_name}")
 
     except Exception as e:
-        logger.error(f"[FAILED] Migration execution failed for module {module_name}: {e}")
+        logger.error(
+            f"[FAILED] Migration execution failed for module {module_name}: {e}"
+        )
         # Don't raise here, continue with other modules
         logger.warning("[WARNING] Continuing with other modules...")
 
@@ -250,5 +255,7 @@ async def create_module_migration(module_name: str, message: str) -> None:
         logger.debug(f"Migration creation output: {output}")
 
     except Exception as e:
-        logger.error(f"[FAILED] Failed to create migration for module {module_name}: {e}")
+        logger.error(
+            f"[FAILED] Failed to create migration for module {module_name}: {e}"
+        )
         raise

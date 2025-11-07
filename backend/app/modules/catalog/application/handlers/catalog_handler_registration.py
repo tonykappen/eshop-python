@@ -18,8 +18,10 @@ def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
     from app.modules.catalog.application.handlers.get_product_by_id_handler import (
         GetProductByIdHandler,
     )
-    from app.modules.catalog.application.handlers.get_products_handler import (
+    from app.modules.catalog.application.features.product.queries.get_products.handler import (
         GetProductsHandler,
+    )
+    from app.modules.catalog.application.features.product.queries.get_products.query import (
         GetProductsQuery,
     )
     from app.modules.catalog.application.handlers.update_product_handler import (

@@ -4,6 +4,7 @@ import asyncio
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
+import logging
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
@@ -12,6 +13,8 @@ from app.modules.catalog.domain.product.models.product import Product
 from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 from .query import GetProductsQuery, GetProductsResult
+
+logger = logging.getLogger(__name__)
 
 
 class GetProductsHandler(
@@ -43,24 +46,33 @@ class GetProductsHandler(
         async with AsyncSessionLocal() as session:
             repository = ProductRepository(session)
             
+            logger.info(f"GetProductsHandler: page={query.page}, page_size={query.page_size}, search_term={query.search_term}, category_id={query.category_id}")
+            
             # Get products based on filters
             if query.search_term:
+                logger.info(f"Using search with term: {query.search_term}")
                 products, total_count = await repository.search(
                     query.search_term, query.page, query.page_size
                 )
             elif query.category_id:
+                logger.info(f"Using category filter: {query.category_id}")
                 # For now, we'll use category name instead of ID
                 # In a real implementation, you'd have a category lookup
                 products, total_count = await repository.get_by_category(
                     str(query.category_id), query.page, query.page_size
                 )
             else:
+                logger.info("Using get_all (no filters)")
                 products, total_count = await repository.get_all(
                     query.page, query.page_size
                 )
             
+            logger.info(f"Repository returned {len(products)} products, total_count={total_count}")
+            
             # Convert to DTOs
             product_dtos = [self._map_to_dto(product) for product in products]
+            
+            logger.info(f"Converted to {len(product_dtos)} DTOs")
             
             total_pages = (total_count + query.page_size - 1) // query.page_size
             return GetProductsResult(

@@ -460,12 +460,15 @@ class ProductRepositoryImpl(ProductRepository):
         try:
             from sqlalchemy import func
             
+            logger.debug(f"ProductRepositoryImpl.get_all: page={page}, page_size={page_size}")
+            
             # Get total count
             count_stmt = select(func.count(ProductORM.id)).where(
                 ProductORM.is_deleted == False
             )
             count_result = await self.session.execute(count_stmt)
             total_count = count_result.scalar() or 0
+            logger.debug(f"ProductRepositoryImpl.get_all: total_count={total_count}")
             
             # Get paginated results
             offset = (page - 1) * page_size
@@ -475,12 +478,22 @@ class ProductRepositoryImpl(ProductRepository):
             
             result = await self.session.execute(stmt)
             products_orm = result.scalars().all()
+            logger.debug(f"ProductRepositoryImpl.get_all: found {len(products_orm)} ORM products")
             
-            products = [self._orm_to_domain(product_orm) for product_orm in products_orm]
+            products = []
+            for product_orm in products_orm:
+                try:
+                    product = self._orm_to_domain(product_orm)
+                    products.append(product)
+                except Exception as e:
+                    logger.error(f"Error converting ORM to domain for product {product_orm.id}: {e}", exc_info=True)
+                    raise
+            
+            logger.debug(f"ProductRepositoryImpl.get_all: converted {len(products)} domain products")
             return products, total_count
             
         except Exception as e:
-            logger.error(f"Error getting all products: {e}")
+            logger.error(f"Error getting all products: {e}", exc_info=True)
             raise
 
     async def get_deleted_products(self, page: int = 1, page_size: int = 10) -> tuple[list[Product], int]:

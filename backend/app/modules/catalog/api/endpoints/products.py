@@ -22,7 +22,7 @@ from app.core.repr.base import (
     PaginatedResponse,
 )
 from app.modules.catalog.domain.exceptions import ProductNotFoundError
-from app.modules.catalog.application.handlers.get_products_handler import (
+from app.modules.catalog.application.features.product.queries.get_products.query import (
     GetProductsQuery,
 )
 from app.modules.catalog.contracts.product.dtos import ProductDto

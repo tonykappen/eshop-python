@@ -495,9 +495,15 @@
                 }
                 
                 const data = await response.json();
-                displayProducts(data.data || [], data.page || 1, data.total_pages || 1, data.total_count || 0);
-                currentPage = data.page || 1;
-                totalPages = data.total_pages || 1;
+                // API returns: items, page, pages, total, size
+                // Map to frontend expected format
+                const products = data.items || [];
+                const responsePage = data.page || 1;
+                const responseTotalPages = data.pages || 1;
+                const totalCount = data.total || 0;
+                displayProducts(products, responsePage, responseTotalPages, totalCount);
+                currentPage = responsePage;
+                totalPages = responseTotalPages;
                 
             } catch (error) {
                 document.getElementById('loading').style.display = 'none';
@@ -637,7 +643,8 @@
         
         // Get appropriate actions based on user role
         function getProductActions(product) {
-            const productId = product.id || '';
+            // Ensure product ID is a string (UUID might be object)
+            const productId = product.id ? String(product.id) : '';
             const productName = product.name || 'Product';
             const productPrice = product.price || 0;
             
@@ -807,17 +814,49 @@
                 return response.json();
             })
             .then(data => {
-                if (data.data) {
-                    const product = data.data;
-                    document.getElementById('productName').value = product.name || '';
-                    document.getElementById('productDescription').value = product.description || '';
-                    document.getElementById('productPrice').value = product.price || '';
-                    // Handle image_file or picture_url - prevent "undefined" display
-                    const imageUrl = product.image_file || product.picture_url || '';
-                    document.getElementById('productImage').value = imageUrl;
-                    categories = [...(product.category || [])];
-                    updateCategoryTags();
-                    document.getElementById('productModal').style.display = 'block';
+                // API returns product wrapped in "product" field
+                // Response structure: { product: { id, name, ... } }
+                let product = null;
+                
+                // Try different possible response structures
+                if (data.product && data.product.id) {
+                    // Product wrapped in "product" field (actual API format)
+                    product = data.product;
+                } else if (data.data && data.data.id) {
+                    // Standard DataResponse format
+                    product = data.data;
+                } else if (data.id) {
+                    // Direct product object
+                    product = data;
+                }
+                
+                if (!product || !product.id) {
+                    alert('Product data not found in response. Please try again.');
+                    return;
+                }
+                
+                // Populate form fields - check if elements exist first
+                const nameField = document.getElementById('productName');
+                const descField = document.getElementById('productDescription');
+                const priceField = document.getElementById('productPrice');
+                const imageField = document.getElementById('productImage');
+                
+                if (nameField) nameField.value = product.name || '';
+                if (descField) descField.value = product.description || '';
+                if (priceField) priceField.value = product.price || '';
+                
+                // Handle image_file or picture_url - prevent "undefined" display
+                const imageUrl = product.image_file || product.picture_url || '';
+                if (imageField) imageField.value = imageUrl;
+                
+                // Handle categories - ensure it's an array
+                categories = Array.isArray(product.category) ? [...product.category] : [];
+                updateCategoryTags();
+                
+                // Show the modal
+                const modal = document.getElementById('productModal');
+                if (modal) {
+                    modal.style.display = 'block';
                 }
             })
             .catch(error => {
@@ -924,9 +963,12 @@
                 // Clear any previous validation errors
                 clearValidationErrors();
                 
+                // Store the operation type before closing modal (which resets editingProductId)
+                const wasUpdating = !!editingProductId;
+                
                 closeProductModal();
                 loadProducts(currentPage); // Reload current page
-                alert(editingProductId ? 'Product updated successfully!' : 'Product created successfully!');
+                alert(wasUpdating ? 'Product updated successfully!' : 'Product created successfully!');
                 
             } catch (error) {
                 // Handle network errors and other errors

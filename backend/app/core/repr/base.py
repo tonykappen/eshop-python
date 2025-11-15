@@ -253,18 +253,19 @@ class PaginatedRequest(BaseRequest):
         return (self.page - 1) * self.page_size
 
 
-class PaginatedResponse(DataResponse[list[TResult]], Generic[TResult]):
-    """Base class for paginated responses."""
+class PaginatedResponse(BaseResponse, Generic[TResult]):
+    """Base class for paginated responses matching PaginatedResult structure."""
 
-    total_count: int = Field(..., description="Total number of items")
+    items: list[TResult] = Field(..., description="List of items")
+    total: int = Field(..., description="Total number of items")
     page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Number of items per page")
-    total_pages: int = Field(..., description="Total number of pages")
+    size: int = Field(..., description="Page size")
+    pages: int = Field(..., description="Total number of pages")
 
     @property
     def has_next(self) -> bool:
         """Check if there's a next page."""
-        return self.page < self.total_pages
+        return self.page < self.pages
 
     @property
     def has_previous(self) -> bool:
@@ -285,11 +286,11 @@ class PaginatedResultToResponseMapper(
         """Map paginated result to paginated response."""
         # Assuming result is a PaginatedResult with items, total, page, size, pages
         return PaginatedResponse[TResult](
-            data=result.items,
-            total_count=result.total,
+            items=result.items,
+            total=result.total,
             page=result.page,
-            page_size=result.size,
-            total_pages=result.pages,
+            size=result.size,
+            pages=result.pages,
             message="Paginated data retrieved successfully",
         )
 

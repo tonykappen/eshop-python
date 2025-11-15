@@ -405,11 +405,12 @@ async def get_deleted_products(
         total_pages = (total_count + page_size - 1) // page_size
         
         return ProductsResponse(
-            data=product_dtos,
+            items=product_dtos,
+            total=total_count,
             page=page,
-            page_size=page_size,
-            total_pages=total_pages,
-            total_count=total_count,
+            size=page_size,
+            pages=total_pages,
+            message="Deleted products retrieved successfully",
         )
 
 

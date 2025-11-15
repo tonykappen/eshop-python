@@ -25,7 +25,7 @@ logger = BaseLogger(__name__)
 class UpdateProductCommand(BaseModel):
     """Command to update an existing product - matches .NET UpdateProductCommand."""
 
-    id: UUID
+    id: UUID | None = None  # Optional in request body, will be set from URL path
     name: str
     description: str
     price: float

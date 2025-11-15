@@ -97,7 +97,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                         message="Failed to delete product from database"
                     )
 
-                return DeleteProductResult(True)
+                return DeleteProductResult(is_success=True)
             except Exception as e:
                 await session.rollback()
                 raise ProductDeleteError(

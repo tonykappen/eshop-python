@@ -1,6 +1,7 @@
 """CreateProductHandler with 1-1 parity to .NET implementation."""
 
 import asyncio
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 

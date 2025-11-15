@@ -107,7 +107,7 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 await repository.update(product)
                 await session.commit()
 
-                return UpdateProductResult(True)
+                return UpdateProductResult(is_success=True)
             except Exception as e:
                 await session.rollback()
                 raise ProductUpdateError(

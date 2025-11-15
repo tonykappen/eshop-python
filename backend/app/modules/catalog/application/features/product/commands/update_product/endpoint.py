@@ -33,15 +33,9 @@ async def update_product(
         result_mapper=None,  # Will use default response mapper
     )
 
-    # Create the command with product ID and request data
-    command = UpdateProductCommand(
-        id=product_id,
-        name=request.name,
-        description=request.description,
-        price=request.price,
-        picture_url=request.picture_url,
-        category=request.category,
-    )
+    # Set the product ID from path parameter (override any id in request body)
+    request.id = product_id
+    command = request
 
     # Execute the REPR pattern flow
     response = await endpoint.execute(http_request, command)

@@ -234,19 +234,19 @@ class TestPaginatedResponse:
         ]
 
         response = PaginatedResponse[TestResult](
-            data=results,
-            total_count=100,
+            items=results,
+            total=100,
             page=2,
-            page_size=10,
-            total_pages=10,
+            size=10,
+            pages=10,
             message="Paginated data",
         )
 
-        assert response.data == results
-        assert response.total_count == 100
+        assert response.items == results
+        assert response.total == 100
         assert response.page == 2
-        assert response.page_size == 10
-        assert response.total_pages == 10
+        assert response.size == 10
+        assert response.pages == 10
         assert response.message == "Paginated data"
 
     def test_paginated_response_properties(self) -> None:
@@ -255,25 +255,25 @@ class TestPaginatedResponse:
 
         # Test has_next
         response = PaginatedResponse[TestResult](
-            data=results, total_count=30, page=1, page_size=10, total_pages=3
+            items=results, total=30, page=1, size=10, pages=3
         )
         assert response.has_next is True
 
         # Test has_previous
         response = PaginatedResponse[TestResult](
-            data=results, total_count=30, page=2, page_size=10, total_pages=3
+            items=results, total=30, page=2, size=10, pages=3
         )
         assert response.has_previous is True
 
         # Test no next page
         response = PaginatedResponse[TestResult](
-            data=results, total_count=30, page=3, page_size=10, total_pages=3
+            items=results, total=30, page=3, size=10, pages=3
         )
         assert response.has_next is False
 
         # Test no previous page
         response = PaginatedResponse[TestResult](
-            data=results, total_count=30, page=1, page_size=10, total_pages=3
+            items=results, total=30, page=1, size=10, pages=3
         )
         assert response.has_previous is False
 
@@ -820,12 +820,12 @@ class TestREPRIntegration:
         # Create paginated response
         results = [TestResult(id=uuid4(), name="item", value=1)]
         response = PaginatedResponse[TestResult](
-            data=results, total_count=25, page=2, page_size=10, total_pages=3
+            items=results, total=25, page=2, size=10, pages=3
         )
 
         assert response.has_next is True
         assert response.has_previous is True
-        assert response.total_pages == 3
+        assert response.pages == 3
 
     @pytest.mark.asyncio
     async def test_error_handling_workflow(self) -> None:

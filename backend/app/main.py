@@ -53,9 +53,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Update auth handler with app instance before startup
     set_app_instance(app)
 
-    # Register catalog router with DI integration after initialization
-    register_catalog_router()
-
     # Use the comprehensive lifecycle manager
     async with lifecycle_manager.lifespan_context(app):
         # Add Keycloak routes after auth handler startup
@@ -68,10 +65,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         yield
 
 
+# Include catalog router with DI integration
+# This will be called as a startup callback after mediator initialization
+async def register_catalog_router():
+    """Register catalog router with DI integration."""
+    try:
+        container = get_app_container()
+        mediator = get_mediator()
+        catalog_router = register_catalog_module_with_fastapi(app, container, mediator)
+        app.include_router(catalog_router)
+    except Exception as e:
+        print(f"Warning: Could not register catalog router: {e}")
+        # Fallback to basic router
+        from app.modules.catalog.api.router import router as catalog_router
+        app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
+
+
 # Register lifecycle callbacks for graceful startup and shutdown
 register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)
 register_startup_callback(initialize_mediator)
+register_startup_callback(register_catalog_router)  # Register catalog router after mediator is initialized
 register_startup_callback(database_handler.startup)
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)
@@ -128,22 +142,8 @@ if settings.log_enable_request_logging:
     )
 
 # from app.modules.basket.api.router import router as basket_router
-# from app.modules.ordering.api.router import router as ordering_router
+# from app.modules.ordering/api.router import router as ordering_router
 
-# Include catalog router with DI integration
-# Note: This will be called after initialization in the lifespan context
-def register_catalog_router():
-    """Register catalog router with DI integration."""
-    try:
-        container = get_app_container()
-        mediator = get_mediator()
-        catalog_router = register_catalog_module_with_fastapi(app, container, mediator)
-        app.include_router(catalog_router)
-    except Exception as e:
-        print(f"Warning: Could not register catalog router: {e}")
-        # Fallback to basic router
-        from app.modules.catalog.api.router import router as catalog_router
-        app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
 app.include_router(health_router)
 

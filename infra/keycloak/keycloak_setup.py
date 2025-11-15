@@ -547,6 +547,9 @@ class KeycloakSetup:
                             
                             if secret_response.status_code == 204:
                                 logger.info(f"[OK] Client secret updated for '{client_config.client_id}'")
+                            elif secret_response.status_code == 404:
+                                # Client doesn't exist yet or secret endpoint not available - this is expected for new clients
+                                logger.debug(f"[DEBUG] Client secret endpoint not found for '{client_config.client_id}' (client may not exist yet)")
                             else:
                                 logger.warning(f"[WARNING] Failed to update client secret for '{client_config.client_id}': {secret_response.status_code}")
                             
@@ -672,6 +675,9 @@ class KeycloakSetup:
                             
                             if secret_response.status_code == 204:
                                 logger.info(f"[OK] Client secret updated for '{client_config.client_id}'")
+                            elif secret_response.status_code == 404:
+                                # Client doesn't exist yet or secret endpoint not available - this is expected for new clients
+                                logger.debug(f"[DEBUG] Client secret endpoint not found for '{client_config.client_id}' (client may not exist yet)")
                             else:
                                 logger.warning(f"[WARNING] Failed to update client secret for '{client_config.client_id}': {secret_response.status_code}")
                         else:

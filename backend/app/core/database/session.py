@@ -66,14 +66,22 @@ async def get_pool_status() -> dict[str, Any]:
     """Get connection pool status for monitoring."""
     try:
         pool = engine.pool
-        return {
+        status = {
             "pool_size": pool.size(),
             "checked_in": pool.checkedin(),
             "checked_out": pool.checkedout(),
             "overflow": pool.overflow(),
-            "invalid": pool.invalid(),
             "total_connections": pool.checkedin() + pool.checkedout(),
         }
+        # Try to get invalid count if available (not all pool types support this)
+        try:
+            if hasattr(pool, "invalid"):
+                status["invalid"] = pool.invalid()
+            else:
+                status["invalid"] = 0  # Default to 0 if not available
+        except AttributeError:
+            status["invalid"] = 0  # Default to 0 if attribute doesn't exist
+        return status
     except Exception as e:
         logger.error(f"Failed to get pool status: {e}")
         return {"error": str(e)}

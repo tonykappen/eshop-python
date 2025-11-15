@@ -83,6 +83,27 @@
                 "clear": false
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Poetry Install",
+            "type": "shell",
+            "command": "poetry lock --no-interaction && poetry install --no-interaction",
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
         }
     ]
 }

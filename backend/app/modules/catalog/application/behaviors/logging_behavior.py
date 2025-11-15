@@ -4,7 +4,7 @@ import logging
 from typing import Any, Callable
 
 from app.core.mediator.behaviors import IPipelineBehavior
-from app.core.mediator.mediator import IRequest, IRequestHandler
+from app.core.mediator.mediator import IRequest
 
 logger = logging.getLogger(__name__)
 

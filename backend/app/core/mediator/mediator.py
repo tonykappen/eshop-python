@@ -1,7 +1,7 @@
 """Main Mediator implementation with 1-1 parity to .NET MediatR."""
 
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.logging.base_logger import BaseLogger
@@ -10,6 +10,10 @@ from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import HandlerRegistry
 
 TResponse = TypeVar("TResponse")
+
+# Type alias for IRequest (union of ICommand and IQuery)
+# Used in behaviors where we don't care about the specific response type
+IRequest = Union[ICommand[Any], IQuery[Any]]
 
 
 class IMediator(ABC):

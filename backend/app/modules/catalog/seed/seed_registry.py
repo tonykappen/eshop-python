@@ -1,9 +1,10 @@
 """Registry of seeds."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from app.modules.catalog.seed.versions.catalog_seed_20250115_initial import CatalogInitialSeed
+if TYPE_CHECKING:
+    from app.modules.catalog.seed.versions.catalog_seed_20250115_initial import CatalogInitialSeed
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +39,28 @@ class SeedRegistry:
     def __init__(self):
         """Initialize the seed registry."""
         self._seeds: Dict[str, Seed] = {}
-        self._register_default_seeds()
+        self._default_seeds_registered = False
+
+    def _ensure_default_seeds_registered(self) -> None:
+        """Lazily register default seeds to avoid circular imports."""
+        if self._default_seeds_registered:
+            return
+        
+        try:
+            # Import here to avoid circular import
+            from app.modules.catalog.seed.versions.catalog_seed_20250115_initial import CatalogInitialSeed
+            
+            # Register initial catalog seed
+            initial_seed = CatalogInitialSeed()
+            self.register_seed(initial_seed)
+            self._default_seeds_registered = True
+        except ImportError as e:
+            # If import fails (e.g., during module scanning), we'll try again later
+            logger.debug(f"Could not register default seeds yet (will retry): {e}")
 
     def _register_default_seeds(self) -> None:
-        """Register default seeds."""
-        # Register initial catalog seed
-        initial_seed = CatalogInitialSeed()
-        self.register_seed(initial_seed)
+        """Register default seeds (deprecated - use _ensure_default_seeds_registered)."""
+        self._ensure_default_seeds_registered()
 
     def register_seed(self, seed: Seed) -> None:
         """
@@ -69,6 +85,7 @@ class SeedRegistry:
         Returns:
             Seed if found, None otherwise
         """
+        self._ensure_default_seeds_registered()
         return self._seeds.get(version)
 
     def get_all_seeds(self) -> List[Seed]:
@@ -78,6 +95,7 @@ class SeedRegistry:
         Returns:
             List of all seeds
         """
+        self._ensure_default_seeds_registered()
         return list(self._seeds.values())
 
     def get_seeds_by_version(self, version_prefix: str) -> List[Seed]:
@@ -90,6 +108,7 @@ class SeedRegistry:
         Returns:
             List of matching seeds
         """
+        self._ensure_default_seeds_registered()
         return [
             seed for seed in self._seeds.values()
             if seed.version.startswith(version_prefix)
@@ -102,6 +121,7 @@ class SeedRegistry:
         Args:
             version: Seed version to unregister
         """
+        self._ensure_default_seeds_registered()
         if version in self._seeds:
             del self._seeds[version]
             logger.debug(f"Unregistered seed: {version}")
@@ -109,6 +129,7 @@ class SeedRegistry:
     def clear_seeds(self) -> None:
         """Clear all registered seeds."""
         self._seeds.clear()
+        self._default_seeds_registered = False  # Reset flag so seeds can be re-registered
         logger.info("Cleared all seeds")
 
     def get_seed_summary(self) -> Dict[str, str]:
@@ -118,6 +139,7 @@ class SeedRegistry:
         Returns:
             Dictionary with seed versions and descriptions
         """
+        self._ensure_default_seeds_registered()
         return {
             seed.version: seed.description
             for seed in self._seeds.values()

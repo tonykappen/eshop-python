@@ -30,6 +30,7 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/backend",
+            "preLaunchTask": "Poetry Install",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/backend",

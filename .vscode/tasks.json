@@ -85,12 +85,39 @@
             "problemMatcher": []
         },
         {
+            "label": "Poetry Lock",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["lock", "--no-interaction"],
+            "options": {
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "POETRY_PYTHON": "${config:python.defaultInterpreterPath}"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Poetry Install",
             "type": "shell",
-            "command": "poetry lock --no-interaction && poetry install --no-interaction",
+            "command": "poetry",
+            "args": ["install", "--no-interaction"],
             "options": {
-                "cwd": "${workspaceFolder}/backend"
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "POETRY_PYTHON": "${config:python.defaultInterpreterPath}"
+                }
             },
+            "dependsOn": "Poetry Lock",
             "group": {
                 "kind": "build",
                 "isDefault": false

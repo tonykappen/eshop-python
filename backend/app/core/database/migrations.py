@@ -154,13 +154,22 @@ async def run_module_migrations(module_config: dict) -> None:
                 logger.warning(f"[WARNING] No migrations directory found for module {module_name}")
                 return
         
+        # Check if versions directory exists
+        versions_dir = migrations_dir / "versions"
+        if not versions_dir.exists():
+            logger.warning(
+                f"[WARNING] No versions directory found for module {module_name} at {versions_dir}"
+            )
+            return
+        
         # Run migrations using Alembic command
         # Set PYTHONPATH to include project root so both 'app' and 'infra' modules can be found
         env = dict(os.environ)
         project_root = backend_root.parent if backend_root.name == "backend" else backend_root
         pythonpath = str(project_root)
         if "PYTHONPATH" in env:
-            pythonpath = f"{pythonpath}:{env['PYTHONPATH']}"
+            # Use os.pathsep for cross-platform compatibility (; on Windows, : on Unix)
+            pythonpath = f"{pythonpath}{os.pathsep}{env['PYTHONPATH']}"
         env["PYTHONPATH"] = pythonpath
         
         # Change working directory to module directory so script_location is resolved correctly
@@ -184,19 +193,29 @@ async def run_module_migrations(module_config: dict) -> None:
         stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
-            error_msg = stderr.decode() if stderr else "Unknown error"
+            stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
+            stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
+            
+            # Combine both stdout and stderr for better error visibility
+            error_msg = f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}" if stdout_str or stderr_str else "Unknown error (no output captured)"
+            
             logger.error(
                 f"[FAILED] Migration execution failed for module {module_name}: {error_msg}"
             )
             # Don't raise here, continue with other modules
             logger.warning("[WARNING] Continuing with other modules...")
         else:
-            output = stdout.decode() if stdout else ""
+            output = stdout.decode("utf-8", errors="replace") if stdout else ""
             logger.debug(f"Migration output for {module_name}: {output}")
             logger.info(f"[OK] Migrations completed for module: {module_name}")
 
     except Exception as e:
-        logger.error(f"[FAILED] Migration execution failed for module {module_name}: {e}")
+        import traceback
+        error_traceback = traceback.format_exc()
+        logger.error(
+            f"[FAILED] Migration execution failed for module {module_name}: {e}\n"
+            f"Traceback: {error_traceback}"
+        )
         # Don't raise here, continue with other modules
         logger.warning("[WARNING] Continuing with other modules...")
 

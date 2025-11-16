@@ -135,7 +135,7 @@ services:
       KC_DB_SCHEMA: keycloak
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
-      KEYCLOAK_CLIENT_SECRET: "eshop-secure-client-secret-2024"
+      KEYCLOAK_CLIENT_SECRET: "${KEYCLOAK_CLIENT_SECRET:-eshop-secure-client-secret-2024}"
       # JVM optimizations to reduce CPU usage at startup
       JAVA_OPTS_APPEND: >-
         -Xms512m

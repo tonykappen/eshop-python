@@ -25,7 +25,16 @@
     <button onclick="testNetworkConnectivity()">Test Network</button>
     <button onclick="clearResults()">Clear Results</button>
     
+    <!-- Load configuration from config.js -->
+    <script src="config.js"></script>
     <script>
+        // Wait for config to load, then initialize
+        const API_BASE = window.APP_CONFIG?.API_BASE || 'http://localhost:8000';
+        // Note: CLIENT_ID and CLIENT_SECRET are no longer needed in frontend
+        // The backend handles client credentials server-side for security
+        const KEYCLOAK_SERVER_URL = window.APP_CONFIG?.KEYCLOAK_SERVER_URL || 'http://localhost:8080';
+        const KEYCLOAK_REALM = window.APP_CONFIG?.KEYCLOAK_REALM || 'eshop';
+        
         const results = document.getElementById('results');
         
         function addResult(message, type = 'info') {
@@ -44,8 +53,9 @@
             addResult('Testing Keycloak realm access...', 'info');
             
             try {
-                addResult('Trying localhost:8080...', 'info');
-                const response = await fetch('http://localhost:8080/realms/eshop');
+                const realmUrl = `${KEYCLOAK_SERVER_URL}/realms/${KEYCLOAK_REALM}`;
+                addResult(`Trying ${realmUrl}...`, 'info');
+                const response = await fetch(realmUrl);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -87,38 +97,17 @@
         
         async function testKeycloakAuth() {
             addResult('Testing Keycloak authentication via backend proxy...', 'info');
+            addResult('Note: Client credentials are handled server-side for security', 'info');
             
             try {
-                // Test direct Keycloak connection first
-                addResult('Testing direct Keycloak connection...', 'info');
-                try {
-                    const directResponse = await fetch('http://localhost:8080/realms/eshop/protocol/openid-connect/token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        mode: 'cors',
-                        body: new URLSearchParams({
-                            username: 'user',
-                            password: 'password',
-                            grant_type: 'password',
-                            client_id: 'eshop-api',
-                            client_secret: 'eshop-secure-client-secret-2024'
-                        })
-                    });
-                    
-                    if (directResponse.ok) {
-                        addResult('✅ Direct Keycloak connection works!', 'success');
-                    } else {
-                        addResult('❌ Direct Keycloak connection failed', 'error');
-                    }
-                } catch (directError) {
-                    addResult(`❌ Direct Keycloak failed: ${directError.message}`, 'error');
-                }
+                // Direct Keycloak test removed for security - client_secret should never be in frontend
+                // Always use the backend proxy which handles credentials server-side
+                addResult(' Direct Keycloak test skipped - use backend proxy for security', 'info');
                 
                 // Test backend proxy
+                // SECURITY: Do NOT send client_id or client_secret - backend handles this server-side
                 addResult('Testing backend proxy authentication...', 'info');
-                const response = await fetch('http://localhost:8000/api/v1/auth-proxy/token', {
+                const response = await fetch(`${API_BASE}/api/v1/auth-proxy/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -126,9 +115,8 @@
                     body: new URLSearchParams({
                         username: 'testuser',
                         password: 'changeme123',
-                        grant_type: 'password',
-                        client_id: 'eshop-api',
-                        client_secret: 'eshop-secure-client-secret-2024'
+                        grant_type: 'password'
+                        // client_id and client_secret are handled server-side for security
                     })
                 });
                 
@@ -160,7 +148,7 @@
             addResult('Testing backend health...', 'info');
             
             try {
-                const response = await fetch('http://localhost:8000/health');
+                const response = await fetch(`${API_BASE}/health`);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -179,8 +167,8 @@
             addResult('Testing network connectivity...', 'info');
             
             const testUrls = [
-                { name: 'Backend API', url: 'http://localhost:8000/health' },
-                { name: 'Keycloak (localhost)', url: 'http://localhost:8080' },
+                { name: 'Backend API', url: `${API_BASE}/health` },
+                { name: 'Keycloak (localhost)', url: KEYCLOAK_SERVER_URL },
                 { name: 'Keycloak (127.0.0.1)', url: 'http://127.0.0.1:8080' },
                 { name: 'Google DNS', url: 'https://8.8.8.8' },
                 { name: 'Internet (httpbin)', url: 'https://httpbin.org/get' }

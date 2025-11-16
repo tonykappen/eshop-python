@@ -27,16 +27,23 @@ async def proxy_token_request(
     username: str = Form(...),
     password: str = Form(...),
     grant_type: str = Form(default=settings.keycloak_grant_type),
-    client_id: str = Form(default=settings.keycloak_client_id),
-    client_secret: str = Form(default=settings.keycloak_client_secret),
 ) -> TokenResponse:
     """
     Proxy token requests to Keycloak.
 
     This endpoint acts as a proxy between the frontend and Keycloak
     to work around browser security restrictions on localhost requests.
+    
+    SECURITY: Client credentials (client_id and client_secret) are handled
+    server-side from settings to prevent exposure in browser network requests.
+    The frontend should NOT send these values.
     """
     try:
+        # Use server-side credentials from settings - never accept from client
+        # This prevents client_secret from being exposed in browser network requests
+        client_id = settings.keycloak_client_id
+        client_secret = settings.keycloak_client_secret
+        
         # Make request to Keycloak from backend
         async with httpx.AsyncClient() as client:
             response = await client.post(

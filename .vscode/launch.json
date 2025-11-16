@@ -48,8 +48,7 @@
                 "REDIS_PORT": "6379",
                 "RABBITMQ_HOST": "localhost",
                 "RABBITMQ_PORT": "5672",
-                "KEYCLOAK_SERVER_URL": "http://localhost:8080",
-                "KEYCLOAK_CLIENT_SECRET": "eshop-secure-client-secret-2024"
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080"
             },
             "justMyCode": false,
             "stopOnEntry": false
@@ -62,6 +61,7 @@
             "args": ["3000"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/frontend",
+            "envFile": "${workspaceFolder}/.env",
             "serverReadyAction": {
                 "pattern": "Serving HTTP on.*port 3000",
                 "uriFormat": "http://localhost:3000",

@@ -2,6 +2,7 @@
 
 import logging
 from decimal import Decimal
+from typing import Dict
 from uuid import uuid4
 
 from sqlalchemy import insert

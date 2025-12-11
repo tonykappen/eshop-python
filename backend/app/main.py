@@ -122,7 +122,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add authentication middleware
+# Add CLEF request/response logging middleware FIRST
+# IMPORTANT: FastAPI middleware executes in REVERSE order of registration (LIFO)
+# So we add CLEF FIRST so it runs AFTER auth middleware (which sets request.state.user)
+if settings.log_enable_request_logging:
+    add_clef_logging_middleware(
+        app,
+        exclude_health_checks=True,
+    )
+
+# Add authentication middleware SECOND
+# This ensures it runs BEFORE CLEF middleware, setting request.state.user
 add_auth_middleware(app)
 
 # Note: Keycloak routes will be added lazily after Keycloak setup is complete
@@ -133,13 +143,6 @@ add_pagination(app)
 
 # Add custom exception handlers
 add_exception_handlers(app)
-
-# Add CLEF request/response logging middleware (before other middleware)
-if settings.log_enable_request_logging:
-    add_clef_logging_middleware(
-        app,
-        exclude_health_checks=True,
-    )
 
 # from app.modules.basket.api.router import router as basket_router
 # from app.modules.ordering/api.router import router as ordering_router

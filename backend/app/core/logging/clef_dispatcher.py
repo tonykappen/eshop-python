@@ -4,9 +4,9 @@ import asyncio
 import contextlib
 import json
 from asyncio import Queue
-from datetime import date
+from datetime import datetime, date, time
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 try:
     import httpx
@@ -42,6 +42,73 @@ def _resolve_log_directory(log_directory: str) -> Path:
     return resolved_path
 
 
+def _categorize_event_stream(event: dict[str, Any]) -> Literal["access", "app", "events"]:
+    """
+    Categorize event into stream using smart pattern matching and field detection.
+    
+    Uses multiple heuristics:
+    1. message_name field (if present)
+    2. Event name patterns (prefixes/suffixes)
+    3. Field presence (db_statement, cache_operation, etc.)
+    
+    Args:
+        event: CLEF event dictionary
+        
+    Returns:
+        Stream name: "access", "app", or "events"
+    """
+    # Get message_name (canonical event type) or fall back to @m
+    message_name = event.get("message_name") or event.get("@m", "")
+    message_name_lower = message_name.lower()
+    
+    # ACCESS STREAM: HTTP lifecycle events
+    if message_name in ("begin_request", "response_sent"):
+        return "access"
+    
+    # EVENTS STREAM: Infrastructure and domain events
+    # Pattern 1: Check for specific field presence (most reliable)
+    if "db_statement" in event and event.get("db_statement"):
+        return "events"  # Database queries
+    
+    if "cache_operation" in event or "cache_key" in event:
+        return "events"  # Cache operations
+    
+    # Pattern 1b: Check logger name for SQLAlchemy/DB logs
+    logger_name = event.get("logger", "").lower()
+    if "sqlalchemy" in logger_name or "engine" in logger_name:
+        return "events"  # SQLAlchemy engine logs
+    
+    # Pattern 2: Check message_name prefixes/suffixes
+    event_prefixes = {
+        "db_",  # db_query, db_interceptor_*
+        "cache_",  # cache_get_*, cache_set, cache_delete, cache_clear
+        "domain_",  # domain_operation_*, domain_event_*
+        "outbox_",  # outbox_message_*
+        "integration_",  # integration_event_*
+    }
+    
+    for prefix in event_prefixes:
+        if message_name_lower.startswith(prefix):
+            return "events"
+    
+    # Pattern 3: Check for specific event name patterns
+    if any(
+        pattern in message_name_lower
+        for pattern in [
+            "_query",
+            "_interceptor",
+            "_event_published",
+            "_event_processed",
+            "_message_stored",
+            "_message_processed",
+        ]
+    ):
+        return "events"
+    
+    # APPLICATION STREAM: Everything else (mediator, validation, mapping, background tasks)
+    return "app"
+
+
 class CLEFLogDispatcher:
     """Async log dispatcher that sends CLEF events to Seq and NDJSON files."""
 
@@ -66,12 +133,14 @@ class CLEFLogDispatcher:
         self._task: asyncio.Task | None = None
         self._client: httpx.AsyncClient | None = None
         self._current_date = date.today()
+        self._current_hour = datetime.now().hour
         self._file_handles: dict[str, Any] = {}  # Track open file handles
 
-        # Create log directory
+        # Create log directory and archive subdirectory
         self.log_directory.mkdir(exist_ok=True, parents=True)
+        (self.log_directory / "archive").mkdir(exist_ok=True, parents=True)
 
-        # Initialize rotation check (handle files from previous days)
+        # Initialize rotation check (handle files from previous hours)
         self._rotate_ndjson_files_on_init()
 
         # Track stats
@@ -209,26 +278,31 @@ class CLEFLogDispatcher:
     async def _write_to_ndjson_batch(
         self, batch: list[dict[str, Any]], _fallback: bool = False
     ) -> None:
-        """Write batch to NDJSON files."""
+        """Write batch to NDJSON files using three-stream categorization."""
         try:
-            # Group events by type
+            # Group events by stream using smart categorization
             access_events = []
             app_events = []
+            events_stream = []
 
             for event in batch:
-                event_name = event.get("@m", "")
-                if event_name in ("begin_request", "response_sent"):
+                stream = _categorize_event_stream(event)
+                if stream == "access":
                     access_events.append(event)
-                else:
+                elif stream == "events":
+                    events_stream.append(event)
+                else:  # app
                     app_events.append(event)
 
-            # Write access logs
+            # Write to respective streams
             if access_events:
                 await self._append_to_file("access.ndjson", access_events)
 
-            # Write app logs
             if app_events:
                 await self._append_to_file("app.ndjson", app_events)
+
+            if events_stream:
+                await self._append_to_file("events.ndjson", events_stream)
 
             self.stats["sent_to_file"] += len(batch)
 
@@ -237,60 +311,57 @@ class CLEFLogDispatcher:
             print(f"Failed to write logs to file: {e}", flush=True)
 
     def _get_dated_filename(self, base_filename: str) -> str:
-        """Get the appropriate filename based on current date.
+        """Get the appropriate filename based on current hour.
         
-        Today's logs use base_filename (e.g., app.ndjson).
-        Previous days use base_filename_YYYY-MM-DD (e.g., app_2024-01-15.ndjson).
+        Current hour's logs use base_filename (e.g., app.ndjson).
+        Previous hours are rotated to archive folder.
         """
-        current_date = date.today()
+        now = datetime.now()
+        current_date = now.date()
+        current_hour = now.hour
         
-        # If date changed, rotate old files
-        if current_date != self._current_date:
+        # If date or hour changed, rotate old files
+        if current_date != self._current_date or current_hour != self._current_hour:
             self._rotate_ndjson_files()
             self._current_date = current_date
+            self._current_hour = current_hour
         
-        # Always return base filename for today (rotation happens at day boundary)
+        # Always return base filename for current hour (rotation happens at hour boundary)
         return base_filename
 
     def _rotate_ndjson_files_on_init(self) -> None:
-        """Check and rotate NDJSON files on initialization if they're from a previous day."""
-        current_date = date.today()
-        base_files = ["app.ndjson", "access.ndjson"]
+        """Check and rotate NDJSON files on initialization if they're from a previous hour."""
+        now = datetime.now()
+        current_date = now.date()
+        current_hour = now.hour
+        base_files = ["app.ndjson", "access.ndjson", "events.ndjson"]
         
         for base_file in base_files:
             file_path = self.log_directory / base_file
             if file_path.exists():
-                # Check file modification time to see if it's from today
-                file_mtime = date.fromtimestamp(file_path.stat().st_mtime)
+                # Check file modification time
+                file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                file_date = file_mtime.date()
+                file_hour = file_mtime.hour
                 
-                # If file is from a previous day, rename it
-                if file_mtime < current_date and file_path.stat().st_size > 0:
-                    base_name = file_path.stem
-                    extension = file_path.suffix
-                    dated_filename = f"{base_name}_{file_mtime.strftime('%Y-%m-%d')}{extension}"
-                    dated_path = self.log_directory / dated_filename
-                    
-                    try:
-                        file_path.rename(dated_path)
-                    except Exception as e:
-                        print(f"Failed to rotate {base_file} on init: {e}", flush=True)
+                # If file is from a previous hour, rotate it
+                if (file_date < current_date or 
+                    (file_date == current_date and file_hour < current_hour)) and \
+                   file_path.stat().st_size > 0:
+                    self._move_to_archive(file_path, file_mtime)
 
     def _rotate_ndjson_files(self) -> None:
-        """Rotate NDJSON files when date changes."""
-        yesterday = self._current_date
-        
+        """Rotate NDJSON files when hour changes (hourly rotation)."""
         # Files that need rotation
-        base_files = ["app.ndjson", "access.ndjson"]
+        base_files = ["app.ndjson", "access.ndjson", "events.ndjson"]
         
         for base_file in base_files:
             file_path = self.log_directory / base_file
             
-            # If file exists and has content, rename it with date
+            # If file exists and has content, move it to archive
             if file_path.exists() and file_path.stat().st_size > 0:
-                base_name = file_path.stem  # e.g., 'app' from 'app.ndjson'
-                extension = file_path.suffix  # e.g., '.ndjson'
-                dated_filename = f"{base_name}_{yesterday.strftime('%Y-%m-%d')}{extension}"
-                dated_path = self.log_directory / dated_filename
+                # Get file modification time
+                file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
                 
                 # Close any open handle for this file
                 if base_file in self._file_handles:
@@ -302,16 +373,39 @@ class CLEFLogDispatcher:
                         pass
                     del self._file_handles[base_file]
                 
-                # Rename the file
-                try:
-                    file_path.rename(dated_path)
-                except Exception as e:
-                    print(f"Failed to rotate {base_file}: {e}", flush=True)
+                # Move to archive
+                self._move_to_archive(file_path, file_mtime)
+    
+    def _move_to_archive(self, file_path: Path, file_mtime: datetime) -> None:
+        """
+        Move a log file to the archive folder with proper structure.
+        
+        Archive structure: logs/archive/YYYY-MM-DD/YYYY-MM-DD_HH_filename.ndjson
+        
+        Args:
+            file_path: Path to the file to archive
+            file_mtime: Modification time of the file
+        """
+        try:
+            # Create archive subdirectory for the date
+            archive_date_dir = self.log_directory / "archive" / file_mtime.strftime("%Y-%m-%d")
+            archive_date_dir.mkdir(exist_ok=True, parents=True)
+            
+            # Create archived filename: YYYY-MM-DD_HH_filename.ndjson
+            base_name = file_path.stem  # e.g., 'app' from 'app.ndjson'
+            extension = file_path.suffix  # e.g., '.ndjson'
+            archived_filename = f"{file_mtime.strftime('%Y-%m-%d_%H')}_{base_name}{extension}"
+            archived_path = archive_date_dir / archived_filename
+            
+            # Move file to archive
+            file_path.rename(archived_path)
+        except Exception as e:
+            print(f"Failed to archive {file_path.name}: {e}", flush=True)
 
     async def _append_to_file(
         self, filename: str, events: list[dict[str, Any]]
     ) -> None:
-        """Append events to NDJSON file with daily rotation."""
+        """Append events to NDJSON file with hourly rotation."""
         # Get the correct filename (rotates if needed)
         current_filename = self._get_dated_filename(filename)
         file_path = self.log_directory / current_filename

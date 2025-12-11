@@ -81,7 +81,7 @@ class BaseLogger:
             k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]
         }
         self.logger.error(
-            f"Error Message: {message}, Time of occurrence {log_entry['timestamp']}",
+            message,
             extra=extra_data,
         )
 
@@ -109,7 +109,7 @@ class BaseLogger:
         }
         log_func = getattr(self.logger, level.lower())
         log_func(
-            f"{level.title()}: {message}, Time of occurrence {log_entry['timestamp']}",
+            message,
             extra=extra_data,
         )
 
@@ -146,7 +146,7 @@ class BaseLogger:
             if k not in ["message", "error", "timestamp"]
         }
         self.logger.error(
-            f"Exception: {message}, Error: {str(exception)}, Time of occurrence {log_entry['timestamp']}",
+            f"Exception: {message}, Error: {str(exception)}",
             extra=extra_data,
             exc_info=True,
         )
@@ -187,7 +187,7 @@ class BaseLogger:
             k: v for k, v in log_entry.items() if k not in ["message", "timestamp"]
         }
         self.logger.info(
-            f"Security Event: {event_type}, Time of occurrence {log_entry['timestamp']}",
+            f"Security Event: {event_type}",
             extra=extra_data,
         )
 

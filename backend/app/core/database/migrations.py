@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import subprocess
 from pathlib import Path
 
 from sqlalchemy import text
@@ -11,29 +12,53 @@ from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Module configuration
+# ---------------------------------------------------------------------------
 
-# Module configurations with their schema names
-# Currently only catalog module is fully implemented
 MODULE_CONFIGS = [
     {
         "name": "catalog",
         "path": "app/modules/catalog",
         "schema": "catalog",
     },
-    # Basket and Ordering modules have placeholder migrations
-    # Uncomment and implement when these modules are ready
-    # {
-    #     "name": "basket",
-    #     "path": "app/modules/basket",
-    #     "schema": "basket",
-    # },
-    # {
-    #     "name": "ordering",
-    #     "path": "app/modules/ordering",
-    #     "schema": "ordering",
-    # },
+    # Future modules (basket, ordering) can be added here
 ]
 
+
+# ---------------------------------------------------------------------------
+# Cross-platform subprocess helper
+# ---------------------------------------------------------------------------
+
+async def _run_subprocess(
+    cmd: list[str],
+    cwd: str | None = None,
+    env: dict | None = None,
+) -> tuple[int, str, str]:
+    """
+    Run a subprocess in a way that works on both Linux and Windows.
+
+    Uses subprocess.run() in a worker thread via asyncio.to_thread(), so the
+    event loop is not blocked, and we avoid platform-specific asyncio
+    subprocess limitations (e.g., on Windows).
+    """
+    def _runner():
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return result.returncode, result.stdout or "", result.stderr or ""
+
+    return await asyncio.to_thread(_runner)
+
+
+# ---------------------------------------------------------------------------
+# Database readiness & schema creation
+# ---------------------------------------------------------------------------
 
 async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:
     """Wait for database to be ready."""
@@ -62,16 +87,13 @@ async def ensure_schemas_exist() -> None:
     """Ensure all required database schemas exist (module schemas only)."""
     logger.info("[SETUP] Ensuring database schemas exist...")
 
-    # Define all module schemas that need to be created
-    # Currently only catalog is active
-    # basket and ordering schemas are placeholders for future implementation
-    # Keycloak schema is handled by infra/migrations
+    # Currently only catalog is active; add more as modules are implemented
     schemas = ["catalog"]
 
     try:
         async with AsyncSessionLocal() as session:
             for schema_name in schemas:
-                logger.info(f"Creating schema: {schema_name}")
+                logger.info(f"Creating schema if not exists: {schema_name}")
                 await session.execute(
                     text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
                 )
@@ -79,9 +101,7 @@ async def ensure_schemas_exist() -> None:
             # Create UUID extension if not exists
             await session.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
 
-            # Commit the changes
             await session.commit()
-
             logger.info("[OK] All database schemas ensured successfully")
 
     except Exception as e:
@@ -89,14 +109,18 @@ async def ensure_schemas_exist() -> None:
         raise
 
 
+# ---------------------------------------------------------------------------
+# Migration entrypoint
+# ---------------------------------------------------------------------------
+
 async def run_migrations() -> None:
     """Run database migrations for all modules using Alembic."""
     try:
         logger.info("Running database migrations...")
 
         # Run infrastructure migrations first (Keycloak schema, etc.)
-        # Import here to avoid import errors when Alembic runs
         from infra.migrations import run_infrastructure_migrations
+
         await run_infrastructure_migrations()
 
         # Ensure module schemas exist
@@ -113,6 +137,10 @@ async def run_migrations() -> None:
         raise
 
 
+# ---------------------------------------------------------------------------
+# Per-module migrations
+# ---------------------------------------------------------------------------
+
 async def run_module_migrations(module_config: dict) -> None:
     """Run migrations for a specific module."""
     module_name = module_config["name"]
@@ -124,8 +152,7 @@ async def run_module_migrations(module_config: dict) -> None:
     )
 
     try:
-        # Determine backend directory (project root)
-        # Try to find backend directory from current working directory
+        # Determine backend directory (project root resolution)
         cwd = Path.cwd()
         if (cwd / "backend").exists():
             backend_root = cwd / "backend"
@@ -133,11 +160,11 @@ async def run_module_migrations(module_config: dict) -> None:
             backend_root = cwd
         else:
             backend_root = cwd
-        
-        # Build absolute path to module directory
+
+        # Absolute path to module directory
         module_path = backend_root / module_path_str
-        
-        # Check if alembic configuration exists
+
+        # Check Alembic config
         alembic_ini_path = module_path / "alembic.ini"
         if not alembic_ini_path.exists():
             logger.warning(
@@ -145,80 +172,80 @@ async def run_module_migrations(module_config: dict) -> None:
             )
             return
 
-        # Check if migrations directory exists (could be "alembic" or "migrations")
+        # Check migrations directory ("migrations" preferred, "alembic" fallback)
         migrations_dir = module_path / "migrations"
         if not migrations_dir.exists():
-            # Fallback to "alembic" for backwards compatibility
             migrations_dir = module_path / "alembic"
             if not migrations_dir.exists():
-                logger.warning(f"[WARNING] No migrations directory found for module {module_name}")
+                logger.warning(
+                    f"[WARNING] No migrations directory found for module {module_name}"
+                )
                 return
-        
-        # Check if versions directory exists
+
+        # Check versions directory
         versions_dir = migrations_dir / "versions"
         if not versions_dir.exists():
             logger.warning(
                 f"[WARNING] No versions directory found for module {module_name} at {versions_dir}"
             )
             return
-        
-        # Run migrations using Alembic command
-        # Set PYTHONPATH to include project root so both 'app' and 'infra' modules can be found
+
+        # Prepare environment so Alembic can import project modules
         env = dict(os.environ)
-        project_root = backend_root.parent if backend_root.name == "backend" else backend_root
+        project_root = (
+            backend_root.parent if backend_root.name == "backend" else backend_root
+        )
         pythonpath = str(project_root)
-        if "PYTHONPATH" in env:
-            # Use os.pathsep for cross-platform compatibility (; on Windows, : on Unix)
+        if "PYTHONPATH" in env and env["PYTHONPATH"]:
             pythonpath = f"{pythonpath}{os.pathsep}{env['PYTHONPATH']}"
         env["PYTHONPATH"] = pythonpath
-        
-        # Change working directory to module directory so script_location is resolved correctly
-        # Alembic resolves script_location relative to cwd, not the config file location
-        # Use relative path to alembic.ini since we're running from module_path
-        alembic_ini_relative = "alembic.ini"
-        process = await asyncio.create_subprocess_exec(
+
+        # Run Alembic upgrade
+        cmd = [
             "poetry",
             "run",
             "alembic",
             "-c",
-            alembic_ini_relative,
+            "alembic.ini",  # relative to module_path (cwd)
             "upgrade",
             "head",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        ]
+
+        returncode, stdout_str, stderr_str = await _run_subprocess(
+            cmd,
             cwd=str(module_path),
             env=env,
         )
 
-        stdout, stderr = await process.communicate()
-
-        if process.returncode != 0:
-            stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
-            stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
-            
-            # Combine both stdout and stderr for better error visibility
-            error_msg = f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}" if stdout_str or stderr_str else "Unknown error (no output captured)"
-            
+        if returncode != 0:
+            error_msg = (
+                f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}"
+                if stdout_str or stderr_str
+                else "Unknown error (no output captured)"
+            )
             logger.error(
                 f"[FAILED] Migration execution failed for module {module_name}: {error_msg}"
             )
-            # Don't raise here, continue with other modules
             logger.warning("[WARNING] Continuing with other modules...")
         else:
-            output = stdout.decode("utf-8", errors="replace") if stdout else ""
-            logger.debug(f"Migration output for {module_name}: {output}")
+            if stdout_str:
+                logger.debug(f"Migration output for {module_name}: {stdout_str}")
             logger.info(f"[OK] Migrations completed for module: {module_name}")
 
     except Exception as e:
         import traceback
+
         error_traceback = traceback.format_exc()
         logger.error(
             f"[FAILED] Migration execution failed for module {module_name}: {e}\n"
             f"Traceback: {error_traceback}"
         )
-        # Don't raise here, continue with other modules
         logger.warning("[WARNING] Continuing with other modules...")
 
+
+# ---------------------------------------------------------------------------
+# Migration creation helper
+# ---------------------------------------------------------------------------
 
 async def create_module_migration(module_name: str, message: str) -> None:
     """Create a new migration for a specific module."""
@@ -228,7 +255,19 @@ async def create_module_migration(module_name: str, message: str) -> None:
         logger.error(f"[FAILED] Module {module_name} not found in MODULE_CONFIGS")
         raise ValueError(f"Module {module_name} not found")
 
-    module_path = Path(module_config["path"])
+    module_path_str = module_config["path"]
+
+    # Determine backend directory (project root resolution)
+    cwd = Path.cwd()
+    if (cwd / "backend").exists():
+        backend_root = cwd / "backend"
+    elif cwd.name == "backend":
+        backend_root = cwd
+    else:
+        backend_root = cwd
+
+    # Absolute path to module directory
+    module_path = backend_root / module_path_str
     alembic_ini_path = module_path / "alembic.ini"
 
     if not alembic_ini_path.exists():
@@ -238,25 +277,37 @@ async def create_module_migration(module_name: str, message: str) -> None:
     logger.info(f"[CREATE] Creating migration for module {module_name}: {message}")
 
     try:
-        process = await asyncio.create_subprocess_exec(
+        # Prepare environment so Alembic can import project modules
+        env = dict(os.environ)
+        project_root = (
+            backend_root.parent if backend_root.name == "backend" else backend_root
+        )
+        pythonpath = str(project_root)
+        if "PYTHONPATH" in env and env["PYTHONPATH"]:
+            pythonpath = f"{pythonpath}{os.pathsep}{env['PYTHONPATH']}"
+        env["PYTHONPATH"] = pythonpath
+
+        # Run Alembic revision
+        cmd = [
             "poetry",
             "run",
             "alembic",
             "-c",
-            str(alembic_ini_path),
+            "alembic.ini",  # relative to module_path (cwd)
             "revision",
             "--autogenerate",
             "-m",
             message,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=Path.cwd() / "backend",
+        ]
+
+        returncode, stdout_str, stderr_str = await _run_subprocess(
+            cmd,
+            cwd=str(module_path),
+            env=env,
         )
 
-        stdout, stderr = await process.communicate()
-
-        if process.returncode != 0:
-            error_msg = stderr.decode() if stderr else "Unknown error"
+        if returncode != 0:
+            error_msg = stderr_str or "Unknown error"
             logger.error(
                 f"[FAILED] Migration creation failed for module {module_name}: {error_msg}"
             )
@@ -264,10 +315,12 @@ async def create_module_migration(module_name: str, message: str) -> None:
                 f"Migration creation failed for {module_name}: {error_msg}"
             )
 
-        output = stdout.decode() if stdout else ""
         logger.info(f"[OK] Migration created for module {module_name}")
-        logger.debug(f"Migration creation output: {output}")
+        if stdout_str:
+            logger.debug(f"Migration creation output: {stdout_str}")
 
     except Exception as e:
-        logger.error(f"[FAILED] Failed to create migration for module {module_name}: {e}")
+        logger.error(
+            f"[FAILED] Failed to create migration for module {module_name}: {e}"
+        )
         raise

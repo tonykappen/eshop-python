@@ -25,6 +25,8 @@ class KeycloakUser(BaseModel):
     name: str | None = None
     preferred_username: str | None = None
     roles: list[str] = []
+    jti: str | None = None  # JWT Token ID
+    sid: str | None = None  # Keycloak Session ID
 
 
 class KeycloakService:
@@ -203,6 +205,8 @@ class KeycloakService:
             name=token_info.get("name"),
             preferred_username=token_info.get("preferred_username"),
             roles=token_info.get("realm_access", {}).get("roles", []),
+            jti=token_info.get("jti"),  # JWT Token ID
+            sid=token_info.get("sid"),  # Keycloak Session ID
         )
 
         return user

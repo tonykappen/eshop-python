@@ -8,10 +8,10 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.domain.product.repository import ProductRepository
+from app.modules.catalog.domain.entities.product.product import Product
+from app.modules.catalog.domain.repositories.product.product_repository import ProductRepository
 from app.modules.catalog.domain.value_objects import Money, SKU
-from app.modules.catalog.infrastructure.persistence.models.product_orm import ProductORM
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 
 logger = logging.getLogger(__name__)
 

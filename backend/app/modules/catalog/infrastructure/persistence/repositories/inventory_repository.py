@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.domain.inventory.models.inventory_item import InventoryItem
+from app.modules.catalog.domain.entities.inventory import InventoryItem
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.infrastructure.persistence.models.inventory_item_orm import InventoryItemORM
+from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import InventoryItemORM
 
 logger = logging.getLogger(__name__)
 

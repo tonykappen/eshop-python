@@ -5,7 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.core.domain.repository import Repository
-from app.modules.catalog.domain.inventory.models.inventory_item import InventoryItem
+from app.modules.catalog.domain.entities.inventory import InventoryItem
 
 
 class InventoryRepository(Repository[InventoryItem, UUID], ABC):

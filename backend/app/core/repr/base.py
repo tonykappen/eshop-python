@@ -204,12 +204,19 @@ class CQRSEndpoint(Endpoint[TRequest, TResponse], Generic[TRequest, TResponse]):
         # Use the unified send method - matches .NET ISender.Send()
         # Get cancellation token from request
         cancellation_token = CancellationToken(request)
-        result = await self.mediator.send(command_or_query, cancellation_token)
+        try:
+            result = await self.mediator.send(command_or_query, cancellation_token)
 
-        # Step 3: Result -> Response
-        response = await self.result_mapper.map_to_response(result, request)
-
-        return response
+            # Step 3: Result -> Response
+            response = await self.result_mapper.map_to_response(result, request)
+            
+            # Mark token as completed before returning (prevents false disconnection logs)
+            cancellation_token.mark_completed()
+            
+            return response
+        finally:
+            # Always cleanup the cancellation token
+            await cancellation_token.cleanup()
 
 
 class CommandEndpoint(CQRSEndpoint[TRequest, TResponse], Generic[TRequest, TResponse]):

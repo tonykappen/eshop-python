@@ -36,7 +36,8 @@ from app.core.lifecycle.manager import (
 )
 from app.core.logging.clef_middleware import add_clef_logging_middleware
 from app.core.middleware.auth_middleware import add_auth_middleware
-from app.modules.catalog.catalog_module import register_catalog_module_with_fastapi
+from app.modules.catalog.module_interface.router import register_catalog_module_with_fastapi
+from app.module_interface.router import create_root_router
 
 
 @asynccontextmanager
@@ -77,7 +78,7 @@ async def register_catalog_router():
     except Exception as e:
         print(f"Warning: Could not register catalog router: {e}")
         # Fallback to basic router
-        from app.modules.catalog.api.router import router as catalog_router
+        from app.modules.catalog.presentation.router import router as catalog_router
         app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 
 
@@ -147,7 +148,12 @@ add_exception_handlers(app)
 # from app.modules.basket.api.router import router as basket_router
 # from app.modules.ordering/api.router import router as ordering_router
 
+# Include root router from global module_interface (includes health)
+root_router = create_root_router()
+app.include_router(root_router)
+
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
+# Health router is now included via root_router, but keeping for backward compatibility
 app.include_router(health_router)
 
 # app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])

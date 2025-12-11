@@ -6,21 +6,22 @@ from typing import Any
 from app.modules.catalog.application.integration_event_handlers.inventory.react_to_stock_adjusted_integration_event_handler import (
     ReactToStockAdjustedIntegrationEventHandler,
 )
-from app.modules.catalog.application.integration_event_handlers.product.publish_product_created_integration_event_handler import (
+from app.modules.catalog.application.integration_event_handlers.products.publish_product_created_integration_event_handler import (
     PublishProductCreatedIntegrationEventHandler,
 )
-from app.modules.catalog.domain.category.domain_event_handlers.category_created_domain_event_handler import (
+from app.modules.catalog.application.domain_event_handlers.category.category_created_domain_event_handler import (
     CategoryCreatedDomainEventHandler,
 )
-from app.modules.catalog.domain.inventory.domain_event_handlers.stock_adjusted_domain_event_handler import (
+from app.modules.catalog.application.domain_event_handlers.inventory.stock_adjusted_domain_event_handler import (
     StockAdjustedDomainEventHandler,
 )
-from app.modules.catalog.domain.product.domain_event_handlers.product_created_domain_event_handler import (
-    ProductCreatedDomainEventHandler,
-)
-from app.modules.catalog.domain.product.domain_event_handlers.product_price_changed_domain_event_handler import (
-    ProductPriceChangedDomainEventHandler,
-)
+# TODO: Create domain event handlers for products
+# from app.modules.catalog.domain.domain_event_handlers.products.product_created_domain_event_handler import (
+#     ProductCreatedDomainEventHandler,
+# )
+# from app.modules.catalog.domain.domain_event_handlers.products.product_price_changed_domain_event_handler import (
+#     ProductPriceChangedDomainEventHandler,
+# )
 from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
     domain_event_dispatcher,
 )
@@ -58,16 +59,12 @@ class DomainEventSubscriptions:
 
     def _setup_product_subscriptions(self) -> None:
         """Set up product domain event subscriptions."""
-        from app.modules.catalog.domain.product.domain_events.product_created_domain_event import (
+        from app.modules.catalog.domain.domain_events.products.product_created_domain_event import (
             ProductCreatedDomainEvent,
         )
-        from app.modules.catalog.domain.product.domain_events.product_price_changed_domain_event import (
+        from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
             ProductPriceChangedDomainEvent,
         )
-        
-        # Product created domain event
-        product_created_handler = ProductCreatedDomainEventHandler()
-        domain_event_dispatcher.register_handler(ProductCreatedDomainEvent, product_created_handler)
         
         # Product created integration event publisher
         if self.event_publisher:
@@ -79,12 +76,25 @@ class DomainEventSubscriptions:
                 product_created_integration_handler.handle
             )
         
-        # Product price changed domain event
-        product_price_changed_handler = ProductPriceChangedDomainEventHandler()
-        domain_event_dispatcher.register_handler(
-            ProductPriceChangedDomainEvent, 
-            product_price_changed_handler
+        # Product created domain event handler (internal reactions)
+        from app.modules.catalog.application.domain_event_handlers.products.product_created_domain_event_handler import (
+            ProductCreatedDomainEventHandler,
         )
+        product_created_handler = ProductCreatedDomainEventHandler()
+        domain_event_dispatcher.register_handler(ProductCreatedDomainEvent, product_created_handler.handle)
+        
+        # Product price changed domain event bus handler (domain → integration event)
+        from app.modules.catalog.application.domain_event_bus_handlers.products.product_price_changed_domain_event_handler import (
+            ProductPriceChangedDomainEventBusHandler,
+        )
+        if self.event_publisher:
+            product_price_changed_bus_handler = ProductPriceChangedDomainEventBusHandler(
+                event_publisher=self.event_publisher
+            )
+            domain_event_dispatcher.register_handler(
+                ProductPriceChangedDomainEvent, 
+                product_price_changed_bus_handler.handle
+            )
         
         logger.debug("Product domain event subscriptions set up")
 

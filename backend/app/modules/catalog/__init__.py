@@ -3,7 +3,7 @@
 # Database seeding will be enabled when SQLAlchemy is available
 try:
     from app.core.database.seeding import register_seeder
-    from app.modules.catalog.infrastructure.seed.catalog_data_seeder import (
+    from app.modules.catalog.infrastructure.seeding.products.catalog_data_seeder import (
         CatalogDataSeeder,
     )
     

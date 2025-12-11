@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.domain.product.models.product import Product
+from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import Money, SKU
-from app.modules.catalog.infrastructure.orm_models import ProductORM
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 
 logger = logging.getLogger(__name__)
 

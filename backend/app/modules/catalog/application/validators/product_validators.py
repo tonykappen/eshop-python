@@ -3,9 +3,9 @@
 from uuid import UUID
 
 from app.core.validation.validators import AbstractValidator, ValidationResult
-from app.modules.catalog.application.handlers.create_product_handler import CreateProductCommand
-from app.modules.catalog.application.handlers.delete_product_handler import DeleteProductCommand
-from app.modules.catalog.application.handlers.update_product_handler import UpdateProductCommand
+from app.modules.catalog.application.features.products.commands.create_product.command import CreateProductCommand
+from app.modules.catalog.application.features.products.commands.delete_product.command import DeleteProductCommand
+from app.modules.catalog.application.features.products.commands.update_product.command import UpdateProductCommand
 
 
 class CreateProductCommandValidator(AbstractValidator[CreateProductCommand]):

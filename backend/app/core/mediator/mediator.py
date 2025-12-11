@@ -5,7 +5,7 @@ from typing import Any, TypeVar, Union
 
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.logging.base_logger import BaseLogger
-from app.core.mediator.behaviors import LoggingBehavior, ValidationBehavior
+from app.core.application.behaviors import AuthorizationBehavior, LoggingBehavior, ValidationBehavior
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import HandlerRegistry
 
@@ -37,7 +37,12 @@ class Mediator(IMediator):
         self.logger = BaseLogger(__name__)
 
         # Pipeline behaviors (matches .NET MediatR behaviors)
-        self.behaviors: list[Any] = [ValidationBehavior(), LoggingBehavior()]
+        # Order matters: validation -> authorization -> logging -> handler
+        self.behaviors: list[Any] = [
+            ValidationBehavior(),
+            AuthorizationBehavior(),
+            LoggingBehavior(),
+        ]
 
     async def send(
         self,

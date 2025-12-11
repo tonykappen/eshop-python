@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.domain.category.models.category import Category
+from app.modules.catalog.domain.entities.category import Category
 from app.modules.catalog.domain.category.repository import CategoryRepository
-from app.modules.catalog.infrastructure.persistence.models.category_orm import CategoryORM
+from app.modules.catalog.infrastructure.persistence.orm.category_orm import CategoryORM
 
 logger = logging.getLogger(__name__)
 

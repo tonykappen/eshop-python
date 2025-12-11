@@ -1,139 +1,132 @@
-"""Product mapper for domain ↔ DTO ↔ contract conversions."""
+"""Product mapper - facade over core.mapping.object_mapper for product-related mappings."""
 
-from decimal import Decimal
+from typing import Any, TypeVar
 
-from app.modules.catalog.application.dvos.product_dvo import ProductDVO
-from app.modules.catalog.contracts.product.dtos import ProductDto
-from app.modules.catalog.domain.product.models.product import Product
-from app.modules.catalog.domain.value_objects import Money
+from app.core.mapping.mapper import (
+    MsgspecMapper,
+    map_list_to_dtos,
+    map_list_to_entities,
+    map_to_dto,
+    map_to_entity,
+)
+
+T = TypeVar("T")
 
 
 class ProductMapper:
-    """Mapper for Product domain model conversions."""
+    """
+    Simple facade over core.mapping.object_mapper for product-related flows.
+    
+    This provides a catalog-specific interface to the core mapping engine,
+    making it easier to use mapping in product handlers and services.
+    """
 
     @staticmethod
-    def domain_to_dvo(product: Product) -> ProductDVO:
+    def map_to_dto(entity: Any, dto_class: type[T]) -> T:
         """
-        Convert Product domain model to ProductDVO.
+        Map a product entity to a DTO using the core mapper.
         
         Args:
-            product: Product domain model
+            entity: Product entity or domain model
+            dto_class: Target DTO class
             
         Returns:
-            ProductDVO
+            Mapped DTO instance
         """
-        return ProductDVO(
-            id=product.id,
-            name=product.name,
-            sku=str(product.sku),
-            category=product.category,
-            description=product.description,
-            image_file=product.image_file,
-            price_amount=product.price.amount,
-            price_currency=product.price.currency,
-            version=product.version,
-            created_at=product.created_at.isoformat() if product.created_at else "",
-            updated_at=product.updated_at.isoformat() if product.updated_at else "",
-        )
+        return map_to_dto(entity, dto_class)
 
     @staticmethod
-    def dvo_to_domain(dvo: ProductDVO) -> Product:
+    def map_to_entity(dto: Any, entity_class: type[T]) -> T:
         """
-        Convert ProductDVO to Product domain model.
+        Map a product DTO to an entity using the core mapper.
         
         Args:
-            dvo: ProductDVO
+            dto: Product DTO
+            entity_class: Target entity class
             
         Returns:
-            Product domain model
+            Mapped entity instance
         """
-        return Product(
-            id=dvo.id,
-            name=dvo.name,
-            sku=SKU(value=dvo.sku),
-            category=dvo.category,
-            description=dvo.description,
-            image_file=dvo.image_file,
-            price=Money(amount=dvo.price_amount, currency=dvo.price_currency),
-            version=dvo.version,
-        )
+        return map_to_entity(dto, entity_class)
 
     @staticmethod
-    def dvo_to_dto(dvo: ProductDVO) -> ProductDto:
+    def map_list_to_dtos(entities: list[Any], dto_class: type[T]) -> list[T]:
         """
-        Convert ProductDVO to ProductDto.
+        Map a list of product entities to DTOs using the core mapper.
         
         Args:
-            dvo: ProductDVO
+            entities: List of product entities
+            dto_class: Target DTO class
             
         Returns:
-            ProductDto
+            List of mapped DTO instances
         """
-        return ProductDto(
-            id=str(dvo.id),
-            name=dvo.name,
-            sku=dvo.sku,
-            category=dvo.category,
-            description=dvo.description,
-            image_file=dvo.image_file,
-            price=float(dvo.price_amount),
-            currency=dvo.price_currency,
-            version=dvo.version,
-            created_at=dvo.created_at,
-            updated_at=dvo.updated_at,
-        )
+        return map_list_to_dtos(entities, dto_class)
 
     @staticmethod
-    def dto_to_dvo(dto: ProductDto) -> ProductDVO:
+    def map_list_to_entities(dtos: list[Any], entity_class: type[T]) -> list[T]:
         """
-        Convert ProductDto to ProductDVO.
+        Map a list of product DTOs to entities using the core mapper.
         
         Args:
-            dto: ProductDto
+            dtos: List of product DTOs
+            entity_class: Target entity class
             
         Returns:
-            ProductDVO
+            List of mapped entity instances
         """
-        return ProductDVO(
-            id=UUID(dto.id),
-            name=dto.name,
-            sku=dto.sku,
-            category=dto.category,
-            description=dto.description,
-            image_file=dto.image_file,
-            price_amount=Decimal(str(dto.price)),
-            price_currency=dto.currency,
-            version=dto.version,
-            created_at=dto.created_at,
-            updated_at=dto.updated_at,
-        )
+        return map_list_to_entities(dtos, entity_class)
 
     @staticmethod
-    def domain_to_dto(product: Product) -> ProductDto:
+    def to_json(obj: Any) -> str:
         """
-        Convert Product domain model to ProductDto.
+        Serialize a product object to JSON string.
         
         Args:
-            product: Product domain model
+            obj: Product object to serialize
             
         Returns:
-            ProductDto
+            JSON string representation
         """
-        dvo = ProductMapper.domain_to_dvo(product)
-        return ProductMapper.dvo_to_dto(dvo)
+        return MsgspecMapper.to_json(obj)
 
     @staticmethod
-    def dto_to_domain(dto: ProductDto) -> Product:
+    def from_json(json_str: str, target_class: type[T]) -> T:
         """
-        Convert ProductDto to Product domain model.
+        Deserialize a JSON string to a product object.
         
         Args:
-            dto: ProductDto
+            json_str: JSON string to deserialize
+            target_class: Target class type
             
         Returns:
-            Product domain model
+            Deserialized object instance
         """
-        dvo = ProductMapper.dto_to_dvo(dto)
-        return ProductMapper.dvo_to_domain(dvo)
+        return MsgspecMapper.from_json(json_str, target_class)
 
+    @staticmethod
+    def to_redis(obj: Any) -> bytes:
+        """
+        Serialize a product object to bytes for Redis storage.
+        
+        Args:
+            obj: Product object to serialize
+            
+        Returns:
+            Bytes representation
+        """
+        return MsgspecMapper.to_redis(obj)
 
+    @staticmethod
+    def from_redis(data: bytes, target_class: type[T]) -> T:
+        """
+        Deserialize bytes from Redis to a product object.
+        
+        Args:
+            data: Bytes data from Redis
+            target_class: Target class type
+            
+        Returns:
+            Deserialized object instance
+        """
+        return MsgspecMapper.from_redis(data, target_class)

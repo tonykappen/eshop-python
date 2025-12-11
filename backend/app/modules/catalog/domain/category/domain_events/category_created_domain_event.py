@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import Field
 
 from app.core.domain.events import DomainEvent
-from app.modules.catalog.domain.category.models.category import Category
+from app.modules.catalog.domain.entities.category import Category
 
 
 class CategoryCreatedDomainEvent(DomainEvent):

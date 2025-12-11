@@ -1,0 +1,3 @@
+"""Tests mirroring app structure."""
+
+

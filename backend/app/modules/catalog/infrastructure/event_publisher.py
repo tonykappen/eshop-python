@@ -9,14 +9,8 @@ from faststream.rabbit import RabbitBroker, RabbitMessage
 
 from app.config.settings import settings
 from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.domain.integration_events import (
-    ProductCreatedIntegrationEvent,
-    ProductDeletedIntegrationEvent,
-    ProductDiscontinuedIntegrationEvent,
-    ProductInventoryUpdatedIntegrationEvent,
-    ProductPriceChangedIntegrationEvent,
-    ProductUpdatedIntegrationEvent,
-)
+# Integration events are imported directly in the methods that use them
+# to avoid circular imports and to use the V1 classes directly
 
 logger = BaseLogger(__name__)
 
@@ -121,6 +115,11 @@ class CatalogEventPublisher:
         product_name: str,
         price: float,
         category_id: UUID | None = None,
+        product_sku: str | None = None,
+        product_categories: list[str] | None = None,
+        product_description: str | None = None,
+        product_image_file: str | None = None,
+        product_price_currency: str = "USD",
         **additional_data: Any,
     ) -> None:
         """Publish product created integration event."""
@@ -128,17 +127,27 @@ class CatalogEventPublisher:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
             
-            event = ProductCreatedIntegrationEvent(
+            # Use the create method from ProductCreatedIntegrationEventV1
+            # Import the V1 class directly
+            from app.modules.catalog.application.integration_events.products.product_created_integration_event_v1 import (
+                ProductCreatedIntegrationEventV1,
+            )
+            
+            event = ProductCreatedIntegrationEventV1.create(
                 product_id=product_id,
                 product_name=product_name,
-                price=price,
-                category_id=category_id,
-                **additional_data,
+                product_sku=product_sku or f"SKU-{product_id}",
+                product_categories=product_categories or [],
+                product_description=product_description or "",
+                product_image_file=product_image_file or "",
+                product_price_amount=price,
+                product_price_currency=product_price_currency,
+                metadata=additional_data,
             )
             
             await self.broker.publish(
                 event.model_dump(),
-                routing_key=event.routing_key,
+                routing_key=f"product.created",
                 exchange=self.exchange_name,
             )
             
@@ -152,6 +161,9 @@ class CatalogEventPublisher:
         old_price: float,
         new_price: float,
         price_change_reason: str | None = None,
+        product_name: str | None = None,
+        product_sku: str | None = None,
+        price_currency: str = "USD",
         **additional_data: Any,
     ) -> None:
         """Publish product price changed integration event."""
@@ -159,17 +171,25 @@ class CatalogEventPublisher:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
             
-            event = ProductPriceChangedIntegrationEvent(
+            # Use the create method from ProductPriceChangedIntegrationEventV1
+            # Import the V1 class directly
+            from app.modules.catalog.application.integration_events.products.product_price_changed_integration_event_v1 import (
+                ProductPriceChangedIntegrationEventV1,
+            )
+            
+            event = ProductPriceChangedIntegrationEventV1.create(
                 product_id=product_id,
-                old_price=old_price,
-                new_price=new_price,
-                price_change_reason=price_change_reason,
-                **additional_data,
+                product_name=product_name or f"Product-{product_id}",
+                product_sku=product_sku or f"SKU-{product_id}",
+                old_price_amount=old_price,
+                new_price_amount=new_price,
+                price_currency=price_currency,
+                metadata=additional_data,
             )
             
             await self.broker.publish(
                 event.model_dump(),
-                routing_key=event.routing_key,
+                routing_key=f"product.price_changed",
                 exchange=self.exchange_name,
             )
             
@@ -186,27 +206,8 @@ class CatalogEventPublisher:
         **additional_data: Any,
     ) -> None:
         """Publish product inventory updated integration event."""
-        try:
-            # Ensure broker is connected before publishing
-            await self._ensure_connected()
-            
-            event = ProductInventoryUpdatedIntegrationEvent(
-                product_id=product_id,
-                old_quantity=old_quantity,
-                new_quantity=new_quantity,
-                warehouse_id=warehouse_id,
-                **additional_data,
-            )
-            
-            await self.broker.publish(
-                event.model_dump(),
-                routing_key=event.routing_key,
-                exchange=self.exchange_name,
-            )
-            
-            logger.info(f"Published ProductInventoryUpdated event for product {product_id}")
-        except Exception as e:
-            logger.error(f"Failed to publish ProductInventoryUpdated event for product {product_id}: {e}")
+        # TODO: Implement when ProductInventoryUpdatedIntegrationEvent is created
+        logger.warning(f"ProductInventoryUpdated event not yet implemented for product {product_id}")
 
     async def publish_product_updated(
         self,
@@ -219,29 +220,8 @@ class CatalogEventPublisher:
         **additional_data: Any,
     ) -> None:
         """Publish product updated integration event."""
-        try:
-            # Ensure broker is connected before publishing
-            await self._ensure_connected()
-            
-            event = ProductUpdatedIntegrationEvent(
-                product_id=product_id,
-                product_name=product_name,
-                price=price,
-                description=description,
-                category=category,
-                image_file=image_file,
-                **additional_data,
-            )
-            
-            await self.broker.publish(
-                event.model_dump(),
-                routing_key=event.routing_key,
-                exchange=self.exchange_name,
-            )
-            
-            logger.info(f"Published ProductUpdated event for product {product_id}")
-        except Exception as e:
-            logger.error(f"Failed to publish ProductUpdated event for product {product_id}: {e}")
+        # TODO: Implement when ProductUpdatedIntegrationEvent is created
+        logger.warning(f"ProductUpdated event not yet implemented for product {product_id}")
 
     async def publish_product_deleted(
         self,
@@ -252,27 +232,8 @@ class CatalogEventPublisher:
         **additional_data: Any,
     ) -> None:
         """Publish product deleted integration event."""
-        try:
-            # Ensure broker is connected before publishing
-            await self._ensure_connected()
-            
-            event = ProductDeletedIntegrationEvent(
-                product_id=product_id,
-                product_name=product_name,
-                deleted_at=deleted_at,
-                reason=reason,
-                **additional_data,
-            )
-            
-            await self.broker.publish(
-                event.model_dump(),
-                routing_key=event.routing_key,
-                exchange=self.exchange_name,
-            )
-            
-            logger.info(f"Published ProductDeleted event for product {product_id}")
-        except Exception as e:
-            logger.error(f"Failed to publish ProductDeleted event for product {product_id}: {e}")
+        # TODO: Implement when ProductDeletedIntegrationEvent is created
+        logger.warning(f"ProductDeleted event not yet implemented for product {product_id}")
 
     async def publish_product_discontinued(
         self,
@@ -283,27 +244,8 @@ class CatalogEventPublisher:
         **additional_data: Any,
     ) -> None:
         """Publish product discontinued integration event."""
-        try:
-            # Ensure broker is connected before publishing
-            await self._ensure_connected()
-            
-            event = ProductDiscontinuedIntegrationEvent(
-                product_id=product_id,
-                discontinuation_date=discontinuation_date,
-                reason=reason,
-                replacement_product_id=replacement_product_id,
-                **additional_data,
-            )
-            
-            await self.broker.publish(
-                event.model_dump(),
-                routing_key=event.routing_key,
-                exchange=self.exchange_name,
-            )
-            
-            logger.info(f"Published ProductDiscontinued event for product {product_id}")
-        except Exception as e:
-            logger.error(f"Failed to publish ProductDiscontinued event for product {product_id}: {e}")
+        # TODO: Implement when ProductDiscontinuedIntegrationEvent is created
+        logger.warning(f"ProductDiscontinued event not yet implemented for product {product_id}")
 
     async def start(self) -> None:
         """Start the event publisher."""

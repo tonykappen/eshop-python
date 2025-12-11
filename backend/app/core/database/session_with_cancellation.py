@@ -26,6 +26,8 @@ async def get_db_session_with_cancellation(
 
         try:
             yield session, cancellation_token
+            # Mark as completed if we reach here (no exception)
+            cancellation_token.mark_completed()
         except Exception as e:
             # If any exception occurs, rollback the session
             logger.log_error_with_context(
@@ -57,6 +59,8 @@ async def db_transaction_with_cancellation(
                 logger.log_debug_with_context(
                     "Database transaction committed successfully"
                 )
+                # Mark as completed after successful commit
+                cancellation_token.mark_completed()
             else:
                 # If cancelled, rollback
                 await session.rollback()

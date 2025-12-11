@@ -1,4 +1,9 @@
-"""Outbox pattern implementation for reliable messaging."""
+"""Outbox pattern implementation for reliable messaging.
+
+NOTE: This module is kept for backward compatibility.
+New code should use app.core.messaging.outbox instead.
+The core outbox provides the same functionality with better separation of concerns.
+"""
 
 import json
 import logging

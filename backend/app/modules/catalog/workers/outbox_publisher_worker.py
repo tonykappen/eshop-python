@@ -8,10 +8,11 @@ from typing import Optional
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.infrastructure.messaging.outbox import OutboxPublisher, OutboxMessage, OutboxMessageStatus
+from app.core.messaging.outbox import OutboxMessage, OutboxMessageStatus
+from app.modules.catalog.infrastructure.messaging.outbox import OutboxPublisher  # Keep for backward compatibility
 from app.modules.catalog.infrastructure.messaging.bus import InMemoryMessageBus
-from app.modules.catalog.infrastructure.persistence.db_session import get_session
-from app.modules.catalog.infrastructure.persistence.models.outbox_orm import OutboxORM
+from app.modules.catalog.infrastructure.persistence.db_context import get_session
+from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import OutboxORM
 
 logger = logging.getLogger(__name__)
 

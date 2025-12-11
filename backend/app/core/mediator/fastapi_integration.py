@@ -36,7 +36,7 @@ def configure_mediator() -> None:
 def _register_module_handlers(handler_registry: HandlerRegistry) -> None:
     """Register all module handlers."""
     # Register catalog module handlers
-    from app.modules.catalog.application.handlers.catalog_handler_registration import (
+    from app.modules.catalog.application.catalog_handler_registration import (
         register_catalog_handlers,
     )
 

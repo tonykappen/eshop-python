@@ -18,7 +18,7 @@ from app.core.exceptions.base import (
 )
 from app.core.exceptions.base import ValidationError as CustomValidationError
 from app.core.exceptions.handler import CustomExceptionHandler
-from app.modules.catalog.domain.exceptions import ProductNotFoundError
+from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
 
 
 class TestBaseExceptions:

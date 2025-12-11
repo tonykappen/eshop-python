@@ -5,7 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.core.domain.repository import Repository
-from app.modules.catalog.domain.category.models.category import Category
+from app.modules.catalog.domain.entities.category import Category
 
 
 class CategoryRepository(Repository[Category, UUID], ABC):

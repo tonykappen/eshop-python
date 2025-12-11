@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import Field
 
 from app.core.domain.events import DomainEvent
-from app.modules.catalog.domain.inventory.models.inventory_item import InventoryItem
+from app.modules.catalog.domain.entities.inventory import InventoryItem
 
 
 class StockReservedDomainEvent(DomainEvent):

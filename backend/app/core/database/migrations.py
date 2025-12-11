@@ -172,23 +172,36 @@ async def run_module_migrations(module_config: dict) -> None:
             )
             return
 
-        # Check migrations directory ("migrations" preferred, "alembic" fallback)
-        migrations_dir = module_path / "migrations"
-        if not migrations_dir.exists():
-            migrations_dir = module_path / "alembic"
+        # Check migrations directory - try multiple locations:
+        # 1. Blueprint location: infrastructure/persistence/migrations/products/versions/
+        # 2. Standard location: migrations/versions/ or alembic/versions/
+        versions_dir = None
+        use_blueprint_location = False
+        
+        # Try blueprint location first (infrastructure/persistence/migrations/products/versions/)
+        blueprint_versions_dir = module_path / "infrastructure" / "persistence" / "migrations" / "products" / "versions"
+        if blueprint_versions_dir.exists() and (blueprint_versions_dir / "versions").exists():
+            versions_dir = blueprint_versions_dir / "versions"
+            use_blueprint_location = True
+            logger.info(f"Found blueprint migration location for {module_name}: {versions_dir}")
+        else:
+            # Try standard locations
+            migrations_dir = module_path / "migrations"
             if not migrations_dir.exists():
+                migrations_dir = module_path / "alembic"
+                if not migrations_dir.exists():
+                    logger.warning(
+                        f"[WARNING] No migrations directory found for module {module_name}"
+                    )
+                    return
+            
+            # Check versions directory
+            versions_dir = migrations_dir / "versions"
+            if not versions_dir.exists():
                 logger.warning(
-                    f"[WARNING] No migrations directory found for module {module_name}"
+                    f"[WARNING] No versions directory found for module {module_name} at {versions_dir}"
                 )
                 return
-
-        # Check versions directory
-        versions_dir = migrations_dir / "versions"
-        if not versions_dir.exists():
-            logger.warning(
-                f"[WARNING] No versions directory found for module {module_name} at {versions_dir}"
-            )
-            return
 
         # Prepare environment so Alembic can import project modules
         env = dict(os.environ)
@@ -200,20 +213,25 @@ async def run_module_migrations(module_config: dict) -> None:
             pythonpath = f"{pythonpath}{os.pathsep}{env['PYTHONPATH']}"
         env["PYTHONPATH"] = pythonpath
 
+        # Use alembic.ini at module root (it now points to the correct script_location)
+        alembic_ini_path = module_path / "alembic.ini"
+        alembic_cwd = str(module_path)
+        alembic_config = "alembic.ini"  # relative to module_path
+
         # Run Alembic upgrade
         cmd = [
             "poetry",
             "run",
             "alembic",
             "-c",
-            "alembic.ini",  # relative to module_path (cwd)
+            alembic_config,
             "upgrade",
             "head",
         ]
 
         returncode, stdout_str, stderr_str = await _run_subprocess(
             cmd,
-            cwd=str(module_path),
+            cwd=alembic_cwd,
             env=env,
         )
 

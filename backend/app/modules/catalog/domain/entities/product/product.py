@@ -23,7 +23,7 @@ class Product(Aggregate):
     def validate_name(cls, v: str) -> str:
         """Validate product name is not empty."""
         if not v or not v.strip():
-            raise ValueError("Product name cannot be empty")
+            raise ValueError("Product name is required and cannot be empty")
         return v.strip()
 
     @field_validator("description")
@@ -31,7 +31,7 @@ class Product(Aggregate):
     def validate_description(cls, v: str) -> str:
         """Validate description is not empty."""
         if not v or not v.strip():
-            raise ValueError("Product description cannot be empty")
+            raise ValueError("Product description is required and cannot be empty")
         return v.strip()
 
     @field_validator("image_file")
@@ -48,11 +48,11 @@ class Product(Aggregate):
     def validate_category(cls, v: list[str]) -> list[str]:
         """Validate category list is not empty."""
         if not v:
-            raise ValueError("Product must have at least one category")
+            raise ValueError("At least one category is required. Please add a category using the 'Add' button")
         # Filter out empty strings and strip whitespace
         cleaned_categories = [cat.strip() for cat in v if cat and cat.strip()]
         if not cleaned_categories:
-            raise ValueError("Product must have at least one valid category")
+            raise ValueError("At least one valid category is required. Categories cannot be empty or contain only whitespace")
         return cleaned_categories
 
     @classmethod

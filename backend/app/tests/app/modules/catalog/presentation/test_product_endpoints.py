@@ -11,7 +11,7 @@ from httpx import AsyncClient
 
 from app.main import app
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
-from app.tests.test_catalog_api_setup import (
+from app.tests.app.modules.catalog.presentation.test_catalog_api_setup import (
     configured_app,
     client,
     async_client,

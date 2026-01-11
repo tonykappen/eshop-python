@@ -23,11 +23,20 @@ class TestDatabaseMigrations:
         with pytest.raises(ConnectionError):  # Should fail without real DB
             await wait_for_database(max_retries=1, delay=0.1)
 
-    async def test_ensure_schemas_exist(self):
+    @patch("app.core.database.migrations.AsyncSessionLocal")
+    async def test_ensure_schemas_exist(self, mock_session_local):
         """Test schema existence check."""
-        # This test would require a real database connection
-        # For now, we'll just test that the function exists and can be called
-        with pytest.raises(ConnectionError):  # Should fail without real DB
+        from unittest.mock import AsyncMock
+        
+        # Mock session that raises an exception (simulating DB connection failure)
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=None)
+        mock_session.execute.side_effect = Exception("Database connection failed")
+        mock_session_local.return_value = mock_session
+        
+        # Should raise exception when DB connection fails
+        with pytest.raises(Exception, match="Database connection failed"):
             await ensure_schemas_exist()
 
     @patch("asyncio.create_subprocess_exec")

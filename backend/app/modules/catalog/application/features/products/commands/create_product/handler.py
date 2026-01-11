@@ -36,18 +36,25 @@ class CreateProductCommandValidator:
         errors = []
         
         if not command.name or not command.name.strip():
-            errors.append("Name is required")
+            errors.append("Product name is required and cannot be empty")
             
         if not command.description or not command.description.strip():
-            errors.append("Description is required")
+            errors.append("Product description is required and cannot be empty")
             
         if command.price <= 0:
-            errors.append("Price must be greater than 0")
+            errors.append("Product price must be greater than 0")
+        elif command.price < 0.01:
+            errors.append("Product price must be at least $0.01")
             
         # picture_url is now optional, so no validation needed
             
         if not command.category:
-            errors.append("At least one category is required")
+            errors.append("At least one category is required. Please add a category using the 'Add' button")
+        elif isinstance(command.category, list):
+            # Filter out empty strings and whitespace-only categories
+            valid_categories = [cat.strip() for cat in command.category if cat and cat.strip()]
+            if not valid_categories:
+                errors.append("At least one valid category is required. Categories cannot be empty or whitespace-only")
             
         return errors
 
@@ -76,9 +83,12 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         validator = CreateProductCommandValidator()
         errors = validator.validate(command)
         if errors:
-            raise ProductValidationError(
-                f"Command validation failed: {', '.join(errors)}"
-            )
+            # Format errors more user-friendly
+            if len(errors) == 1:
+                error_message = errors[0]
+            else:
+                error_message = "Please fix the following errors: " + "; ".join(errors)
+            raise ProductValidationError(error_message, field=None)
 
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
@@ -115,13 +125,13 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
         """
         from uuid import uuid4
 
-        # Validate product data
+        # Validate product data (additional validation beyond command validator)
         if not command.name or not command.name.strip():
-            raise ProductValidationError("Product name is required", field="name")
+            raise ProductValidationError("Product name is required and cannot be empty", field="name")
 
         if command.price <= 0:
             raise ProductValidationError(
-                "Product price must be greater than zero", field="price"
+                "Product price must be greater than $0.00", field="price"
             )
 
         try:

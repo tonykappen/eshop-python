@@ -397,11 +397,14 @@
                     <span id="productImage-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
-                    <label>Categories:</label>
+                    <label>Categories: <span style="font-size: 0.85em; color: #666; font-weight: normal;">(at least one required)</span></label>
                     <div class="category-input">
-                        <input type="text" id="categoryInput" placeholder="Enter category">
+                        <input type="text" id="categoryInput" placeholder="Enter category name">
                         <button type="button" onclick="addCategory()">Add</button>
                     </div>
+                    <small style="display: block; color: #666; margin-top: 4px; font-size: 0.85em;">
+                        Type a category name and click "Add" to add it to the product. You can add multiple categories.
+                    </small>
                     <div id="categoryTags" class="category-tags"></div>
                     <span id="category-error" class="error-message"></span>
                 </div>
@@ -621,6 +624,23 @@
             }
         }
         
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.style.borderColor = '#dc3545';
+                // Try to find or create an error element
+                let errorEl = document.getElementById(`${fieldId}-error`);
+                if (!errorEl) {
+                    errorEl = document.createElement('span');
+                    errorEl.id = `${fieldId}-error`;
+                    errorEl.className = 'error-message';
+                    field.parentNode.appendChild(errorEl);
+                }
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+        }
+        
         function clearValidationErrors() {
             // Clear all error messages
             document.querySelectorAll('.error-message').forEach(el => {
@@ -628,10 +648,18 @@
                 el.style.display = 'none';
             });
             
-            // Remove error styling from inputs
+            // Remove error styling from inputs and reset border colors
             document.querySelectorAll('.form-group input, .form-group textarea').forEach(el => {
                 el.classList.remove('error');
+                el.style.borderColor = '';
             });
+            
+            // Clear category error specifically
+            const categoryErrorEl = document.getElementById('category-error');
+            if (categoryErrorEl) {
+                categoryErrorEl.textContent = '';
+                categoryErrorEl.style.display = 'none';
+            }
             
             // Hide validation summary
             const summaryElement = document.getElementById('validationSummary');
@@ -904,11 +932,60 @@
         document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Clear previous validation errors
+            clearValidationErrors();
+            
+            // Client-side validation
+            const name = document.getElementById('productName').value.trim();
+            const description = document.getElementById('productDescription').value.trim();
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const categoryInput = document.getElementById('categoryInput').value.trim();
+            
+            let hasErrors = false;
+            
+            if (!name) {
+                showFieldError('productName', 'Product name is required and cannot be empty');
+                hasErrors = true;
+            }
+            
+            if (!description) {
+                showFieldError('productDescription', 'Product description is required and cannot be empty');
+                hasErrors = true;
+            }
+            
+            if (!price || price <= 0) {
+                showFieldError('productPrice', 'Product price must be greater than $0.00');
+                hasErrors = true;
+            }
+            
+            if (categories.length === 0) {
+                const categoryErrorEl = document.getElementById('category-error');
+                if (categoryErrorEl) {
+                    categoryErrorEl.textContent = 'At least one category is required. Please add a category using the "Add" button';
+                    categoryErrorEl.style.display = 'block';
+                }
+                hasErrors = true;
+            }
+            
+            // If there's text in the category input but it hasn't been added, warn the user
+            if (categoryInput && categories.length === 0) {
+                const categoryErrorEl = document.getElementById('category-error');
+                if (categoryErrorEl) {
+                    categoryErrorEl.textContent = 'Please click "Add" to add the category before submitting';
+                    categoryErrorEl.style.display = 'block';
+                }
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                return; // Don't submit if there are validation errors
+            }
+            
             const imageUrl = document.getElementById('productImage').value.trim();
             const productData = {
-                name: document.getElementById('productName').value,
-                description: document.getElementById('productDescription').value,
-                price: parseFloat(document.getElementById('productPrice').value),
+                name: name,
+                description: description,
+                price: price,
                 category: categories
             };
             
@@ -923,41 +1000,107 @@
                     : `${API_BASE}/api/v1/products/`;
                 const method = editingProductId ? 'PUT' : 'POST';
                 
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(productData)
-                });
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                } catch (fetchError) {
+                    // This is a true network error - fetch itself failed
+                    console.error('Fetch error (network issue):', fetchError);
+                    if (fetchError instanceof TypeError || 
+                        (fetchError.message && (fetchError.message.includes('fetch') || fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')))) {
+                        alert('Failed to save product: Network error: Unable to connect to server. Please check if the backend is running.');
+                        return;
+                    }
+                    // Re-throw unexpected errors
+                    throw fetchError;
+                }
                 
+                // Ensure we have a valid response object
+                if (!response) {
+                    alert('Failed to save product: No response received from server.');
+                    return;
+                }
+                
+                // Handle HTTP errors (response received but not ok)
+                // This is NOT a network error - we got a response from the server
                 if (!response.ok) {
+                    console.log('HTTP error response:', response.status, response.statusText);
                     let errorMessage = 'Failed to save product';
                     let validationErrors = [];
                     
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.detail || errorMessage;
-                        
-                        // Extract validation errors if present
-                        if (errorData.validationErrors && Array.isArray(errorData.validationErrors)) {
-                            validationErrors = errorData.validationErrors;
+                    // Try to parse the error response
+                    const contentType = response.headers.get('content-type');
+                    console.log('Error response content-type:', contentType);
+                    console.log('Error response status:', response.status);
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        try {
+                            // Clone the response to read it without consuming the stream
+                            const errorText = await response.text();
+                            console.log('Error response body:', errorText);
+                            
+                            if (errorText) {
+                                const errorData = JSON.parse(errorText);
+                                console.log('Parsed error data:', errorData);
+                                
+                                // Handle different error response formats
+                                if (errorData.detail) {
+                                    errorMessage = errorData.detail;
+                                } else if (errorData.error && errorData.error.message) {
+                                    errorMessage = errorData.error.message;
+                                } else if (errorData.message) {
+                                    errorMessage = errorData.message;
+                                }
+                                
+                                // Extract validation errors if present
+                                if (errorData.validationErrors && Array.isArray(errorData.validationErrors)) {
+                                    validationErrors = errorData.validationErrors;
+                                } else if (errorData.error && errorData.error.details) {
+                                    // Some error formats have details
+                                    const details = errorData.error.details;
+                                    if (typeof details === 'string') {
+                                        errorMessage = details;
+                                    }
+                                }
+                            } else {
+                                errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                            }
+                        } catch (parseError) {
+                            // If JSON parsing fails, use status text
+                            console.error('Failed to parse error response:', parseError);
+                            errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
                         }
-                    } catch (parseError) {
-                        // If response is not JSON, use status text
-                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    } else {
+                        // Response is not JSON, try to get text
+                        try {
+                            const errorText = await response.text();
+                            if (errorText) {
+                                errorMessage = errorText;
+                            } else {
+                                errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                            }
+                        } catch (textError) {
+                            console.error('Failed to read error response text:', textError);
+                            errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                        }
                     }
                     
                     // Display validation errors on the form
                     if (validationErrors.length > 0) {
                         displayValidationErrors(validationErrors);
                     } else {
-                        // No specific validation errors, show generic error
+                        // No specific validation errors, show the error message (this is a bad data error, not network error)
                         clearValidationErrors();
-                        throw new Error(errorMessage);
+                        alert('Failed to save product: ' + errorMessage);
                     }
-                    return; // Don't proceed if there are validation errors
+                    return; // Don't proceed if there are errors
                 }
                 
                 // Clear any previous validation errors
@@ -971,11 +1114,24 @@
                 alert(wasUpdating ? 'Product updated successfully!' : 'Product created successfully!');
                 
             } catch (error) {
-                // Handle network errors and other errors
-                const errorMessage = error instanceof TypeError && error.message.includes('fetch')
-                    ? 'Network error: Unable to connect to server. Please check if the backend is running.'
-                    : error.message;
-                alert('Failed to save product: ' + errorMessage);
+                // Handle unexpected errors (not network, not HTTP errors)
+                // Only show network error if it's actually a network/fetch error
+                console.error('Error saving product:', error);
+                
+                // Check if this is a real network error
+                const isNetworkError = 
+                    error instanceof TypeError && 
+                    (error.message.includes('fetch') || 
+                     error.message.includes('Failed to fetch') ||
+                     error.message.includes('NetworkError') ||
+                     error.message.includes('Network request failed'));
+                
+                if (isNetworkError) {
+                    alert('Failed to save product: Network error: Unable to connect to server. Please check if the backend is running.');
+                } else {
+                    // This is some other error - show the actual error message
+                    alert('Failed to save product: ' + (error.message || 'An unexpected error occurred'));
+                }
             }
         });
         

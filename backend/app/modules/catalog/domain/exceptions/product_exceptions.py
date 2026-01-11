@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.core.exceptions.base import NotFoundError
+from app.core.exceptions.base import NotFoundError, ValidationError
 
 
 class ProductNotFoundError(NotFoundError):
@@ -14,14 +14,15 @@ class ProductNotFoundError(NotFoundError):
         super().__init__(name="Product", key=product_id)
 
 
-class ProductValidationError(Exception):
-    """Exception for product validation errors."""
+class ProductValidationError(ValidationError):
+    """Exception for product validation errors - returns 400 Bad Request."""
 
     def __init__(self, message: str, field: str | None = None) -> None:
         """Initialize product validation error."""
-        self.message = message
         self.field = field
-        super().__init__(self.message)
+        # Create validation errors dict if field is provided
+        errors = {field: [message]} if field else {}
+        super().__init__(message=message, errors=errors)
 
 
 class ProductCreationError(Exception):

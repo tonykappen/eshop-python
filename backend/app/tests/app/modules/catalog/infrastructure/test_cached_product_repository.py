@@ -5,7 +5,11 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 from decimal import Decimal
 
-from app.modules.catalog.infrastructure.cache_service import RedisCacheService, CatalogCacheService
+from app.modules.catalog.application.services.catalog_cache_service import (
+    RedisCacheService,
+    CatalogCacheService,
+    CatalogCachePatterns,
+)
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
 
@@ -16,7 +20,7 @@ class TestRedisCacheService:
     @pytest.fixture
     def redis_cache_service(self):
         """Create Redis cache service with mocked Redis client."""
-        with patch('app.modules.catalog.infrastructure.cache_service.redis.Redis.from_url') as mock_redis:
+        with patch('app.modules.catalog.application.services.catalog_cache_service.redis.Redis.from_url') as mock_redis:
             mock_client = AsyncMock()
             mock_redis.return_value = mock_client
             service = RedisCacheService()
@@ -181,10 +185,13 @@ class TestCatalogCacheService:
         await catalog_cache_service.invalidate_product(product_id)
 
         # Assert
+        # The actual implementation invalidates product key and all product lists (2 calls)
         assert catalog_cache_service.cache.invalidate_pattern.call_count == 2
         calls = catalog_cache_service.cache.invalidate_pattern.call_args_list
+        # First call: product key
         assert calls[0][0][0] == f"catalog:product:{product_id}"
-        assert calls[1][0][0] == f"products:list:*:{product_id}:*"
+        # Second call: all product lists
+        assert calls[1][0][0] == "catalog:products:list:*"
 
     @pytest.mark.asyncio
     async def test_invalidate_products_list(self, catalog_cache_service):
@@ -193,7 +200,7 @@ class TestCatalogCacheService:
         await catalog_cache_service.invalidate_products_list()
 
         # Assert
-        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with("products:list:*")
+        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with("catalog:products:list:*")
 
     @pytest.mark.asyncio
     async def test_invalidate_all_catalog(self, catalog_cache_service):
@@ -210,14 +217,14 @@ class TestCatalogCachePatterns:
 
     def test_product_key(self):
         """Test product cache key generation."""
-        from app.modules.catalog.infrastructure.cache_service import CatalogCachePatterns
+        # CatalogCachePatterns is imported at the top
         product_id = uuid4()
         expected_key = f"catalog:product:{product_id}"
         assert CatalogCachePatterns.product_key(product_id) == expected_key
 
     def test_products_list_key_no_filters(self):
         """Test products list cache key generation without filters."""
-        from app.modules.catalog.infrastructure.cache_service import CatalogCachePatterns
+        # CatalogCachePatterns is imported at the top
         page = 1
         size = 10
         expected_key = "catalog:products:list:page:1:size:10"
@@ -225,7 +232,7 @@ class TestCatalogCachePatterns:
 
     def test_products_list_key_with_filters(self):
         """Test products list cache key generation with filters."""
-        from app.modules.catalog.infrastructure.cache_service import CatalogCachePatterns
+        # CatalogCachePatterns is imported at the top
         page = 1
         size = 10
         filters = {"search": "test", "category": "electronics"}
@@ -234,14 +241,14 @@ class TestCatalogCachePatterns:
 
     def test_category_key(self):
         """Test category cache key generation."""
-        from app.modules.catalog.infrastructure.cache_service import CatalogCachePatterns
+        # CatalogCachePatterns is imported at the top
         category_id = uuid4()
         expected_key = f"catalog:category:{category_id}"
         assert CatalogCachePatterns.category_key(category_id) == expected_key
 
     def test_categories_list_key(self):
         """Test categories list cache key generation."""
-        from app.modules.catalog.infrastructure.cache_service import CatalogCachePatterns
+        # CatalogCachePatterns is imported at the top
         expected_key = "catalog:categories:list"
         assert CatalogCachePatterns.categories_list_key() == expected_key
 

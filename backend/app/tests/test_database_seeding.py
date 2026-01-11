@@ -12,10 +12,10 @@ from app.core.database.seeding import (
     register_seeder,
     run_seeding,
 )
-from app.modules.catalog.infrastructure.seed.catalog_data_seeder import (
+from app.modules.catalog.infrastructure.seeding.products.catalog_data_seeder import (
     CatalogDataSeeder,
 )
-from app.modules.catalog.infrastructure.seed.initial_data import CatalogInitialData
+from app.modules.catalog.infrastructure.seeding.products.initial_data import CatalogInitialData
 
 
 class TestDataSeederInterface:

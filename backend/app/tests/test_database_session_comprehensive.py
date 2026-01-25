@@ -13,7 +13,7 @@ from app.core.database.session import (
     get_db_session,
     get_pool_status,
 )
-from app.core.exceptions.base import DatabaseError
+from app.core.exceptions.common_exceptions import DatabaseError
 
 
 class TestDatabaseSession:

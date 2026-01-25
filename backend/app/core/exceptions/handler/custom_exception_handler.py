@@ -1,4 +1,4 @@
-"""Custom exception handler with 1-1 parity to .NET CustomExceptionHandler."""
+"""Global FastAPI exception handler router - CustomExceptionHandler."""
 
 import traceback
 from typing import Any
@@ -7,19 +7,9 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 
-from app.core.exceptions.base import (
-    BadRequestError,
-    BaseError,
-    ConfigurationError,
-    ConflictError,
-    ConnectionError,
-    DatabaseError,
-    ForbiddenError,
-    InternalServerError,
-    NotFoundError,
-    UnauthorizedError,
-    ValidationError,
-)
+from app.core.exceptions.bad_request_exception import BadRequestException, BadRequestError
+from app.core.exceptions.internal_server_exception import InternalServerException, InternalServerError
+from app.core.exceptions.not_found_exception import NotFoundException, NotFoundError
 from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
@@ -86,7 +76,8 @@ class CustomExceptionHandler:
     @staticmethod
     def _map_exception(exception: Exception) -> tuple[int, str, str, dict[str, Any]]:
         """Map exception to HTTP status code and response details."""
-        if isinstance(exception, InternalServerError):
+        # Handle standardized exceptions
+        if isinstance(exception, (InternalServerException, InternalServerError)):
             return (
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
                 exception.__class__.__name__,
@@ -94,15 +85,7 @@ class CustomExceptionHandler:
                 {"details": exception.details} if exception.details else {},
             )
 
-        elif isinstance(exception, ValidationError):
-            return (
-                status.HTTP_400_BAD_REQUEST,
-                exception.__class__.__name__,
-                exception.message,
-                {"validationErrors": exception.errors} if exception.errors else {},
-            )
-
-        elif isinstance(exception, BadRequestError):
+        elif isinstance(exception, (BadRequestException, BadRequestError)):
             return (
                 status.HTTP_400_BAD_REQUEST,
                 exception.__class__.__name__,
@@ -110,57 +93,9 @@ class CustomExceptionHandler:
                 {"details": exception.details} if exception.details else {},
             )
 
-        elif isinstance(exception, NotFoundError):
+        elif isinstance(exception, (NotFoundException, NotFoundError)):
             return (
                 status.HTTP_404_NOT_FOUND,
-                exception.__class__.__name__,
-                exception.message,
-                {"details": exception.details} if exception.details else {},
-            )
-
-        elif isinstance(exception, UnauthorizedError):
-            return (
-                status.HTTP_401_UNAUTHORIZED,
-                exception.__class__.__name__,
-                exception.message,
-                {"details": exception.details} if exception.details else {},
-            )
-
-        elif isinstance(exception, ForbiddenError):
-            return (
-                status.HTTP_403_FORBIDDEN,
-                exception.__class__.__name__,
-                exception.message,
-                {"details": exception.details} if exception.details else {},
-            )
-
-        elif isinstance(exception, ConflictError):
-            return (
-                status.HTTP_409_CONFLICT,
-                exception.__class__.__name__,
-                exception.message,
-                {"details": exception.details} if exception.details else {},
-            )
-
-        elif isinstance(exception, DatabaseError):
-            return (
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                exception.__class__.__name__,
-                exception.message,
-                {"details": exception.details} if exception.details else {},
-            )
-
-        elif isinstance(exception, ConnectionError):
-            return (
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                exception.__class__.__name__,
-                exception.message,
-                {"details": exception.details} if exception.details else {},
-            )
-
-        elif isinstance(exception, ConfigurationError):
-            return (
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
                 exception.__class__.__name__,
                 exception.message,
                 {"details": exception.details} if exception.details else {},
@@ -188,8 +123,10 @@ def add_exception_handlers(app: Any) -> None:
     """Add custom exception handlers to FastAPI app."""
     handler = CustomExceptionHandler()
 
-    # Register exception handlers for all custom exceptions
-    app.add_exception_handler(BaseError, handler.handle_exception)
+    # Register exception handlers for standardized exceptions
+    app.add_exception_handler(BadRequestException, handler.handle_exception)
+    app.add_exception_handler(InternalServerException, handler.handle_exception)
+    app.add_exception_handler(NotFoundException, handler.handle_exception)
     app.add_exception_handler(PydanticValidationError, handler.handle_exception)
 
     # Register general exception handler for unhandled exceptions

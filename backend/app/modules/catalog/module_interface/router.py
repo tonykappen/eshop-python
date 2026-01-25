@@ -18,18 +18,20 @@ from app.modules.catalog.infrastructure.messaging.domain_dispatcher import Domai
 from app.modules.catalog.router.product_router import router as product_router
 
 # Import handlers for registration
-from app.modules.catalog.application.features.products.commands.create_product.handler import CreateProductHandler
-from app.modules.catalog.application.features.products.commands.update_product.handler import UpdateProductHandler
-from app.modules.catalog.application.features.products.commands.delete_product.handler import DeleteProductHandler
+from app.modules.catalog.application.features.products.commands.create_product.create_product_handler import CreateProductHandler
+from app.modules.catalog.application.features.products.commands.update_product.update_product_handler import UpdateProductHandler
+from app.modules.catalog.application.features.products.commands.delete_product.delete_product_handler import DeleteProductHandler
 from app.modules.catalog.application.features.products.queries.get_product_by_id.handler import GetProductByIdHandler
 from app.modules.catalog.application.features.products.queries.get_products.handler import GetProductsHandler
+from app.modules.catalog.application.features.products.queries.get_products_by_category.handler import GetProductsByCategoryHandler
 
 # Import commands and queries
-from app.modules.catalog.application.features.products.commands.create_product.command import CreateProductCommand, CreateProductResult
-from app.modules.catalog.application.features.products.commands.update_product.command import UpdateProductCommand, UpdateProductResult
-from app.modules.catalog.application.features.products.commands.delete_product.command import DeleteProductCommand, DeleteProductResult
+from app.modules.catalog.application.features.products.commands.create_product.create_product_command import CreateProductCommand, CreateProductResult
+from app.modules.catalog.application.features.products.commands.update_product.update_product_command import UpdateProductCommand, UpdateProductResult
+from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import DeleteProductCommand, DeleteProductResult
 from app.modules.catalog.application.features.products.queries.get_product_by_id.query import GetProductByIdQuery, GetProductByIdResult
 from app.modules.catalog.application.features.products.queries.get_products.query import GetProductsQuery, GetProductsResult
+from app.modules.catalog.application.features.products.queries.get_products_by_category.query import GetProductsByCategoryQuery, GetProductsByCategoryResult
 
 
 def register_catalog_module(container: Container, mediator: Mediator) -> APIRouter:
@@ -54,6 +56,7 @@ def register_catalog_module(container: Container, mediator: Mediator) -> APIRout
     mediator.register_handler(DeleteProductCommand, DeleteProductHandler())
     mediator.register_handler(GetProductByIdQuery, GetProductByIdHandler())
     mediator.register_handler(GetProductsQuery, GetProductsHandler())
+    mediator.register_handler(GetProductsByCategoryQuery, GetProductsByCategoryHandler())
     
     # Subscribe domain events to integration events
     dispatcher = catalog_container.get(DomainEventDispatcher)
@@ -91,6 +94,7 @@ def register_catalog_module_with_fastapi(app, container: Container, mediator: Me
     mediator.register_handler(DeleteProductCommand, DeleteProductHandler())
     mediator.register_handler(GetProductByIdQuery, GetProductByIdHandler())
     mediator.register_handler(GetProductsQuery, GetProductsHandler())
+    mediator.register_handler(GetProductsByCategoryQuery, GetProductsByCategoryHandler())
     
     # Subscribe domain events to integration events
     dispatcher = catalog_container.get(DomainEventDispatcher)

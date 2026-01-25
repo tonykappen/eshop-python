@@ -46,3 +46,14 @@ class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomain
         # Implementation would go here
         pass
 
+
+
+
+
+
+
+
+
+
+
+

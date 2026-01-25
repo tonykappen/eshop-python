@@ -242,10 +242,10 @@ class Product(Aggregate):
         Raises:
             ValueError: If product is already deactivated
         """
-        # Add domain event for deactivation
-        from app.modules.catalog.domain.domain_events.products.product_deactivated_domain_event import (
-            ProductDeactivatedDomainEvent,
+        # Add domain event for deletion
+        from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
+            ProductDeletedDomainEvent,
         )
-        self.add_domain_event(ProductDeactivatedDomainEvent(product=self))
+        self.add_domain_event(ProductDeletedDomainEvent(product=self))
 
 

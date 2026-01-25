@@ -127,3 +127,14 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
             return f"{request_name.replace('Command', 'Result')}"
 
         return "Response"
+
+
+
+
+
+
+
+
+
+
+

@@ -37,3 +37,14 @@ def cleanup_di() -> None:
     # This is handled by the lifecycle manager in main.py
     cleanup_dependency_injection()
 
+
+
+
+
+
+
+
+
+
+
+

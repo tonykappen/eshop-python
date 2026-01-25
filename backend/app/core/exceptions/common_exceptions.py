@@ -1,4 +1,4 @@
-"""Base exception classes with 1-1 parity to .NET exceptions."""
+"""Common exception classes - BaseError and additional exceptions."""
 
 from typing import Any
 
@@ -13,37 +13,10 @@ class BaseError(Exception):
         super().__init__(self.message)
 
 
-class BadRequestError(BaseError):
-    """Exception for bad request errors (400) - matches .NET BadRequestException."""
-
-    def __init__(self, message: str = "Bad request", details: str | None = None):
-        """Initialize bad request error."""
-        super().__init__(message, details)
-
-
-class NotFoundError(BaseError):
-    """Exception for not found errors (404) - matches .NET NotFoundException."""
-
-    def __init__(
-        self,
-        message: str = "Resource not found",
-        name: str | None = None,
-        key: Any | None = None,
-    ):
-        """Initialize not found error with optional entity name and key."""
-        if name and key:
-            message = f'Entity "{name}" ({key}) was not found.'
-        super().__init__(message)
-
-
-class InternalServerError(BaseError):
-    """Exception for internal server errors (500) - matches .NET InternalServerException."""
-
-    def __init__(
-        self, message: str = "Internal server error", details: str | None = None
-    ):
-        """Initialize internal server error."""
-        super().__init__(message, details)
+# Import standardized exceptions for backward compatibility
+from app.core.exceptions.bad_request_exception import BadRequestError, BadRequestException
+from app.core.exceptions.internal_server_exception import InternalServerError, InternalServerException
+from app.core.exceptions.not_found_exception import NotFoundError, NotFoundException
 
 
 class ValidationError(BaseError):

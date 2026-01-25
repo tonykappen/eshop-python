@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config.settings import settings
-from app.core.exceptions.base import DatabaseError
+from app.core.exceptions.common_exceptions import DatabaseError
 from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)

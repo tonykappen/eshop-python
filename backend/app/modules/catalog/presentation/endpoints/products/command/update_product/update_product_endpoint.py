@@ -7,7 +7,7 @@ from uuid import UUID
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.catalog.utils import get_endpoint_factory
 from app.core.auth.rbac import require_command_access
-from app.modules.catalog.application.features.products.commands.update_product.command import UpdateProductCommand, UpdateProductResult
+from app.modules.catalog.application.features.products.commands.update_product.update_product_command import UpdateProductCommand, UpdateProductResult
 
 router = APIRouter()
 

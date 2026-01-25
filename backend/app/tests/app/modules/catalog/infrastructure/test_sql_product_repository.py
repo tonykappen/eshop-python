@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import Money
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
-    ProductRepositoryImpl,
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlProductRepository,
 )
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 
@@ -22,7 +22,7 @@ class TestProductRepositoryGetById:
     async def test_get_by_id_success(self):
         """Test successful get by ID."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         mock_orm = MagicMock(spec=ProductORM)
@@ -47,7 +47,7 @@ class TestProductRepositoryGetById:
     async def test_get_by_id_not_found(self):
         """Test get by ID when product not found."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         mock_result = MagicMock()
@@ -62,7 +62,7 @@ class TestProductRepositoryGetById:
     async def test_get_by_id_excludes_deleted(self):
         """Test get by ID excludes deleted products."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         mock_result = MagicMock()
@@ -81,7 +81,7 @@ class TestProductRepositoryGetBySku:
     async def test_get_by_sku_success(self):
         """Test successful get by SKU."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         sku = "TEST-001"
         mock_orm = MagicMock(spec=ProductORM)
@@ -105,7 +105,7 @@ class TestProductRepositoryGetBySku:
     async def test_get_by_sku_not_found(self):
         """Test get by SKU when product not found."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         sku = "NONEXISTENT"
         mock_result = MagicMock()
@@ -124,7 +124,7 @@ class TestProductRepositoryAdd:
     async def test_add_product_success(self):
         """Test successful product addition."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         price = Money(amount=Decimal("99.99"), currency="USD")
@@ -161,7 +161,7 @@ class TestProductRepositoryUpdate:
     async def test_update_product_success(self):
         """Test successful product update."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         price = Money(amount=Decimal("99.99"), currency="USD")
@@ -193,7 +193,7 @@ class TestProductRepositoryDelete:
     async def test_delete_product_success(self):
         """Test successful product deletion."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         deleted_by = uuid4()
@@ -211,7 +211,7 @@ class TestProductRepositoryDelete:
     async def test_delete_product_not_found(self):
         """Test delete when product not found."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
         
@@ -231,7 +231,7 @@ class TestProductRepositoryGetAll:
     async def test_get_all_products_success(self):
         """Test successful get all products."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         mock_orm1 = MagicMock(spec=ProductORM)
         mock_orm2 = MagicMock(spec=ProductORM)
@@ -260,7 +260,7 @@ class TestProductRepositoryGetByCategory:
     async def test_get_by_category_success(self):
         """Test successful get by category."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         category = "Electronics"
         mock_orm1 = MagicMock(spec=ProductORM)
@@ -285,7 +285,7 @@ class TestProductRepositoryGetByCategory:
     async def test_get_by_category_with_pagination(self):
         """Test get by category with pagination."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         category = "Electronics"
         mock_orm1 = MagicMock(spec=ProductORM)
@@ -318,7 +318,7 @@ class TestProductRepositoryExists:
     async def test_exists_by_sku_true(self):
         """Test exists by SKU returns True."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         sku = "TEST-001"
         mock_result = MagicMock()
@@ -333,7 +333,7 @@ class TestProductRepositoryExists:
     async def test_exists_by_sku_false(self):
         """Test exists by SKU returns False."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         sku = "NONEXISTENT"
         mock_result = MagicMock()
@@ -348,7 +348,7 @@ class TestProductRepositoryExists:
     async def test_exists_by_name_true(self):
         """Test exists by name returns True."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         name = "Test Product"
         mock_result = MagicMock()
@@ -367,7 +367,7 @@ class TestProductRepositoryCount:
     async def test_count_products(self):
         """Test counting products."""
         mock_session = AsyncMock(spec=AsyncSession)
-        repo = ProductRepositoryImpl(mock_session)
+        repo = SqlProductRepository(mock_session)
 
         mock_result = MagicMock()
         mock_result.scalar.return_value = 5

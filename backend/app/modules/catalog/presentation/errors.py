@@ -6,7 +6,7 @@ from typing import Any, Dict
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions.base import DomainException
+from app.core.exceptions.common_exceptions import DomainException
 from app.modules.catalog.domain.exceptions.product.invalid_price import InvalidPrice
 from app.modules.catalog.domain.exceptions.product.product_already_exists import ProductAlreadyExists
 from app.modules.catalog.domain.exceptions.product.product_not_found import ProductNotFound

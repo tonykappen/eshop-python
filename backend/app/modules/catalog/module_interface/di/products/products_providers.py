@@ -17,9 +17,11 @@ from app.modules.catalog.domain.repositories.product.product_repository import P
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
 from app.modules.catalog.infrastructure.persistence.db_context import get_engine, get_session_maker
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
-from app.modules.catalog.infrastructure.persistence.repositories.category_repository import CategoryRepositoryImpl
-from app.modules.catalog.infrastructure.persistence.repositories.inventory_repository import InventoryRepositoryImpl
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlProductRepository,
+    SqlCategoryRepository,
+    SqlInventoryRepository,
+)
 from app.modules.catalog.infrastructure.messaging.bus import IMessageBus, InMemoryMessageBus, RabbitMQMessageBus
 from app.core.messaging.outbox import IOutboxService, IOutboxDispatcher, OutboxService, OutboxDispatcher
 from app.modules.catalog.infrastructure.messaging.outbox import OutboxWriter, OutboxPublisher  # Keep for backward compatibility
@@ -80,7 +82,7 @@ async def get_product_repository(
     Returns:
         ProductRepository: Product repository instance
     """
-    return ProductRepositoryImpl(session)
+    return SqlProductRepository(session)
 
 
 async def get_category_repository(
@@ -95,7 +97,7 @@ async def get_category_repository(
     Returns:
         CategoryRepository: Category repository instance
     """
-    return CategoryRepositoryImpl(session)
+    return SqlCategoryRepository(session)
 
 
 async def get_inventory_repository(
@@ -110,7 +112,7 @@ async def get_inventory_repository(
     Returns:
         InventoryRepository: Inventory repository instance
     """
-    return InventoryRepositoryImpl(session)
+    return SqlInventoryRepository(session)
 
 
 # Application layer providers

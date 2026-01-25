@@ -1,4 +1,4 @@
-"""Category repository implementation."""
+"""SQL implementation of ICategoryRepository."""
 
 import logging
 from typing import List, Optional
@@ -14,8 +14,8 @@ from app.modules.catalog.infrastructure.persistence.orm.category_orm import Cate
 logger = logging.getLogger(__name__)
 
 
-class CategoryRepositoryImpl(CategoryRepository):
-    """Category repository implementation."""
+class SqlCategoryRepository(CategoryRepository):
+    """SQL implementation of ICategoryRepository."""
 
     def __init__(self, session: AsyncSession):
         """

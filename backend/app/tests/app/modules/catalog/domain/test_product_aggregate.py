@@ -12,8 +12,8 @@ from app.modules.catalog.domain.domain_events.products.product_created_domain_ev
 from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
     ProductPriceChangedDomainEvent,
 )
-from app.modules.catalog.domain.domain_events.products.product_deactivated_domain_event import (
-    ProductDeactivatedDomainEvent,
+from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
+    ProductDeletedDomainEvent,
 )
 from app.modules.catalog.domain.value_objects import Money, SKU
 
@@ -390,6 +390,6 @@ class TestProductDeactivation:
         # Check deactivation domain event was added
         domain_events = product.domain_events_copy
         assert len(domain_events) == 1
-        assert isinstance(domain_events[0], ProductDeactivatedDomainEvent)
+        assert isinstance(domain_events[0], ProductDeletedDomainEvent)
         assert domain_events[0].product == product
 

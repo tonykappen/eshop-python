@@ -19,9 +19,11 @@ from app.modules.catalog.infrastructure.messaging.bus import IMessageBus, InMemo
 from app.core.messaging.outbox import IOutboxService, IOutboxDispatcher
 from app.modules.catalog.infrastructure.messaging.outbox import IOutboxWriter, IOutboxPublisher  # Backward compatibility
 from app.modules.catalog.infrastructure.messaging.domain_dispatcher import DomainEventDispatcher
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
-from app.modules.catalog.infrastructure.persistence.repositories.category_repository import CategoryRepositoryImpl
-from app.modules.catalog.infrastructure.persistence.repositories.inventory_repository import InventoryRepositoryImpl
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlProductRepository,
+    SqlCategoryRepository,
+    SqlInventoryRepository,
+)
 from app.modules.catalog.module_interface.di.products.products_containers import get_catalog_container
 from app.modules.catalog.module_interface.di.products.products_providers import (
     get_catalog_engine,
@@ -141,9 +143,9 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
         get_catalog_session_maker: lambda: catalog_container.get(type(get_catalog_session_maker())),
         
         # Repository dependencies
-        ProductRepository: lambda session: ProductRepositoryImpl(session),
-        CategoryRepository: lambda session: CategoryRepositoryImpl(session),
-        InventoryRepository: lambda session: InventoryRepositoryImpl(session),
+        ProductRepository: lambda session: SqlProductRepository(session),
+        CategoryRepository: lambda session: SqlCategoryRepository(session),
+        InventoryRepository: lambda session: SqlInventoryRepository(session),
         
         # Application dependencies
         ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),
@@ -177,9 +179,9 @@ def get_catalog_dependency_overrides() -> Dict[Type[Any], Any]:
         get_catalog_session_maker: lambda: container.get(type(get_catalog_session_maker())),
         
         # Repository dependencies
-        ProductRepository: lambda session: ProductRepositoryImpl(session),
-        CategoryRepository: lambda session: CategoryRepositoryImpl(session),
-        InventoryRepository: lambda session: InventoryRepositoryImpl(session),
+        ProductRepository: lambda session: SqlProductRepository(session),
+        CategoryRepository: lambda session: SqlCategoryRepository(session),
+        InventoryRepository: lambda session: SqlInventoryRepository(session),
         
         # Application dependencies
         ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),

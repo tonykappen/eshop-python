@@ -1,4 +1,4 @@
-"""Product deactivated domain event."""
+"""Product deleted domain event."""
 
 from uuid import UUID
 
@@ -8,17 +8,17 @@ from app.core.domain.events import DomainEvent
 from app.modules.catalog.domain.entities.product.product import Product
 
 
-class ProductDeactivatedDomainEvent(DomainEvent):
-    """Domain event raised when a product is deactivated."""
+class ProductDeletedDomainEvent(DomainEvent):
+    """Domain event raised when a product is deleted."""
 
-    event_type: str = Field(default="product.deactivated", description="Event type")
-    product: Product = Field(..., description="The deactivated product")
+    event_type: str = Field(default="product.deleted", description="Event type")
+    product: Product = Field(..., description="The deleted product")
 
     def __init__(self, product: Product, **data):
         """Initialize the domain event."""
         super().__init__(
             aggregate_id=product.id,
-            event_type="product.deactivated",
+            event_type="product.deleted",
             product=product,
             **data
         )

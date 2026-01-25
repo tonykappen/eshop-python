@@ -30,10 +30,10 @@ from app.modules.catalog.application.features.products.queries.get_product_by_id
     GetProductByIdQuery,
     GetProductByIdResult,
 )
-from app.modules.catalog.application.features.products.commands.update_product.command import (
+from app.modules.catalog.application.features.products.commands.update_product.update_product_command import (
     UpdateProductCommand,
 )
-from app.modules.catalog.application.features.products.commands.delete_product.command import (
+from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import (
     DeleteProductCommand,
 )
 
@@ -392,10 +392,10 @@ async def get_deleted_products(
     """
     # Use direct repository access for admin operations
     from app.core.database.session import AsyncSessionLocal
-    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
+    from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository
     
     async with AsyncSessionLocal() as session:
-        repository = ProductRepositoryImpl(session)
+        repository = SqlProductRepository(session)
         products, total_count = await repository.get_deleted_products(page, page_size)
         
         # Convert to DTOs
@@ -438,11 +438,11 @@ async def restore_product(
     
     # Use direct repository access for admin operations
     from app.core.database.session import AsyncSessionLocal
-    from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl
+    from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository
     from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
     
     async with AsyncSessionLocal() as session:
-        repository = ProductRepositoryImpl(session)
+        repository = SqlProductRepository(session)
         
         # Check if product exists and is deleted
         deleted_product = await repository.get_deleted_by_id(product_id)

@@ -1,4 +1,4 @@
-"""Inventory repository implementation."""
+"""SQL implementation of IInventoryRepository."""
 
 import logging
 from typing import List, Optional
@@ -14,8 +14,8 @@ from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm impor
 logger = logging.getLogger(__name__)
 
 
-class InventoryRepositoryImpl(InventoryRepository):
-    """Inventory repository implementation."""
+class SqlInventoryRepository(InventoryRepository):
+    """SQL implementation of IInventoryRepository."""
 
     def __init__(self, session: AsyncSession):
         """

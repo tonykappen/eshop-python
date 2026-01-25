@@ -57,3 +57,14 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
         # Implementation would go here
         pass
 
+
+
+
+
+
+
+
+
+
+
+

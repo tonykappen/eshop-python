@@ -50,3 +50,14 @@ class ProductCreatedDomainEventHandler(DomainEventHandler[ProductCreatedDomainEv
         # Implementation would go here
         pass
 
+
+
+
+
+
+
+
+
+
+
+

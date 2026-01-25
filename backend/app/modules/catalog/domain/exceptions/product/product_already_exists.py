@@ -1,6 +1,6 @@
 """Product already exists exception."""
 
-from app.core.exceptions.base import DomainException
+from app.core.exceptions.common_exceptions import DomainException
 
 
 class ProductAlreadyExists(DomainException):

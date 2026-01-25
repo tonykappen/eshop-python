@@ -36,6 +36,8 @@ from app.core.lifecycle.manager import (
 )
 from app.core.logging.clef_middleware import add_clef_logging_middleware
 from app.core.middleware.auth_middleware import add_auth_middleware
+from app.core.middleware.tracing_middleware import add_tracing_middleware
+from app.core.middleware.metrics_middleware import add_metrics_middleware
 from app.modules.catalog.module_interface.router import register_catalog_module_with_fastapi
 from app.module_interface.router import create_root_router
 
@@ -123,18 +125,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add CLEF request/response logging middleware FIRST
 # IMPORTANT: FastAPI middleware executes in REVERSE order of registration (LIFO)
-# So we add CLEF FIRST so it runs AFTER auth middleware (which sets request.state.user)
+# Execution order (what we want):
+# 1. Tracing middleware (captures all requests with OTEL spans) - runs FIRST
+# 2. Metrics middleware (measures all requests) - runs SECOND
+# 3. Auth middleware (sets request.state.user) - runs THIRD
+# 4. CLEF logging middleware (uses user context from auth) - runs LAST
+#
+# Registration order (add in reverse):
+# 1. CLEF logging (added first, executes last)
+# 2. Auth (added second, executes third)
+# 3. Metrics (added third, executes second)
+# 4. Tracing (added last, executes first)
+
+# Add CLEF request/response logging middleware FIRST (executes LAST)
+# This ensures it runs AFTER auth middleware (which sets request.state.user)
 if settings.log_enable_request_logging:
     add_clef_logging_middleware(
         app,
         exclude_health_checks=True,
     )
 
-# Add authentication middleware SECOND
-# This ensures it runs BEFORE CLEF middleware, setting request.state.user
+# Add authentication middleware SECOND (executes THIRD, sets request.state.user)
 add_auth_middleware(app)
+
+# Add metrics middleware THIRD (executes SECOND, measures request counts and latency)
+add_metrics_middleware(
+    app,
+    service_name="eshop-api",
+    exclude_health_checks=True,
+)
+
+# Add tracing middleware LAST (executes FIRST, captures everything)
+# Extracts traceparent + baggage, starts OTEL span
+add_tracing_middleware(
+    app,
+    service_name="eshop-api",
+    exclude_health_checks=True,
+)
 
 # Note: Keycloak routes will be added lazily after Keycloak setup is complete
 # This prevents the race condition where routes are added before the realm exists

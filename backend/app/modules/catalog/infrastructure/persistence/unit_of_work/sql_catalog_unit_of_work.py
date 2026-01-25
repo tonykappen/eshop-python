@@ -14,14 +14,10 @@ from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import (
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
 from app.modules.catalog.domain.repositories.product.product_repository import ProductRepository
-from app.modules.catalog.infrastructure.persistence.repositories.category_repository import (
-    CategoryRepositoryImpl,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.inventory_repository import (
-    InventoryRepositoryImpl,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import (
-    ProductRepositoryImpl,
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlProductRepository,
+    SqlCategoryRepository,
+    SqlInventoryRepository,
 )
 
 if TYPE_CHECKING:
@@ -50,21 +46,21 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
     def products(self) -> ProductRepository:
         """Get product repository."""
         if self._products_repo is None:
-            self._products_repo = ProductRepositoryImpl(self._session)
+            self._products_repo = SqlProductRepository(self._session)
         return self._products_repo
 
     @property
     def categories(self) -> CategoryRepository:
         """Get category repository."""
         if self._categories_repo is None:
-            self._categories_repo = CategoryRepositoryImpl(self._session)
+            self._categories_repo = SqlCategoryRepository(self._session)
         return self._categories_repo
 
     @property
     def inventory(self) -> InventoryRepository:
         """Get inventory repository."""
         if self._inventory_repo is None:
-            self._inventory_repo = InventoryRepositoryImpl(self._session)
+            self._inventory_repo = SqlInventoryRepository(self._session)
         return self._inventory_repo
 
     async def commit(self) -> None:
@@ -125,3 +121,14 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
             await self.rollback()
         else:
             await self.commit()
+
+
+
+
+
+
+
+
+
+
+

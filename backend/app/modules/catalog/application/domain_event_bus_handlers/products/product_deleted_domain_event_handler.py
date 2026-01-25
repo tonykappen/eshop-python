@@ -4,8 +4,8 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from app.modules.catalog.domain.domain_events.products.product_deactivated_domain_event import (
-    ProductDeactivatedDomainEvent,
+from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
+    ProductDeletedDomainEvent,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,12 +25,12 @@ class ProductDeletedDomainEventBusHandler:
         self.event_publisher = event_publisher
         self.outbox_service = outbox_service
 
-    async def handle(self, domain_event: ProductDeactivatedDomainEvent) -> None:
+    async def handle(self, domain_event: ProductDeletedDomainEvent) -> None:
         """
-        Handle product deleted/deactivated domain event and publish integration event via outbox.
+        Handle product deleted domain event and publish integration event via outbox.
         
         Args:
-            domain_event: Product deactivated domain event (used for deletion)
+            domain_event: Product deleted domain event
         """
         logger.info(f"Converting deleted domain event to integration event for product {domain_event.product_id}")
         
@@ -65,4 +65,15 @@ class ProductDeletedDomainEventBusHandler:
         except Exception as e:
             logger.error(f"Error publishing product deleted integration event: {e}")
             # Don't re-raise the exception to avoid breaking the domain event processing
+
+
+
+
+
+
+
+
+
+
+
 

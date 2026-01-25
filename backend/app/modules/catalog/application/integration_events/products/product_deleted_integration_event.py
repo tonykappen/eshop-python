@@ -83,3 +83,14 @@ class ProductDeletedIntegrationEvent(BaseModel):
             "metadata": self.metadata,
         }
 
+
+
+
+
+
+
+
+
+
+
+

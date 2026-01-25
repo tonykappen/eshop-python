@@ -10,7 +10,7 @@ from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 from .query import GetProductsQuery, GetProductsResult
 

@@ -8,7 +8,7 @@ from app.core.database.seeding import (
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
-from app.modules.catalog.infrastructure.seeding.products.initial_data import CatalogInitialData
+from app.modules.catalog.infrastructure.seeding.products.seed_product_data import CatalogInitialData
 
 logger = BaseLogger(__name__)
 

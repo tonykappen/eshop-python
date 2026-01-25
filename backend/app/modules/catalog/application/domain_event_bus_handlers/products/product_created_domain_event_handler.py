@@ -63,3 +63,14 @@ class ProductCreatedDomainEventBusHandler:
             logger.error(f"Error publishing product created integration event: {e}")
             # Don't re-raise the exception to avoid breaking the domain event processing
 
+
+
+
+
+
+
+
+
+
+
+

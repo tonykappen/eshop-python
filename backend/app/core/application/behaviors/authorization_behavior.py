@@ -51,3 +51,14 @@ class AuthorizationBehavior(IPipelineBehavior[TRequest, TResponse]):
         # In production, implement proper authorization checks here
         result = await next_handler()
         return result
+
+
+
+
+
+
+
+
+
+
+

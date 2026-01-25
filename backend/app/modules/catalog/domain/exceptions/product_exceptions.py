@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.core.exceptions.base import NotFoundError, ValidationError
+from app.core.exceptions.common_exceptions import NotFoundError, ValidationError
 
 
 class ProductNotFoundError(NotFoundError):

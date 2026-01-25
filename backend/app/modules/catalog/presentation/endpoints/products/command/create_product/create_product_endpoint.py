@@ -6,8 +6,8 @@ from typing import Any
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.catalog.utils import get_endpoint_factory
 from app.core.auth.rbac import require_command_access
-from app.modules.catalog.application.features.products.commands.create_product.command import CreateProductCommand, CreateProductResult
-from app.modules.catalog.application.features.products.commands.create_product.handler import CreateProductHandler
+from app.modules.catalog.application.features.products.commands.create_product.create_product_command import CreateProductCommand, CreateProductResult
+from app.modules.catalog.application.features.products.commands.create_product.create_product_handler import CreateProductHandler
 
 router = APIRouter()
 

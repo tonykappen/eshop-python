@@ -7,11 +7,11 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.core.mediator.cancellation import CancellationToken
-from app.modules.catalog.application.features.products.commands.create_product.command import (
+from app.modules.catalog.application.features.products.commands.create_product.create_product_command import (
     CreateProductCommand,
     CreateProductResult,
 )
-from app.modules.catalog.application.features.products.commands.create_product.handler import (
+from app.modules.catalog.application.features.products.commands.create_product.create_product_handler import (
     CreateProductHandler,
 )
 from app.modules.catalog.application.public_interface.dto.product import ProductDto

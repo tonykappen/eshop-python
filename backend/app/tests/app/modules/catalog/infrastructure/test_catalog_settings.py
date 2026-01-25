@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.core.database.session import AsyncSessionLocal
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository as ProductRepository
 
 
 @pytest.fixture(scope="session")

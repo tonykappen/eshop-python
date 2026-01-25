@@ -1,4 +1,4 @@
-"""Product repository implementation."""
+"""SQL implementation of IProductRepository."""
 
 import logging
 from typing import List, Optional
@@ -16,8 +16,8 @@ from app.modules.catalog.infrastructure.persistence.orm.product_orm import Produ
 logger = logging.getLogger(__name__)
 
 
-class ProductRepositoryImpl(ProductRepository):
-    """Product repository implementation."""
+class SqlProductRepository(ProductRepository):
+    """SQL implementation of IProductRepository."""
 
     def __init__(self, session: AsyncSession):
         """
@@ -460,7 +460,7 @@ class ProductRepositoryImpl(ProductRepository):
         try:
             from sqlalchemy import func
             
-            logger.debug(f"ProductRepositoryImpl.get_all: page={page}, page_size={page_size}")
+            logger.debug(f"SqlProductRepository.get_all: page={page}, page_size={page_size}")
             
             # Get total count
             count_stmt = select(func.count(ProductORM.id)).where(
@@ -468,7 +468,7 @@ class ProductRepositoryImpl(ProductRepository):
             )
             count_result = await self.session.execute(count_stmt)
             total_count = count_result.scalar() or 0
-            logger.debug(f"ProductRepositoryImpl.get_all: total_count={total_count}")
+            logger.debug(f"SqlProductRepository.get_all: total_count={total_count}")
             
             # Get paginated results
             offset = (page - 1) * page_size
@@ -478,7 +478,7 @@ class ProductRepositoryImpl(ProductRepository):
             
             result = await self.session.execute(stmt)
             products_orm = result.scalars().all()
-            logger.debug(f"ProductRepositoryImpl.get_all: found {len(products_orm)} ORM products")
+            logger.debug(f"SqlProductRepository.get_all: found {len(products_orm)} ORM products")
             
             products = []
             for product_orm in products_orm:
@@ -489,7 +489,7 @@ class ProductRepositoryImpl(ProductRepository):
                     logger.error(f"Error converting ORM to domain for product {product_orm.id}: {e}", exc_info=True)
                     raise
             
-            logger.debug(f"ProductRepositoryImpl.get_all: converted {len(products)} domain products")
+            logger.debug(f"SqlProductRepository.get_all: converted {len(products)} domain products")
             return products, total_count
             
         except Exception as e:

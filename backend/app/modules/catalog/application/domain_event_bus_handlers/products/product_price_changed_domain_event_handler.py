@@ -75,3 +75,14 @@ class ProductPriceChangedDomainEventBusHandler:
             logger.error(f"Error publishing product price changed integration event: {e}")
             # Don't re-raise the exception to avoid breaking the domain event processing
 
+
+
+
+
+
+
+
+
+
+
+

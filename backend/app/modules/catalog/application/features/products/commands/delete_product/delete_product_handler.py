@@ -11,11 +11,11 @@ from app.modules.catalog.domain.exceptions.product import (
     ProductNotFoundError,
     ProductDeleteError,
 )
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 
 
-from .command import DeleteProductCommand, DeleteProductResult
+from .delete_product_command import DeleteProductCommand, DeleteProductResult
 
 
 class DeleteProductCommandValidator:

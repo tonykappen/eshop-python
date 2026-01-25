@@ -130,3 +130,14 @@ class ProductMapper:
             Deserialized object instance
         """
         return MsgspecMapper.from_redis(data, target_class)
+
+
+
+
+
+
+
+
+
+
+

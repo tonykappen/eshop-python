@@ -13,11 +13,11 @@ from app.modules.catalog.domain.exceptions.product import (
     ProductValidationError,
 )
 from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.product_repository import ProductRepositoryImpl as ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository as ProductRepository
 from app.core.database.session import AsyncSessionLocal
 
 
-from .command import CreateProductCommand, CreateProductResult
+from .create_product_command import CreateProductCommand, CreateProductResult
 
 
 class CreateProductCommandValidator:

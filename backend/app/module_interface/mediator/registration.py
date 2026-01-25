@@ -52,3 +52,14 @@ def register_handlers_from_modules(
         except Exception as e:
             logger.error(f"Error registering handlers from module: {e}")
 
+
+
+
+
+
+
+
+
+
+
+

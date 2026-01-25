@@ -445,3 +445,65 @@ class TestCachePatternsIntegration:
         assert result2 == test_value
         fetch_func.assert_called_once()  # Should be called again
         assert mock_cache_service.cache_data[cache_key] == test_value
+
+    @pytest.mark.asyncio
+    async def test_invalidate_and_refetch_with_ttl(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
+        """Test invalidate_and_refetch with TTL parameter."""
+        test_key = "test:key"
+        test_value = {"data": "value"}
+        test_ttl = 300
+        
+        fetch_func = AsyncMock(return_value=test_value)
+        
+        result = await cache_aside_pattern.invalidate_and_refetch(test_key, fetch_func, test_ttl)
+        
+        assert result == test_value
+        assert mock_cache_service.set_calls[0][2] == test_ttl
+
+    @pytest.mark.asyncio
+    async def test_get_or_set_with_empty_string_value(
+        self,
+        cache_aside_pattern: CacheAsidePattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
+        """Test get_or_set with empty string value (should cache it)."""
+        test_key = "test:key"
+        test_value = ""  # Empty string is not None, so should be cached
+        
+        fetch_func = AsyncMock(return_value=test_value)
+        
+        result = await cache_aside_pattern.get_or_set(test_key, fetch_func)
+        
+        assert result == test_value
+        assert len(mock_cache_service.set_calls) == 1  # Should cache empty string
+
+    @pytest.mark.asyncio
+    async def test_invalidate_related_data_with_empty_list(
+        self,
+        cache_invalidation_pattern: CacheInvalidationPattern,
+        mock_cache_service: MockCacheService,
+    ) -> None:
+        """Test invalidate_related_data with empty related_types list."""
+        entity_id = uuid4()
+        
+        await cache_invalidation_pattern.invalidate_related_data("product", entity_id, [])
+        
+        # Should only invalidate the main entity
+        assert len(mock_cache_service.invalidate_pattern_calls) == 1
+        assert f"product:{entity_id}:*" in mock_cache_service.invalidate_pattern_calls
+
+    def test_entity_key_with_empty_suffix(self) -> None:
+        """Test entity_key with empty suffix string."""
+        entity_id = uuid4()
+        key = CacheKeyBuilder.entity_key("product", entity_id, "")
+        assert key == f"product:{entity_id}"
+
+    def test_collection_key_with_single_filter(self) -> None:
+        """Test collection_key with single filter."""
+        filters = {"category": "electronics"}
+        key = CacheKeyBuilder.collection_key("product", filters)
+        assert key == "product:collection:category=electronics"

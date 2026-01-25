@@ -1,21 +1,18 @@
 """CreateProductHandler with 1-1 parity to .NET implementation."""
 
-import asyncio
 from decimal import Decimal
-from typing import Any
-from uuid import UUID
 
+from app.core.database.session import AsyncSessionLocal
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.exceptions.product import (
     ProductCreationError,
     ProductValidationError,
 )
-from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository as ProductRepository
-from app.core.database.session import AsyncSessionLocal
-
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlProductRepository as ProductRepository,
+)
 
 from .create_product_command import CreateProductCommand, CreateProductResult
 
@@ -26,36 +23,42 @@ class CreateProductCommandValidator:
     def validate(self, command: CreateProductCommand) -> list[str]:
         """
         Validate the create product command.
-        
+
         Args:
             command: The command to validate
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         if not command.name or not command.name.strip():
             errors.append("Product name is required and cannot be empty")
-            
+
         if not command.description or not command.description.strip():
             errors.append("Product description is required and cannot be empty")
-            
+
         if command.price <= 0:
             errors.append("Product price must be greater than 0")
         elif command.price < 0.01:
             errors.append("Product price must be at least $0.01")
-            
+
         # picture_url is now optional, so no validation needed
-            
+
         if not command.category:
-            errors.append("At least one category is required. Please add a category using the 'Add' button")
+            errors.append(
+                "At least one category is required. Please add a category using the 'Add' button"
+            )
         elif isinstance(command.category, list):
             # Filter out empty strings and whitespace-only categories
-            valid_categories = [cat.strip() for cat in command.category if cat and cat.strip()]
+            valid_categories = [
+                cat.strip() for cat in command.category if cat and cat.strip()
+            ]
             if not valid_categories:
-                errors.append("At least one valid category is required. Categories cannot be empty or whitespace-only")
-            
+                errors.append(
+                    "At least one valid category is required. Categories cannot be empty or whitespace-only"
+                )
+
         return errors
 
 
@@ -101,13 +104,12 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 repository = ProductRepository(session)
                 saved_product = await repository.add(product)
                 await session.commit()
-                
+
                 return CreateProductResult(id=saved_product.id)
             except Exception as e:
                 await session.rollback()
                 raise ProductCreationError(
-                    message="Failed to save product to database", 
-                    details=str(e)
+                    message="Failed to save product to database", details=str(e)
                 ) from e
 
     def _create_new_product(self, command: CreateProductCommand) -> Product:
@@ -127,7 +129,9 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
         # Validate product data (additional validation beyond command validator)
         if not command.name or not command.name.strip():
-            raise ProductValidationError("Product name is required and cannot be empty", field="name")
+            raise ProductValidationError(
+                "Product name is required and cannot be empty", field="name"
+            )
 
         if command.price <= 0:
             raise ProductValidationError(
@@ -136,15 +140,18 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
 
         try:
             from app.modules.catalog.domain.value_objects import Money
-            
+
             # Use default empty string if picture_url is not provided (optional field)
-            image_file = command.picture_url.strip() if command.picture_url and command.picture_url.strip() else ""
-            
-            price_money = Money(
-                amount=Decimal(str(command.price)),
-                currency="USD"  # Default currency
+            image_file = (
+                command.picture_url.strip()
+                if command.picture_url and command.picture_url.strip()
+                else ""
             )
-            
+
+            price_money = Money(
+                amount=Decimal(str(command.price)), currency="USD"  # Default currency
+            )
+
             product = Product.create(
                 product_id=uuid4(),
                 name=command.name,
@@ -157,4 +164,3 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
             return product
         except Exception as e:
             raise ProductValidationError(f"Failed to create product: {str(e)}") from e
-

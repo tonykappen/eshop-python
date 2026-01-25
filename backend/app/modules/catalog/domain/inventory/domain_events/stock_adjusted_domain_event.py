@@ -11,7 +11,9 @@ from app.modules.catalog.domain.entities.inventory import InventoryItem
 class StockAdjustedDomainEvent(DomainEvent):
     """Domain event raised when stock is adjusted."""
 
-    event_type: str = Field(default="inventory.stock_adjusted", description="Event type")
+    event_type: str = Field(
+        default="inventory.stock_adjusted", description="Event type"
+    )
     inventory_item: InventoryItem = Field(..., description="The inventory item")
     old_quantity: int = Field(..., description="Old quantity")
     new_quantity: int = Field(..., description="New quantity")
@@ -23,7 +25,7 @@ class StockAdjustedDomainEvent(DomainEvent):
         old_quantity: int,
         new_quantity: int,
         adjustment: int,
-        **data
+        **data,
     ):
         """Initialize the domain event."""
         super().__init__(
@@ -33,7 +35,7 @@ class StockAdjustedDomainEvent(DomainEvent):
             old_quantity=old_quantity,
             new_quantity=new_quantity,
             adjustment=adjustment,
-            **data
+            **data,
         )
 
     @property
@@ -55,5 +57,3 @@ class StockAdjustedDomainEvent(DomainEvent):
     def is_stock_decrease(self) -> bool:
         """Check if this is a stock decrease."""
         return self.adjustment < 0
-
-

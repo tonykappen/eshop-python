@@ -39,7 +39,12 @@ class CancellationToken:
     async def _monitor_disconnection(self) -> None:
         """Monitor for request disconnection."""
         try:
-            while not self._cancelled and not self._completed and not self._cleaning_up and self._request is not None:
+            while (
+                not self._cancelled
+                and not self._completed
+                and not self._cleaning_up
+                and self._request is not None
+            ):
                 if await self._request.is_disconnected():
                     # Only log and cancel if request disconnected BEFORE completion
                     if not self._completed and not self._cleaning_up:
@@ -91,7 +96,7 @@ class CancellationToken:
     async def cleanup(self) -> None:
         """Clean up monitoring task and execute rollback if cancelled."""
         self._cleaning_up = True  # Signal that cleanup is in progress
-        
+
         if self._cancelled:
             await self._execute_rollback_callbacks()
 

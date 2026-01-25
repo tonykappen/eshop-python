@@ -3,5 +3,3 @@
 from app.core.time.clock import Clock, FixedClock, IClock
 
 __all__ = ["Clock", "FixedClock", "IClock"]
-
-

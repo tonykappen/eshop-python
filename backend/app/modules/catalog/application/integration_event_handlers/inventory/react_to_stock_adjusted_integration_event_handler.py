@@ -16,7 +16,7 @@ class ReactToStockAdjustedIntegrationEventHandler:
     def __init__(self, notification_service: Any = None, analytics_service: Any = None):
         """
         Initialize the handler.
-        
+
         Args:
             notification_service: Notification service
             analytics_service: Analytics service
@@ -27,23 +27,27 @@ class ReactToStockAdjustedIntegrationEventHandler:
     async def handle(self, integration_event: StockAdjustedIntegrationEventV1) -> None:
         """
         Handle stock adjusted integration event.
-        
+
         Args:
             integration_event: Stock adjusted integration event
         """
-        logger.info(f"Handling stock adjusted integration event for product {integration_event.product_id}")
-        
+        logger.info(
+            f"Handling stock adjusted integration event for product {integration_event.product_id}"
+        )
+
         try:
             # Update analytics
             if self.analytics_service:
                 await self._update_analytics(integration_event)
-            
+
             # Send notifications if needed
             if self.notification_service:
                 await self._send_notifications(integration_event)
-            
-            logger.info(f"Successfully processed stock adjusted integration event {integration_event.event_id}")
-            
+
+            logger.info(
+                f"Successfully processed stock adjusted integration event {integration_event.event_id}"
+            )
+
         except Exception as e:
             logger.error(f"Error processing stock adjusted integration event: {e}")
             # Don't re-raise the exception to avoid breaking the event processing
@@ -51,7 +55,7 @@ class ReactToStockAdjustedIntegrationEventHandler:
     async def _update_analytics(self, event: StockAdjustedIntegrationEventV1) -> None:
         """
         Update analytics with stock adjustment data.
-        
+
         Args:
             event: Stock adjusted integration event
         """
@@ -69,17 +73,17 @@ class ReactToStockAdjustedIntegrationEventHandler:
                 "is_out_of_stock": event.is_out_of_stock,
                 "timestamp": event.occurred_at.isoformat(),
             }
-            
+
             await self.analytics_service.record_inventory_adjustment(analytics_data)
             logger.debug(f"Updated analytics for stock adjustment: {event.product_sku}")
-            
+
         except Exception as e:
             logger.error(f"Error updating analytics for stock adjustment: {e}")
 
     async def _send_notifications(self, event: StockAdjustedIntegrationEventV1) -> None:
         """
         Send notifications for stock adjustments.
-        
+
         Args:
             event: Stock adjusted integration event
         """
@@ -93,7 +97,7 @@ class ReactToStockAdjustedIntegrationEventHandler:
                     current_quantity=event.new_quantity,
                 )
                 logger.info(f"Sent low stock alert for product {event.product_sku}")
-            
+
             # Send out of stock notification
             if event.is_out_of_stock:
                 await self.notification_service.send_out_of_stock_alert(
@@ -102,7 +106,7 @@ class ReactToStockAdjustedIntegrationEventHandler:
                     product_sku=event.product_sku,
                 )
                 logger.info(f"Sent out of stock alert for product {event.product_sku}")
-            
+
             # Send stock increase notification (for restocking)
             if event.is_stock_increase and event.old_quantity == 0:
                 await self.notification_service.send_restocked_alert(
@@ -112,8 +116,6 @@ class ReactToStockAdjustedIntegrationEventHandler:
                     new_quantity=event.new_quantity,
                 )
                 logger.info(f"Sent restocked alert for product {event.product_sku}")
-                
+
         except Exception as e:
             logger.error(f"Error sending notifications for stock adjustment: {e}")
-
-

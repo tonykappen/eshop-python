@@ -17,22 +17,22 @@ class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomain
     async def handle(self, event: CategoryCreatedDomainEvent) -> None:
         """
         Handle category created domain event.
-        
+
         Args:
             event: The category created domain event
         """
         logger.info(
             f"Category created: {event.category_name} (ID: {event.category_id})"
         )
-        
+
         if event.parent_id:
             logger.info(f"Parent category ID: {event.parent_id}")
-        
+
         # Internal reactions (no integration event):
         # 1. Update read models
         # 2. Update search indexes
         # 3. Update metrics
-        
+
         # For now, just log the event
         logger.info("Category creation processed")
 
@@ -45,15 +45,3 @@ class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomain
         """Update metrics for category creation."""
         # Implementation would go here
         pass
-
-
-
-
-
-
-
-
-
-
-
-

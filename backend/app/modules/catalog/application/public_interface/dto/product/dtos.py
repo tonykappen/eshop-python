@@ -1,7 +1,6 @@
 """Product DTOs for public contracts."""
 
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -15,7 +14,9 @@ class ProductDto(BaseModel):
     sku: str = Field(..., description="Product SKU")
     category: list[str] = Field(..., description="Product categories")
     description: str = Field(..., description="Product description")
-    image_file: Optional[str] = Field(default=None, description="Product image file path (optional)")
+    image_file: str | None = Field(
+        default=None, description="Product image file path (optional)"
+    )
     price: float = Field(..., description="Product price")
     currency: str = Field(default="USD", description="Product currency")
     version: int = Field(..., description="Product version")
@@ -24,6 +25,7 @@ class ProductDto(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_encoders = {
             UUID: str,
             Decimal: float,
@@ -39,10 +41,13 @@ class ProductSummaryDto(BaseModel):
     category: list[str] = Field(..., description="Product categories")
     price: float = Field(..., description="Product price")
     currency: str = Field(default="USD", description="Product currency")
-    image_file: Optional[str] = Field(default=None, description="Product image file path (optional)")
+    image_file: str | None = Field(
+        default=None, description="Product image file path (optional)"
+    )
 
     class Config:
         """Pydantic configuration."""
+
         json_encoders = {
             UUID: str,
             Decimal: float,
@@ -59,14 +64,15 @@ class ProductSearchDto(BaseModel):
     description: str = Field(..., description="Product description")
     price: float = Field(..., description="Product price")
     currency: str = Field(default="USD", description="Product currency")
-    image_file: Optional[str] = Field(default=None, description="Product image file path (optional)")
-    relevance_score: Optional[float] = Field(None, description="Search relevance score")
+    image_file: str | None = Field(
+        default=None, description="Product image file path (optional)"
+    )
+    relevance_score: float | None = Field(None, description="Search relevance score")
 
     class Config:
         """Pydantic configuration."""
+
         json_encoders = {
             UUID: str,
             Decimal: float,
         }
-
-

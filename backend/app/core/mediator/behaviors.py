@@ -86,7 +86,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
     ) -> TResponse:
         """Handle logging - matches .NET LoggingBehavior.Handle()."""
-        from app.core.logging.trace_context import get_trace_id, get_request_id
+        from app.core.logging.trace_context import get_request_id, get_trace_id
 
         request_type = type(request).__name__
         response_type = self._get_response_type(request)

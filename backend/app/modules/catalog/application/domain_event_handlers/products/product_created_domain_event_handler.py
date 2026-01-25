@@ -16,26 +16,26 @@ class ProductCreatedDomainEventHandler(DomainEventHandler[ProductCreatedDomainEv
     async def handle(self, event: ProductCreatedDomainEvent) -> None:
         """
         Handle product created domain event for internal reactions.
-        
+
         Args:
             event: The product created domain event
         """
         logger.info(
             f"Processing internal reactions for product created: {event.product_id}"
         )
-        
+
         # Internal reactions (no integration event):
         # 1. Update metrics
         # 2. Warm up cache
         # 3. Update internal read models
-        
+
         try:
             # Update metrics
             # await self._update_metrics(event)
-            
+
             # Warm up cache
             # await self._warm_up_cache(event)
-            
+
             logger.info(f"Internal reactions completed for product {event.product_id}")
         except Exception as e:
             logger.error(f"Error in internal reactions for product created: {e}")
@@ -49,15 +49,3 @@ class ProductCreatedDomainEventHandler(DomainEventHandler[ProductCreatedDomainEv
         """Warm up cache for new product."""
         # Implementation would go here
         pass
-
-
-
-
-
-
-
-
-
-
-
-

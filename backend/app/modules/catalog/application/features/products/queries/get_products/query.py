@@ -1,11 +1,11 @@
 """GetProductsQuery definition - matches .NET implementation."""
 
 from uuid import UUID
-from typing import Optional
+
 from pydantic import BaseModel
 
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
 from app.core.pagination.models import PaginatedResult
+from app.modules.catalog.application.public_interface.dto.product import ProductDto
 
 
 class GetProductsQuery(BaseModel):
@@ -13,8 +13,8 @@ class GetProductsQuery(BaseModel):
 
     page: int = 1
     page_size: int = 10
-    category_id: Optional[UUID] = None
-    search_term: Optional[str] = None
+    category_id: UUID | None = None
+    search_term: str | None = None
 
 
 class GetProductsResult(PaginatedResult[ProductDto]):

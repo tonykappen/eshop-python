@@ -46,7 +46,9 @@ class DataSeederManager:
                     await seeder.seed_all_async()
                     self.logger.info(f"[OK] Seeder {seeder_class.__name__} completed")
                 except Exception as e:
-                    self.logger.error(f"[FAILED] Seeder {seeder_class.__name__} failed: {e}")
+                    self.logger.error(
+                        f"[FAILED] Seeder {seeder_class.__name__} failed: {e}"
+                    )
                     raise
 
         self.logger.info("[OK] All data seeders completed successfully")

@@ -16,7 +16,9 @@ from app.core.exceptions.common_exceptions import (
     NotFoundError,
     UnauthorizedError,
 )
-from app.core.exceptions.common_exceptions import ValidationError as CustomValidationError
+from app.core.exceptions.common_exceptions import (
+    ValidationError as CustomValidationError,
+)
 from app.core.exceptions.handler import CustomExceptionHandler
 from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
 

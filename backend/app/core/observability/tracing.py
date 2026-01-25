@@ -16,7 +16,7 @@ class TracingProvider:
     def initialize(cls, tracer_provider: Any = None) -> None:
         """
         Initialize the tracer provider.
-        
+
         Args:
             tracer_provider: Optional tracer provider instance
         """
@@ -30,10 +30,10 @@ class TracingProvider:
     def get_tracer(cls, name: str) -> Any:
         """
         Get a tracer instance.
-        
+
         Args:
             name: Tracer name
-            
+
         Returns:
             Tracer instance
         """
@@ -48,5 +48,3 @@ class TracingProvider:
         if cls._tracer_provider:
             # Shutdown logic would go here
             logger.info("Tracer provider shut down")
-
-

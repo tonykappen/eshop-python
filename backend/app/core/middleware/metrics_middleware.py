@@ -15,7 +15,7 @@ logger = BaseLogger(__name__)
 class MetricsMiddleware(BaseHTTPMiddleware):
     """
     Middleware for HTTP request metrics.
-    
+
     Counts requests and measures latency using Prometheus/OTEL metrics.
     """
 
@@ -28,7 +28,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     ):
         """
         Initialize metrics middleware.
-        
+
         Args:
             app: FastAPI application
             service_name: Service name for metrics
@@ -39,23 +39,25 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         self.service_name = service_name
         self.meter = MetricsRegistry.get_meter(service_name)
         self.exclude_paths = exclude_paths or []
-        
+
         if exclude_health_checks:
-            self.exclude_paths.extend([
-                "/health",
-                "/ready",
-                "/liveness",
-                "/metrics",
-                "/docs",
-                "/openapi.json",
-                "/redoc",
-            ])
-        
+            self.exclude_paths.extend(
+                [
+                    "/health",
+                    "/ready",
+                    "/liveness",
+                    "/metrics",
+                    "/docs",
+                    "/openapi.json",
+                    "/redoc",
+                ]
+            )
+
         # Initialize metrics attributes to None (will be set in _initialize_metrics)
         self.request_counter = None
         self.request_duration = None
         self.active_requests = None
-        
+
         # Initialize metrics if meter is available
         self._initialize_metrics()
 
@@ -71,7 +73,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             self.request_duration = None
             self.active_requests = None
             return
-        
+
         try:
             # HTTP request counter
             self.request_counter = self.meter.create_counter(
@@ -79,21 +81,21 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 description="Total number of HTTP requests",
                 unit="1",
             )
-            
+
             # HTTP request duration histogram
             self.request_duration = self.meter.create_histogram(
                 name="http_request_duration_seconds",
                 description="HTTP request duration in seconds",
                 unit="s",
             )
-            
+
             # Active requests gauge
             self.active_requests = self.meter.create_up_down_counter(
                 name="http_active_requests",
                 description="Number of active HTTP requests",
                 unit="1",
             )
-            
+
             logger.log_with_context(
                 "Metrics initialized",
                 "info",
@@ -112,11 +114,11 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         """
         Process request with metrics collection.
-        
+
         Args:
             request: FastAPI request
             call_next: Next middleware/handler
-            
+
         Returns:
             HTTP response
         """
@@ -127,10 +129,13 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         # Increment active requests
         if self.active_requests:
             try:
-                self.active_requests.add(1, attributes={
-                    "method": request.method,
-                    "path": request.url.path,
-                })
+                self.active_requests.add(
+                    1,
+                    attributes={
+                        "method": request.method,
+                        "path": request.url.path,
+                    },
+                )
             except Exception as e:
                 logger.log_warning_with_context(
                     "Failed to increment active requests",
@@ -139,37 +144,40 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
         # Record start time
         start_time = time.time()
-        
+
         try:
             # Process request
             response = await call_next(request)
-            
+
             # Calculate duration
             duration = time.time() - start_time
-            
+
             # Record metrics
             self._record_metrics(request, response, duration, success=True)
-            
+
             return response
-            
+
         except Exception as e:
             # Calculate duration even for errors
             duration = time.time() - start_time
-            
+
             # Record metrics with error status
             self._record_metrics(request, None, duration, success=False, error=str(e))
-            
+
             # Re-raise the exception
             raise
-            
+
         finally:
             # Decrement active requests
             if self.active_requests:
                 try:
-                    self.active_requests.add(-1, attributes={
-                        "method": request.method,
-                        "path": request.url.path,
-                    })
+                    self.active_requests.add(
+                        -1,
+                        attributes={
+                            "method": request.method,
+                            "path": request.url.path,
+                        },
+                    )
                 except Exception as e:
                     logger.log_warning_with_context(
                         "Failed to decrement active requests",
@@ -186,7 +194,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     ) -> None:
         """
         Record HTTP request metrics.
-        
+
         Args:
             request: HTTP request
             response: HTTP response (None if error)
@@ -196,12 +204,12 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         """
         if not self.request_counter or not self.request_duration:
             return
-        
+
         try:
             # Prepare attributes for metrics
             status_code = response.status_code if response else 500
             status_class = f"{status_code // 100}xx"
-            
+
             attributes = {
                 "method": request.method,
                 "path": request.url.path,
@@ -210,18 +218,18 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 "status_class": status_class,
                 "service": self.service_name,
             }
-            
+
             # Add error information if available
             if error:
                 attributes["error"] = error
                 attributes["error_type"] = "exception"
-            
+
             # Increment request counter
             self.request_counter.add(1, attributes=attributes)
-            
+
             # Record request duration
             self.request_duration.record(duration, attributes=attributes)
-            
+
             logger.log_debug_with_context(
                 "Recorded HTTP metrics",
                 context={
@@ -231,7 +239,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                     "duration": duration,
                 },
             )
-            
+
         except Exception as e:
             logger.log_warning_with_context(
                 "Failed to record metrics",
@@ -247,7 +255,7 @@ def add_metrics_middleware(
 ) -> None:
     """
     Add metrics middleware to FastAPI app.
-    
+
     Args:
         app: FastAPI application
         service_name: Service name for metrics

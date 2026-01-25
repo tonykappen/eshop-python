@@ -148,7 +148,7 @@ class TestProduct:
 
         assert len(product.domain_events) == 1
         event = product.domain_events[0]
-        assert isinstance(event, ProductCreatedEvent)
+        assert isinstance(event, ProductCreatedDomainEvent)
         assert event.product == product
 
     def test_product_update_success(self):
@@ -232,7 +232,7 @@ class TestProduct:
         # Should have a price change event
         assert len(product.domain_events) == 1
         event = product.domain_events[0]
-        assert isinstance(event, ProductPriceChangedEvent)
+        assert isinstance(event, ProductPriceChangedDomainEvent)
         assert event.product == product
 
     def test_product_update_multiple_price_changes(self):

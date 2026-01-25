@@ -3,9 +3,13 @@
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Union
 
+from app.core.application.behaviors import (
+    AuthorizationBehavior,
+    LoggingBehavior,
+    ValidationBehavior,
+)
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.logging.base_logger import BaseLogger
-from app.core.application.behaviors import AuthorizationBehavior, LoggingBehavior, ValidationBehavior
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import HandlerRegistry
 

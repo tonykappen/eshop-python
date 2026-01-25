@@ -31,13 +31,17 @@ _scheme: ContextVar[str | None] = ContextVar("scheme", default=None)
 _http_version: ContextVar[str | None] = ContextVar("http_version", default=None)
 _referer: ContextVar[str | None] = ContextVar("referer", default=None)
 _route: ContextVar[str | None] = ContextVar("route", default=None)
-_path_params: ContextVar[dict[str, Any] | None] = ContextVar("path_params", default=None)
+_path_params: ContextVar[dict[str, Any] | None] = ContextVar(
+    "path_params", default=None
+)
 _query: ContextVar[str | None] = ContextVar("query", default=None)
 _request_size: ContextVar[int | None] = ContextVar("request_size", default=None)
 _parent_span_id: ContextVar[str | None] = ContextVar("parent_span_id", default=None)
 _traceparent_raw: ContextVar[str | None] = ContextVar("traceparent_raw", default=None)
 _tracestate: ContextVar[str | None] = ContextVar("tracestate", default=None)
-_session_id_prefix: ContextVar[str | None] = ContextVar("session_id_prefix", default=None)
+_session_id_prefix: ContextVar[str | None] = ContextVar(
+    "session_id_prefix", default=None
+)
 
 
 def set_trace_context(trace_id: str, span_id: str, request_id: str) -> None:
@@ -76,7 +80,9 @@ def set_identity_context(
         _tenant_id.set(tenant_id)
 
 
-def set_operation_context(operation_id: str | None = None, controller: str | None = None) -> None:
+def set_operation_context(
+    operation_id: str | None = None, controller: str | None = None
+) -> None:
     """Set operation context for propagation to all logs."""
     if operation_id is not None:
         _operation_id.set(operation_id)

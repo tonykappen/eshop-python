@@ -35,5 +35,3 @@ __all__ = [
     "register_catalog_handlers_with_mediator",
     "subscribe_domain_events_to_integration_events",
 ]
-
-

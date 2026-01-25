@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
 from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
     GetProductsByCategoryQuery,
     GetProductsByCategoryResult,
 )
+from app.modules.catalog.application.public_interface.dto.product import ProductDto
 
 
 class TestGetProductsByCategoryQuery:
@@ -25,9 +25,7 @@ class TestGetProductsByCategoryQuery:
 
     def test_query_creation_with_pagination(self) -> None:
         """Test creating a query with custom pagination."""
-        query = GetProductsByCategoryQuery(
-            category="Electronics", page=2, page_size=20
-        )
+        query = GetProductsByCategoryQuery(category="Electronics", page=2, page_size=20)
 
         assert query.category == "Electronics"
         assert query.page == 2
@@ -58,9 +56,7 @@ class TestGetProductsByCategoryQuery:
 
     def test_query_serialization(self) -> None:
         """Test query serialization."""
-        query = GetProductsByCategoryQuery(
-            category="Electronics", page=2, page_size=20
-        )
+        query = GetProductsByCategoryQuery(category="Electronics", page=2, page_size=20)
 
         data = query.model_dump()
         assert data["category"] == "Electronics"

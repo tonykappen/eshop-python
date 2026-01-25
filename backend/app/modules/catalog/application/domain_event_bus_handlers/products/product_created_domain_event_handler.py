@@ -19,7 +19,7 @@ class ProductCreatedDomainEventBusHandler:
     def __init__(self, event_publisher: Any = None):
         """
         Initialize the handler.
-        
+
         Args:
             event_publisher: Event publisher service
         """
@@ -28,12 +28,14 @@ class ProductCreatedDomainEventBusHandler:
     async def handle(self, domain_event: ProductCreatedDomainEvent) -> None:
         """
         Handle product created domain event and publish integration event.
-        
+
         Args:
             domain_event: Product created domain event
         """
-        logger.info(f"Converting domain event to integration event for product {domain_event.product_id}")
-        
+        logger.info(
+            f"Converting domain event to integration event for product {domain_event.product_id}"
+        )
+
         try:
             # Create integration event
             integration_event = ProductCreatedIntegrationEventV1.create(
@@ -51,26 +53,18 @@ class ProductCreatedDomainEventBusHandler:
                     "domain_event_version": str(domain_event.version),
                 },
             )
-            
+
             # Publish integration event
             if self.event_publisher:
                 await self.event_publisher.publish(integration_event)
-                logger.info(f"Published product created integration event {integration_event.event_id}")
+                logger.info(
+                    f"Published product created integration event {integration_event.event_id}"
+                )
             else:
-                logger.warning("No event publisher configured, integration event not published")
-                
+                logger.warning(
+                    "No event publisher configured, integration event not published"
+                )
+
         except Exception as e:
             logger.error(f"Error publishing product created integration event: {e}")
             # Don't re-raise the exception to avoid breaking the domain event processing
-
-
-
-
-
-
-
-
-
-
-
-

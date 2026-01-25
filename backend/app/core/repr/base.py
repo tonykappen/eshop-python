@@ -209,10 +209,10 @@ class CQRSEndpoint(Endpoint[TRequest, TResponse], Generic[TRequest, TResponse]):
 
             # Step 3: Result -> Response
             response = await self.result_mapper.map_to_response(result, request)
-            
+
             # Mark token as completed before returning (prevents false disconnection logs)
             cancellation_token.mark_completed()
-            
+
             return response
         finally:
             # Always cleanup the cancellation token

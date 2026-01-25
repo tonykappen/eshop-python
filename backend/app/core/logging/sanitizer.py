@@ -3,7 +3,6 @@
 import json
 from typing import Any
 
-
 # Headers that should always be redacted
 SENSITIVE_HEADERS = {
     "authorization",
@@ -54,21 +53,21 @@ SENSITIVE_BODY_KEYS = {
 def sanitize_headers(headers: dict[str, str] | Any) -> dict[str, str]:
     """
     Sanitize HTTP headers by redacting sensitive information.
-    
+
     Args:
         headers: Dictionary of HTTP headers
-        
+
     Returns:
         Sanitized headers dictionary with sensitive values redacted
     """
     if not headers:
         return {}
-    
+
     sanitized = {}
-    
+
     for key, value in headers.items():
         key_lower = key.lower()
-        
+
         # Check if this header should be redacted
         if any(sensitive in key_lower for sensitive in SENSITIVE_HEADERS):
             if isinstance(value, str) and len(value) > 0:
@@ -79,24 +78,26 @@ def sanitize_headers(headers: dict[str, str] | Any) -> dict[str, str]:
         else:
             # Safe to include
             sanitized[key] = value
-    
+
     return sanitized
 
 
-def sanitize_json_body(body: str | bytes | dict | Any, max_size: int = 5000) -> dict[str, Any] | str | None:
+def sanitize_json_body(
+    body: str | bytes | dict | Any, max_size: int = 5000
+) -> dict[str, Any] | str | None:
     """
     Sanitize JSON request/response body by redacting sensitive fields.
-    
+
     Args:
         body: Request/response body (string, bytes, or dict)
         max_size: Maximum size of body to log (in characters)
-        
+
     Returns:
         Sanitized body as dict or string, or None if body is too large/binary
     """
     if body is None:
         return None
-    
+
     # Convert bytes to string
     if isinstance(body, bytes):
         try:
@@ -112,11 +113,11 @@ def sanitize_json_body(body: str | bytes | dict | Any, max_size: int = 5000) -> 
     else:
         # Unknown type
         return str(body)[:max_size]
-    
+
     # Limit size
     if len(body_str) > max_size:
         body_str = body_str[:max_size] + "... <truncated>"
-    
+
     # Try to parse as JSON
     try:
         body_dict = json.loads(body_str)
@@ -132,11 +133,11 @@ def sanitize_json_body(body: str | bytes | dict | Any, max_size: int = 5000) -> 
 
 def _sanitize_dict(data: dict[str, Any]) -> dict[str, Any]:
     """Recursively sanitize a dictionary by redacting sensitive keys."""
-    sanitized = {}
-    
+    sanitized: dict[str, Any] = {}
+
     for key, value in data.items():
         key_lower = str(key).lower()
-        
+
         # Check if this key should be redacted
         if any(sensitive in key_lower for sensitive in SENSITIVE_BODY_KEYS):
             if isinstance(value, str) and len(value) > 0:
@@ -157,25 +158,27 @@ def _sanitize_dict(data: dict[str, Any]) -> dict[str, Any]:
         else:
             # Safe to include
             sanitized[key] = value
-    
+
     return sanitized
 
 
-def get_safe_headers(headers: dict[str, str] | Any, include_all: bool = False) -> dict[str, str]:
+def get_safe_headers(
+    headers: dict[str, str] | Any, include_all: bool = False
+) -> dict[str, str]:
     """
     Get safe headers for logging.
-    
+
     Args:
         headers: Dictionary of HTTP headers
-        include_all: If True, include all headers (with redaction). 
+        include_all: If True, include all headers (with redaction).
                      If False, only include safe/common headers.
-        
+
     Returns:
         Dictionary of safe headers
     """
     if not headers:
         return {}
-    
+
     # Common safe headers to always include
     safe_headers_whitelist = {
         "content-type",
@@ -193,7 +196,7 @@ def get_safe_headers(headers: dict[str, str] | Any, include_all: bool = False) -
         "traceparent",
         "tracestate",
     }
-    
+
     if include_all:
         # Include all headers but redact sensitive ones
         return sanitize_headers(headers)
@@ -204,8 +207,5 @@ def get_safe_headers(headers: dict[str, str] | Any, include_all: bool = False) -
             key_lower = key.lower()
             if key_lower in safe_headers_whitelist:
                 sanitized[key] = value
-        
+
         return sanitized
-
-
-

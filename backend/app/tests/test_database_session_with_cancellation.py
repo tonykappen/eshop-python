@@ -121,9 +121,10 @@ class TestDbTransactionWithCancellation:
             ) as mock_get_token:
                 mock_get_token.return_value = mock_cancellation_token
 
-                async with db_transaction_with_cancellation(
-                    mock_request
-                ) as (session, token):
+                async with db_transaction_with_cancellation(mock_request) as (
+                    session,
+                    token,
+                ):
                     assert session == mock_session
                     assert token == mock_cancellation_token
 
@@ -152,9 +153,10 @@ class TestDbTransactionWithCancellation:
             ) as mock_get_token:
                 mock_get_token.return_value = mock_cancellation_token
 
-                async with db_transaction_with_cancellation(
-                    mock_request
-                ) as (session, token):
+                async with db_transaction_with_cancellation(mock_request) as (
+                    session,
+                    token,
+                ):
                     assert session == mock_session
                     assert token == mock_cancellation_token
 
@@ -184,9 +186,10 @@ class TestDbTransactionWithCancellation:
                 mock_get_token.return_value = mock_cancellation_token
 
                 with pytest.raises(ValueError):
-                    async with db_transaction_with_cancellation(
-                        mock_request
-                    ) as (session, token):
+                    async with db_transaction_with_cancellation(mock_request) as (
+                        session,
+                        token,
+                    ):
                         raise ValueError("Test error")
 
                 mock_session.begin.assert_called_once()
@@ -215,9 +218,10 @@ class TestDbTransactionWithCancellation:
                 mock_get_token.return_value = mock_cancellation_token
 
                 try:
-                    async with db_transaction_with_cancellation(
-                        mock_request
-                    ) as (session, token):
+                    async with db_transaction_with_cancellation(mock_request) as (
+                        session,
+                        token,
+                    ):
                         raise ValueError("Test error")
                 except ValueError:
                     pass
@@ -244,4 +248,3 @@ class TestGetCancellationTokenForSession:
 
             assert result == mock_token
             mock_get_token.assert_called_once_with(mock_request, mock_session)
-

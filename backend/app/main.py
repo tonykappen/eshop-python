@@ -20,7 +20,6 @@ from app.core.initialization import (
     initialize_mediator,
     shutdown_logging,
 )
-from app.core.mediator.fastapi_integration import get_mediator
 from app.core.lifecycle.handlers import (
     auth_handler,
     cache_handler,
@@ -35,11 +34,14 @@ from app.core.lifecycle.manager import (
     register_startup_callback,
 )
 from app.core.logging.clef_middleware import add_clef_logging_middleware
+from app.core.mediator.fastapi_integration import get_mediator
 from app.core.middleware.auth_middleware import add_auth_middleware
-from app.core.middleware.tracing_middleware import add_tracing_middleware
 from app.core.middleware.metrics_middleware import add_metrics_middleware
-from app.modules.catalog.module_interface.router import register_catalog_module_with_fastapi
+from app.core.middleware.tracing_middleware import add_tracing_middleware
 from app.module_interface.router import create_root_router
+from app.modules.catalog.module_interface.router import (
+    register_catalog_module_with_fastapi,
+)
 
 
 @asynccontextmanager
@@ -61,10 +63,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Add Keycloak routes after auth handler startup
         try:
             from app.core.auth.keycloak import add_keycloak_routes
+
             add_keycloak_routes(app)
         except Exception as e:
             print(f"Warning: Could not add Keycloak routes: {e}")
-        
+
         yield
 
 
@@ -81,6 +84,7 @@ async def register_catalog_router():
         print(f"Warning: Could not register catalog router: {e}")
         # Fallback to basic router
         from app.modules.catalog.presentation.router import router as catalog_router
+
         app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 
 
@@ -88,7 +92,9 @@ async def register_catalog_router():
 register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)
 register_startup_callback(initialize_mediator)
-register_startup_callback(register_catalog_router)  # Register catalog router after mediator is initialized
+register_startup_callback(
+    register_catalog_router
+)  # Register catalog router after mediator is initialized
 register_startup_callback(database_handler.startup)
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)

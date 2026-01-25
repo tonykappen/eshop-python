@@ -1,7 +1,7 @@
 """In-memory domain event dispatcher."""
 
 import logging
-from typing import Any, Callable, Dict, List, Type
+from collections.abc import Callable
 
 from app.core.domain.events import DomainEvent
 
@@ -13,26 +13,30 @@ class DomainEventDispatcher:
 
     def __init__(self):
         """Initialize the domain event dispatcher."""
-        self._handlers: Dict[Type[DomainEvent], List[Callable]] = {}
+        self._handlers: dict[type[DomainEvent], list[Callable]] = {}
 
-    def register_handler(self, event_type: Type[DomainEvent], handler: Callable) -> None:
+    def register_handler(
+        self, event_type: type[DomainEvent], handler: Callable
+    ) -> None:
         """
         Register a handler for a domain event type.
-        
+
         Args:
             event_type: Type of domain event
             handler: Handler function
         """
         if event_type not in self._handlers:
             self._handlers[event_type] = []
-        
+
         self._handlers[event_type].append(handler)
         logger.debug(f"Registered handler for event type: {event_type.__name__}")
 
-    def unregister_handler(self, event_type: Type[DomainEvent], handler: Callable) -> None:
+    def unregister_handler(
+        self, event_type: type[DomainEvent], handler: Callable
+    ) -> None:
         """
         Unregister a handler for a domain event type.
-        
+
         Args:
             event_type: Type of domain event
             handler: Handler function
@@ -44,22 +48,26 @@ class DomainEventDispatcher:
     async def dispatch(self, event: DomainEvent) -> None:
         """
         Dispatch a domain event to all registered handlers.
-        
+
         Args:
             event: Domain event to dispatch
         """
         event_type = type(event)
-        
+
         if event_type not in self._handlers:
-            logger.debug(f"No handlers registered for event type: {event_type.__name__}")
+            logger.debug(
+                f"No handlers registered for event type: {event_type.__name__}"
+            )
             return
-        
+
         handlers = self._handlers[event_type]
-        logger.debug(f"Dispatching event {event_type.__name__} to {len(handlers)} handlers")
-        
+        logger.debug(
+            f"Dispatching event {event_type.__name__} to {len(handlers)} handlers"
+        )
+
         for handler in handlers:
             try:
-                if hasattr(handler, 'handle'):
+                if hasattr(handler, "handle"):
                     await handler.handle(event)
                 else:
                     await handler(event)
@@ -67,32 +75,32 @@ class DomainEventDispatcher:
                 logger.error(f"Error in domain event handler: {e}")
                 # Continue with other handlers even if one fails
 
-    async def dispatch_all(self, events: List[DomainEvent]) -> None:
+    async def dispatch_all(self, events: list[DomainEvent]) -> None:
         """
         Dispatch multiple domain events.
-        
+
         Args:
             events: List of domain events to dispatch
         """
         for event in events:
             await self.dispatch(event)
 
-    def get_handlers(self, event_type: Type[DomainEvent]) -> List[Callable]:
+    def get_handlers(self, event_type: type[DomainEvent]) -> list[Callable]:
         """
         Get all handlers for an event type.
-        
+
         Args:
             event_type: Type of domain event
-            
+
         Returns:
             List of handlers
         """
         return self._handlers.get(event_type, []).copy()
 
-    def get_registered_event_types(self) -> List[Type[DomainEvent]]:
+    def get_registered_event_types(self) -> list[type[DomainEvent]]:
         """
         Get all registered event types.
-        
+
         Returns:
             List of registered event types
         """
@@ -106,5 +114,3 @@ class DomainEventDispatcher:
 
 # Global dispatcher instance
 domain_event_dispatcher = DomainEventDispatcher()
-
-

@@ -1,15 +1,3 @@
 """Product domain event bus handlers."""
 
-__all__ = []
-
-
-
-
-
-
-
-
-
-
-
-
+__all__: list[str] = []

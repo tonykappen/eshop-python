@@ -4,5 +4,3 @@ from .money import Money
 from .sku import SKU
 
 __all__ = ["Money", "SKU"]
-
-

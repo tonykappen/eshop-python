@@ -11,7 +11,7 @@ class InternalServerException(BaseError):
     ):
         """
         Initialize internal server exception.
-        
+
         Args:
             message: Error message
             details: Optional additional details

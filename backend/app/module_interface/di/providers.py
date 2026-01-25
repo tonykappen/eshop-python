@@ -1,10 +1,8 @@
 """DI provider logic for core services."""
 
-from typing import Any
 
 from app.core.di.container import (
     Container,
-    ServiceProvider,
     configure_container,
     create_container,
     get_connection_string,
@@ -38,15 +36,3 @@ __all__ = [
 def get_container() -> Container:
     """Get the global container instance."""
     return create_container()
-
-
-
-
-
-
-
-
-
-
-
-

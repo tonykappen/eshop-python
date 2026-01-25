@@ -1,15 +1,15 @@
 """Initial catalog seed data aligned with alembic migration."""
 
 import logging
-from decimal import Decimal
-from typing import Dict
 from uuid import uuid4
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.infrastructure.persistence.orm.category_orm import CategoryORM
-from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import InventoryItemORM
+from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import (
+    InventoryItemORM,
+)
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 from app.modules.catalog.infrastructure.seeding.products.seed_registry import Seed
 
@@ -23,36 +23,36 @@ class CatalogInitialSeed(Seed):
         """Initialize the initial catalog seed."""
         super().__init__(
             version="catalog_seed_20250115_initial",
-            description="Initial catalog data with products, categories, and inventory"
+            description="Initial catalog data with products, categories, and inventory",
         )
 
     async def execute(self, session: AsyncSession) -> None:
         """
         Execute the initial catalog seed.
-        
+
         Args:
             session: Database session
         """
         logger.info("Executing initial catalog seed")
-        
+
         # Create categories first
         categories = await self._create_categories(session)
-        
+
         # Create products
         products = await self._create_products(session, categories)
-        
+
         # Create inventory items
         await self._create_inventory_items(session, products)
-        
+
         logger.info("Initial catalog seed completed successfully")
 
-    async def _create_categories(self, session: AsyncSession) -> Dict[str, str]:
+    async def _create_categories(self, session: AsyncSession) -> dict[str, str]:
         """
         Create initial categories.
-        
+
         Args:
             session: Database session
-            
+
         Returns:
             Dictionary mapping category names to IDs
         """
@@ -103,24 +103,26 @@ class CatalogInitialSeed(Seed):
                 "is_deleted": False,
             },
         ]
-        
+
         category_ids = {}
-        
+
         for category_data in categories_data:
             await session.execute(insert(CategoryORM).values(**category_data))
             category_ids[category_data["name"]] = category_data["id"]
-        
+
         logger.info(f"Created {len(categories_data)} categories")
         return category_ids
 
-    async def _create_products(self, session: AsyncSession, categories: Dict[str, str]) -> Dict[str, str]:
+    async def _create_products(
+        self, session: AsyncSession, categories: dict[str, str]
+    ) -> dict[str, str]:
         """
         Create initial products.
-        
+
         Args:
             session: Database session
             categories: Dictionary mapping category names to IDs
-            
+
         Returns:
             Dictionary mapping product SKUs to IDs
         """
@@ -198,20 +200,22 @@ class CatalogInitialSeed(Seed):
                 "is_deleted": False,
             },
         ]
-        
+
         product_ids = {}
-        
+
         for product_data in products_data:
             await session.execute(insert(ProductORM).values(**product_data))
             product_ids[product_data["sku"]] = product_data["id"]
-        
+
         logger.info(f"Created {len(products_data)} products")
         return product_ids
 
-    async def _create_inventory_items(self, session: AsyncSession, products: Dict[str, str]) -> None:
+    async def _create_inventory_items(
+        self, session: AsyncSession, products: dict[str, str]
+    ) -> None:
         """
         Create initial inventory items.
-        
+
         Args:
             session: Database session
             products: Dictionary mapping product SKUs to IDs
@@ -278,10 +282,10 @@ class CatalogInitialSeed(Seed):
                 "is_deleted": False,
             },
         ]
-        
+
         for inventory_item_data in inventory_data:
-            await session.execute(insert(InventoryItemORM).values(**inventory_item_data))
-        
+            await session.execute(
+                insert(InventoryItemORM).values(**inventory_item_data)
+            )
+
         logger.info(f"Created {len(inventory_data)} inventory items")
-
-

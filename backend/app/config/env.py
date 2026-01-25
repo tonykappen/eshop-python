@@ -22,7 +22,7 @@ class EnvConfig:
     - launch.json is lowest priority (IDE debugging convenience)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._env_file_path = Path(__file__).parent.parent.parent / ".env"
         self._launch_json_path = (
             Path(__file__).parent.parent.parent.parent / ".vscode" / "launch.json"

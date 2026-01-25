@@ -17,7 +17,7 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
     async def handle(self, event: StockAdjustedDomainEvent) -> None:
         """
         Handle stock adjusted domain event.
-        
+
         Args:
             event: The stock adjusted domain event
         """
@@ -26,17 +26,17 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
             f"{event.old_quantity} -> {event.new_quantity} "
             f"(adjustment: {event.adjustment:+d})"
         )
-        
+
         # Internal reactions (no integration event):
         # 1. Update read models
         # 2. Check reorder thresholds
         # 3. Update metrics
-        
+
         # Check if stock is low after adjustment
         if event.inventory_item.is_low_stock:
             logger.warning(f"Low stock alert for product {event.product_id}")
             # await self._send_low_stock_alert(event.inventory_item)
-        
+
         # Check if out of stock
         if event.inventory_item.is_out_of_stock:
             logger.error(f"Out of stock alert for product {event.product_id}")
@@ -56,15 +56,3 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
         """Update metrics for stock adjustment."""
         # Implementation would go here
         pass
-
-
-
-
-
-
-
-
-
-
-
-

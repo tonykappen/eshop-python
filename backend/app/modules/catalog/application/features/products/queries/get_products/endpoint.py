@@ -1,12 +1,14 @@
 """GetProducts endpoint - FastAPI endpoint for getting products with pagination."""
 
-from fastapi import APIRouter, Depends, Request, Query
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, Query, Request
+
+from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
 from app.modules.catalog.utils import get_endpoint_factory
-from app.core.auth.rbac import require_query_access
+
 from .query import GetProductsQuery, GetProductsResult
 
 router = APIRouter()
@@ -17,8 +19,8 @@ async def get_products(
     http_request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
-    category_id: Optional[UUID] = Query(None),
-    search_term: Optional[str] = Query(None),
+    category_id: UUID | None = Query(None),
+    search_term: str | None = Query(None),
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Query access required (admin, manager, user)
     _: Any = Depends(require_query_access()),
@@ -31,10 +33,7 @@ async def get_products(
     """
     # Create the query
     query = GetProductsQuery(
-        page=page, 
-        page_size=page_size, 
-        category_id=category_id, 
-        search_term=search_term
+        page=page, page_size=page_size, category_id=category_id, search_term=search_term
     )
 
     # Create query endpoint with custom pagination mapper

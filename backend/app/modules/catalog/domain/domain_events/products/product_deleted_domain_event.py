@@ -20,7 +20,7 @@ class ProductDeletedDomainEvent(DomainEvent):
             aggregate_id=product.id,
             event_type="product.deleted",
             product=product,
-            **data
+            **data,
         )
 
     @property
@@ -37,5 +37,3 @@ class ProductDeletedDomainEvent(DomainEvent):
     def product_sku(self) -> str:
         """Get the product SKU."""
         return str(self.product.sku)
-
-

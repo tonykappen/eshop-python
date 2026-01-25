@@ -30,13 +30,13 @@ def get_service_metadata() -> dict[str, Any]:
 def get_host_metadata() -> dict[str, Any]:
     """Get host/container metadata with all required fields."""
     hostname = socket.gethostname()
-    
+
     # Get FQDN if available
     try:
         hostname_fqdn = socket.getfqdn()
     except Exception:
         hostname_fqdn = hostname
-    
+
     # Get internal IP address
     try:
         # Get primary IP (not loopback)
@@ -46,13 +46,13 @@ def get_host_metadata() -> dict[str, Any]:
         s.close()
     except Exception:
         ip = ""
-    
+
     # Get port from environment (set by uvicorn or deployment)
     port = int(os.getenv("PORT", os.getenv("UVICORN_PORT", "8000")))
-    
+
     # Get script name (entry point)
     script_name = os.getenv("SCRIPT_NAME", "app/main.py")
-    
+
     return {
         "host": hostname,
         "hostname_fqdn": hostname_fqdn,
@@ -72,38 +72,30 @@ MESSAGE_TEMPLATES: dict[str, str] = {
     # HTTP / Presentation Layer
     "begin_request": "Begin request {method} {path}",
     "response_sent": "Response sent {method} {path} → {status_code} in {duration_ms} ms",
-    
     # Mediator / Application Layer
     "mediator_operation_started": "Mediator operation started {operation_name}",
     "mediator_operation_ended": "Mediator operation ended {operation_name} in {duration_ms} ms (success={success})",
-    
     # Validation & Mapping
     "request_validation_started": "Request validation started {operation_name}",
     "request_validation_completed": "Request validation completed {operation_name} in {duration_ms} ms (success={success})",
     "domain_object_conversion": "Converted request DTO to domain object {operation_name}",
     "orm_object_conversion": "Converted domain object to ORM entity {entity_name}",
-    
     # Background Tasks
     "background_task_started": "Background task started {task_name}",
     "background_task_completed": "Background task completed {task_name} in {duration_ms} ms (success={success})",
-    
     # Domain Layer
     "domain_operation_started": "Domain operation started {operation_name} on {aggregate_type}",
     "domain_operation_ended": "Domain operation ended {operation_name} on {aggregate_type} in {duration_ms} ms (success={success})",
     "domain_event_published": "Domain event published {event_name} for {aggregate_type}",
     "domain_event_processed": "Domain event processed {event_name} by {handler_name} in {duration_ms} ms (success={success})",
-    
     # Outbox Pattern
     "outbox_message_stored": "Outbox message stored {message_id} ({event_name})",
     "outbox_message_processed": "Outbox message processed {message_id} ({event_name}) → {destination} in {duration_ms} ms (success={success}, retries={retry_count})",
-    
     # Integration Layer
     "integration_event_published": "Integration event published {event_name} to {destination}",
     "integration_event_processed": "Integration event processed {event_name} from {source} by {handler_name} in {duration_ms} ms (success={success})",
-    
     # Database
     "db_query": "Database query executed {sql} in {duration_ms} ms (success={success})",
-    
     # Cache Operations
     "cache_get_started": "Cache GET started {cache_key} ({scope})",
     "cache_get_completed": "Cache GET completed {cache_key} ({scope}) in {duration_ms} ms (hit={hit})",
@@ -111,7 +103,6 @@ MESSAGE_TEMPLATES: dict[str, str] = {
     "cache_set": "Cache SET {cache_key} ({scope}) in {duration_ms} ms",
     "cache_delete": "Cache DELETE {cache_key} ({scope})",
     "cache_clear": "Cache CLEAR {pattern} ({scope})",
-    
     # Commit Lifecycle
     "db_interceptor_published": "Database commit started ({entity_count} entities)",
     "db_interceptor_processed": "Database commit completed in {duration_ms} ms (success={success}, {entity_count} entities)",
@@ -122,10 +113,10 @@ MESSAGE_TEMPLATES: dict[str, str] = {
 def _get_message_template(message_name: str) -> str:
     """
     Get message template for a canonical event type.
-    
+
     Args:
         message_name: Canonical event type name
-        
+
     Returns:
         Message template with placeholders, or empty string if not found
     """
@@ -135,17 +126,17 @@ def _get_message_template(message_name: str) -> str:
 def _render_message(template: str, **kwargs: Any) -> str:
     """
     Render a message template with provided values.
-    
+
     Args:
         template: Message template with placeholders like {method}
         **kwargs: Values to substitute in template
-        
+
     Returns:
         Rendered message string
     """
     if not template:
         return ""
-    
+
     try:
         return template.format(**kwargs)
     except (KeyError, ValueError):
@@ -181,10 +172,10 @@ def create_clef_event(
     """
     # Get message template (use provided or lookup)
     template = message_template or _get_message_template(event_name)
-    
+
     # Render the message if template exists
     rendered_message = _render_message(template, **kwargs) if template else event_name
-    
+
     event = {
         "@t": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "@l": level.upper(),
@@ -197,7 +188,7 @@ def create_clef_event(
         "line": line,
         **get_host_metadata(),
     }
-    
+
     # Only add @mt if template has a value (don't include empty string)
     # This prevents Seq from prioritizing empty @mt over @m
     if template and template.strip():
@@ -291,15 +282,15 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         user = getattr(request.state, "user", None)
         auth_subject = user.sub if user and hasattr(user, "sub") else None
         user_id = auth_subject  # Use auth_subject for consistency
-        
+
         # Extract Keycloak-specific fields (per document requirements)
         kc_user_id = user.sub if user and hasattr(user, "sub") else None
         kc_user_name = getattr(user, "preferred_username", None) if user else None
-        
+
         tenant_id = getattr(user, "tenant_id", None) if user else None
         roles = getattr(user, "roles", []) if user else []
         token_id = getattr(user, "jti", None) if user else None
-        
+
         # Get session_id from Keycloak (sid claim) or fallback to request_id
         session_id = getattr(user, "sid", None) if user else None
         if not session_id:
@@ -322,7 +313,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         route = None
         path_params = {}
         # operation_id and controller already initialized above
-        
+
         # Try to get route from request scope (may not be available yet)
         if hasattr(request, "scope") and "route" in request.scope:
             route_obj = request.scope.get("route")
@@ -332,30 +323,36 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 # Extract operation_id from route name if available
                 if hasattr(route_obj, "name") and route_obj.name:
                     operation_id = route_obj.name
-        
+
         if hasattr(request, "path_params"):
             path_params = dict(request.path_params)
-        
+
         # Extract operation_id and controller from path if not already set
         # Derive from path: /api/v1/products/ -> get_products
         if not operation_id and path:
             # Clean path: remove leading/trailing slashes and split
             clean_path = path.strip("/")
             if clean_path:
-                path_parts = [p for p in clean_path.split("/") if p]  # Remove empty parts
+                path_parts = [
+                    p for p in clean_path.split("/") if p
+                ]  # Remove empty parts
                 if path_parts:
                     # Get the last meaningful part (e.g., "products" from "/api/v1/products/")
                     last_part = path_parts[-1]
                     # Create operation_id: method + resource (e.g., "get_products")
-                    operation_id = f"{method.lower()}_{last_part}".replace("-", "_").lower()
+                    operation_id = f"{method.lower()}_{last_part}".replace(
+                        "-", "_"
+                    ).lower()
                     # Remove trailing underscores and clean up
                     operation_id = operation_id.strip("_")
-        
+
         # Extract controller from route or handler
         # This will be set by handlers, but we can try to infer from path
         if not controller and path:
             # Try to extract controller from path: /api/v1/products -> Products
-            path_parts = [p for p in path.strip("/").split("/") if p]  # Remove empty parts
+            path_parts = [
+                p for p in path.strip("/").split("/") if p
+            ]  # Remove empty parts
             if len(path_parts) >= 2:
                 # Use last meaningful part (skip "api", "v1", etc.)
                 controller = path_parts[-1]
@@ -363,13 +360,15 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 controller = controller.replace("-", "_").title().replace("_", "")
             elif len(path_parts) == 1:
                 controller = path_parts[0].replace("-", "_").title().replace("_", "")
-        
+
         # Set operation context for propagation to all logs (after extraction)
         set_operation_context(operation_id=operation_id, controller=controller)
 
         # Session ID prefix (first 6 chars of request_id or session_id)
-        session_id_prefix = (session_id[:6] if session_id and len(session_id) >= 6 else request_id[:6])
-        
+        session_id_prefix = (
+            session_id[:6] if session_id and len(session_id) >= 6 else request_id[:6]
+        )
+
         # Set identity context EARLY so all logs during request processing have access to it
         # This will be updated in the finally block if user becomes available later
         set_identity_context(
@@ -382,7 +381,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             session_id=session_id,
             tenant_id=tenant_id,
         )
-        
+
         # Set HTTP request context in contextvars for propagation to all logs
         set_http_request_context(
             method=method,
@@ -411,7 +410,9 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         try:
             # Get the current frame (dispatch method) info
             if frame:
-                module_name = frame.f_globals.get("__name__", "app.core.logging.clef_middleware")
+                module_name = frame.f_globals.get(
+                    "__name__", "app.core.logging.clef_middleware"
+                )
                 function_name = frame.f_code.co_name
                 line_number = frame.f_lineno
             else:
@@ -440,7 +441,11 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             span_id=trace_ctx.span_id,
             parent_span_id=trace_ctx.parent_span_id,
             session_id=session_id,  # Keycloak session ID or request_id
-            session_id_prefix=(session_id[:6] if session_id and len(session_id) >= 6 else request_id[:6]),
+            session_id_prefix=(
+                session_id[:6]
+                if session_id and len(session_id) >= 6
+                else request_id[:6]
+            ),
             auth_subject=auth_subject,
             kc_user_id=kc_user_id,  # Keycloak user ID
             kc_user_name=kc_user_name,  # Keycloak username
@@ -497,7 +502,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 token_id = getattr(user, "jti", None)
                 # Get session_id from Keycloak (sid claim) or fallback to request_id
                 session_id = getattr(user, "sid", None) or request_id
-            
+
             # Set identity context for propagation to all logs
             set_identity_context(
                 kc_user_id=kc_user_id,
@@ -509,13 +514,19 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 session_id=session_id,
                 tenant_id=tenant_id,
             )
-            
+
             # Update operation_id and controller from request state if set by handlers
             # Use the values from outer scope (defined earlier) as defaults
-            current_operation_id = getattr(request.state, "operation_id", None) or operation_id
-            current_controller = getattr(request.state, "controller", None) or controller
-            set_operation_context(operation_id=current_operation_id, controller=current_controller)
-            
+            current_operation_id = (
+                getattr(request.state, "operation_id", None) or operation_id
+            )
+            current_controller = (
+                getattr(request.state, "controller", None) or controller
+            )
+            set_operation_context(
+                operation_id=current_operation_id, controller=current_controller
+            )
+
             # Calculate timings
             duration_ms = round((time.time() - start_time) * 1000, 2)
 
@@ -550,7 +561,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             # Extract operation_id and controller if available (may have been set by handlers)
             operation_id = getattr(request.state, "operation_id", operation_id)
             controller = getattr(request.state, "controller", controller)
-            
+
             # Determine data_source based on cache hit and DB usage
             if cache_hit is True:
                 data_source = "cache"
@@ -564,7 +575,9 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             try:
                 # Get the current frame (dispatch method) info
                 if frame:
-                    module_name = frame.f_globals.get("__name__", "app.core.logging.clef_middleware")
+                    module_name = frame.f_globals.get(
+                        "__name__", "app.core.logging.clef_middleware"
+                    )
                     function_name = frame.f_code.co_name
                     line_number = frame.f_lineno
                 else:
@@ -575,7 +588,7 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 del frame
 
             # EMIT response_sent event
-            success_value = (status_code < 400 and not exception_info)
+            success_value = status_code < 400 and not exception_info
             response_event = create_clef_event(
                 event_name="response_sent",
                 level=level,
@@ -596,7 +609,11 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
                 span_id=trace_ctx.span_id,
                 parent_span_id=trace_ctx.parent_span_id,
                 session_id=session_id,  # Keycloak session ID or request_id
-                session_id_prefix=(session_id[:6] if session_id and len(session_id) >= 6 else request_id[:6]),
+                session_id_prefix=(
+                    session_id[:6]
+                    if session_id and len(session_id) >= 6
+                    else request_id[:6]
+                ),
                 auth_subject=auth_subject,
                 kc_user_id=kc_user_id,  # Keycloak user ID
                 kc_user_name=kc_user_name,  # Keycloak username

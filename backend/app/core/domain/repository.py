@@ -1,24 +1,24 @@
 """Base Repository interface for Domain-Driven Design."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Optional, List
+from typing import Generic, TypeVar
 
 # Type variables for generic repository
-T = TypeVar('T')  # Entity type
-K = TypeVar('K')  # Key type (usually UUID or int)
+T = TypeVar("T")  # Entity type
+K = TypeVar("K")  # Key type (usually UUID or int)
 
 
 class Repository(Generic[T, K], ABC):
     """Base repository interface following DDD patterns."""
 
     @abstractmethod
-    async def get_by_id(self, entity_id: K) -> Optional[T]:
+    async def get_by_id(self, entity_id: K) -> T | None:
         """
         Get entity by ID.
-        
+
         Args:
             entity_id: Entity ID
-            
+
         Returns:
             Entity if found, None otherwise
         """
@@ -28,7 +28,7 @@ class Repository(Generic[T, K], ABC):
     async def add(self, entity: T) -> None:
         """
         Add a new entity.
-        
+
         Args:
             entity: Entity to add
         """
@@ -38,7 +38,7 @@ class Repository(Generic[T, K], ABC):
     async def update(self, entity: T) -> None:
         """
         Update an existing entity.
-        
+
         Args:
             entity: Entity to update
         """
@@ -48,21 +48,21 @@ class Repository(Generic[T, K], ABC):
     async def delete(self, entity_id: K) -> None:
         """
         Delete an entity.
-        
+
         Args:
             entity_id: Entity ID to delete
         """
         pass
 
     @abstractmethod
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[T]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
         """
         Get all entities with pagination.
-        
+
         Args:
             skip: Number of entities to skip
             limit: Maximum number of entities to return
-            
+
         Returns:
             List of entities
         """
@@ -72,7 +72,7 @@ class Repository(Generic[T, K], ABC):
     async def count(self) -> int:
         """
         Get total count of entities.
-        
+
         Returns:
             Total number of entities
         """

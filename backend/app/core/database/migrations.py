@@ -30,6 +30,7 @@ MODULE_CONFIGS = [
 # Cross-platform subprocess helper
 # ---------------------------------------------------------------------------
 
+
 async def _run_subprocess(
     cmd: list[str],
     cwd: str | None = None,
@@ -42,6 +43,7 @@ async def _run_subprocess(
     event loop is not blocked, and we avoid platform-specific asyncio
     subprocess limitations (e.g., on Windows).
     """
+
     def _runner():
         result = subprocess.run(
             cmd,
@@ -59,6 +61,7 @@ async def _run_subprocess(
 # ---------------------------------------------------------------------------
 # Database readiness & schema creation
 # ---------------------------------------------------------------------------
+
 
 async def wait_for_database(max_retries: int = 30, delay: float = 2.0) -> None:
     """Wait for database to be ready."""
@@ -113,6 +116,7 @@ async def ensure_schemas_exist() -> None:
 # Migration entrypoint
 # ---------------------------------------------------------------------------
 
+
 async def run_migrations() -> None:
     """Run database migrations for all modules using Alembic."""
     try:
@@ -141,15 +145,14 @@ async def run_migrations() -> None:
 # Per-module migrations
 # ---------------------------------------------------------------------------
 
+
 async def run_module_migrations(module_config: dict) -> None:
     """Run migrations for a specific module."""
     module_name = module_config["name"]
     module_path_str = module_config["path"]
     schema_name = module_config["schema"]
 
-    logger.info(
-        f"Running migrations for module: {module_name} (schema: {schema_name})"
-    )
+    logger.info(f"Running migrations for module: {module_name} (schema: {schema_name})")
 
     try:
         # Determine backend directory (project root resolution)
@@ -177,13 +180,25 @@ async def run_module_migrations(module_config: dict) -> None:
         # 2. Standard location: migrations/versions/ or alembic/versions/
         versions_dir = None
         use_blueprint_location = False
-        
+
         # Try blueprint location first (infrastructure/persistence/migrations/products/versions/)
-        blueprint_versions_dir = module_path / "infrastructure" / "persistence" / "migrations" / "products" / "versions"
-        if blueprint_versions_dir.exists() and (blueprint_versions_dir / "versions").exists():
+        blueprint_versions_dir = (
+            module_path
+            / "infrastructure"
+            / "persistence"
+            / "migrations"
+            / "products"
+            / "versions"
+        )
+        if (
+            blueprint_versions_dir.exists()
+            and (blueprint_versions_dir / "versions").exists()
+        ):
             versions_dir = blueprint_versions_dir / "versions"
             use_blueprint_location = True
-            logger.info(f"Found blueprint migration location for {module_name}: {versions_dir}")
+            logger.info(
+                f"Found blueprint migration location for {module_name}: {versions_dir}"
+            )
         else:
             # Try standard locations
             migrations_dir = module_path / "migrations"
@@ -194,7 +209,7 @@ async def run_module_migrations(module_config: dict) -> None:
                         f"[WARNING] No migrations directory found for module {module_name}"
                     )
                     return
-            
+
             # Check versions directory
             versions_dir = migrations_dir / "versions"
             if not versions_dir.exists():
@@ -264,6 +279,7 @@ async def run_module_migrations(module_config: dict) -> None:
 # ---------------------------------------------------------------------------
 # Migration creation helper
 # ---------------------------------------------------------------------------
+
 
 async def create_module_migration(module_name: str, message: str) -> None:
     """Create a new migration for a specific module."""

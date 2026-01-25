@@ -15,12 +15,18 @@ class InventoryItem(Aggregate):
     quantity: int = Field(default=0, ge=0, description="Available quantity")
     reserved_quantity: int = Field(default=0, ge=0, description="Reserved quantity")
     reorder_threshold: int = Field(default=10, ge=0, description="Reorder threshold")
-    max_stock_threshold: int = Field(default=1000, ge=0, description="Maximum stock threshold")
+    max_stock_threshold: int = Field(
+        default=1000, ge=0, description="Maximum stock threshold"
+    )
     version: int = Field(default=1, description="Inventory item version")
     created_at: datetime | None = Field(None, description="Creation timestamp")
     updated_at: datetime | None = Field(None, description="Last update timestamp")
-    created_by: UUID | None = Field(None, description="User who created the inventory item")
-    updated_by: UUID | None = Field(None, description="User who last updated the inventory item")
+    created_by: UUID | None = Field(
+        None, description="User who created the inventory item"
+    )
+    updated_by: UUID | None = Field(
+        None, description="User who last updated the inventory item"
+    )
     is_deleted: bool = Field(default=False, description="Soft delete flag")
 
     @field_validator("quantity")
@@ -53,5 +59,3 @@ class InventoryItem(Aggregate):
     def is_out_of_stock(self) -> bool:
         """Check if inventory is out of stock."""
         return self.available_quantity <= 0
-
-

@@ -141,7 +141,9 @@ class Settings(BaseSettings):
         default_factory=lambda: get_env("KEYCLOAK_CLIENT_ID", "eshop-api")
     )
     keycloak_client_secret: str = Field(
-        default_factory=lambda: get_env("KEYCLOAK_CLIENT_SECRET", "eshop-secure-client-secret-2024")
+        default_factory=lambda: get_env(
+            "KEYCLOAK_CLIENT_SECRET", "eshop-secure-client-secret-2024"
+        )
     )
     keycloak_callback_uri: str = Field(
         default_factory=lambda: get_env(

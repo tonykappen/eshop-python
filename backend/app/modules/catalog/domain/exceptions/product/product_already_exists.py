@@ -9,7 +9,7 @@ class ProductAlreadyExists(DomainException):
     def __init__(self, sku: str):
         """
         Initialize the exception.
-        
+
         Args:
             sku: The SKU of the product that already exists
         """
@@ -23,11 +23,9 @@ class ProductWithNameAlreadyExists(DomainException):
     def __init__(self, name: str):
         """
         Initialize the exception.
-        
+
         Args:
             name: The name of the product that already exists
         """
         self.name = name
         super().__init__(f"Product with name {name} already exists")
-
-

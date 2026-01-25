@@ -11,7 +11,7 @@ class IIdProvider(ABC):
     def generate_id(self) -> UUID:
         """
         Generate a new unique ID.
-        
+
         Returns:
             New unique UUID
         """
@@ -24,11 +24,12 @@ class IdProvider(IIdProvider):
     def generate_id(self) -> UUID:
         """
         Generate a new unique ID using UUID4.
-        
+
         Returns:
             New unique UUID
         """
         import uuid
+
         return uuid.uuid4()
 
 
@@ -38,7 +39,7 @@ class DeterministicIdProvider(IIdProvider):
     def __init__(self, seed: int = 0):
         """
         Initialize with a seed for deterministic generation.
-        
+
         Args:
             seed: Seed for deterministic generation
         """
@@ -48,17 +49,15 @@ class DeterministicIdProvider(IIdProvider):
     def generate_id(self) -> UUID:
         """
         Generate a deterministic ID based on seed and counter.
-        
+
         Returns:
             Deterministic UUID
         """
         import uuid
-        
+
         # Create a deterministic UUID based on seed and counter
-        namespace = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
+        namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
         name = f"{self.seed}-{self.counter}"
         self.counter += 1
-        
+
         return uuid.uuid5(namespace, name)
-
-

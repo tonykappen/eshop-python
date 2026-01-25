@@ -1,7 +1,7 @@
 """Authorization behavior - enforces authorization rules before handlers execute."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any, Generic, TypeVar
+from typing import TypeVar
 
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.behaviors import IPipelineBehavior
@@ -21,14 +21,14 @@ class AuthorizationBehavior(IPipelineBehavior[TRequest, TResponse]):
     ) -> TResponse:
         """
         Handle authorization - checks if the request is authorized before execution.
-        
+
         Args:
             request: The request to authorize
             next_handler: Next handler in the pipeline
-            
+
         Returns:
             Response from the next handler
-            
+
         Raises:
             PermissionError: If the request is not authorized
         """
@@ -38,27 +38,16 @@ class AuthorizationBehavior(IPipelineBehavior[TRequest, TResponse]):
         # 1. Extract user context from request context
         # 2. Check if user has required permissions for the request type
         # 3. Raise PermissionError if not authorized
-        
+
         request_type = type(request).__name__
-        
+
         # Log authorization check (even if not enforcing yet)
         self.logger.log_debug_with_context(
             "Authorization check",
             context={"request_type": request_type},
         )
-        
+
         # For now, allow all requests
         # In production, implement proper authorization checks here
         result = await next_handler()
         return result
-
-
-
-
-
-
-
-
-
-
-

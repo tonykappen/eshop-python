@@ -11,11 +11,11 @@ DestinationType = TypeVar("DestinationType")
 class BaseMappingProfile(ABC):
     """
     Base class for mapping profiles.
-    
+
     Mapping profiles define explicit rules for converting between different object types
     (e.g., Domain entities ↔ DTOs ↔ ORM models). This follows the AutoMapper pattern
     from .NET, providing a centralized, testable way to manage object mappings.
-    
+
     Subclasses should implement specific mapping methods for their domain entities.
     """
 
@@ -23,23 +23,25 @@ class BaseMappingProfile(ABC):
     def configure(self) -> None:
         """
         Configure mapping rules for this profile.
-        
+
         This method is called during profile initialization to set up
         mapping configurations. Override this to define custom mappings.
         """
         pass
 
-    def map(self, source: SourceType, destination_type: type[DestinationType]) -> DestinationType:
+    def map(
+        self, source: SourceType, destination_type: type[DestinationType]
+    ) -> DestinationType:
         """
         Map source object to destination type.
-        
+
         Args:
             source: Source object to map from
             destination_type: Target type to map to
-            
+
         Returns:
             Mapped destination object
-            
+
         Raises:
             NotImplementedError: If mapping not configured for these types
         """
@@ -53,11 +55,11 @@ class BaseMappingProfile(ABC):
     ) -> list[DestinationType]:
         """
         Map a list of source objects to destination type.
-        
+
         Args:
             sources: List of source objects
             destination_type: Target type to map to
-            
+
         Returns:
             List of mapped destination objects
         """
@@ -66,11 +68,11 @@ class BaseMappingProfile(ABC):
     def can_map(self, source_type: type, destination_type: type) -> bool:
         """
         Check if this profile can map from source to destination type.
-        
+
         Args:
             source_type: Source type
             destination_type: Destination type
-            
+
         Returns:
             True if mapping is supported, False otherwise
         """
@@ -80,10 +82,10 @@ class BaseMappingProfile(ABC):
     def _extract_data(self, obj: Any) -> dict[str, Any]:
         """
         Extract data from an object for mapping.
-        
+
         Args:
             obj: Object to extract data from
-            
+
         Returns:
             Dictionary of object data
         """
@@ -106,11 +108,11 @@ class BaseMappingProfile(ABC):
     def _create_instance(self, data: dict[str, Any], target_type: type[T]) -> T:
         """
         Create an instance of target type from data dictionary.
-        
+
         Args:
             data: Data dictionary
             target_type: Target type to create
-            
+
         Returns:
             Instance of target type
         """

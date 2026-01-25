@@ -1,7 +1,7 @@
 """Validation behavior - validates commands before execution."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any, Generic, TypeVar
+from typing import TypeVar
 
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.behaviors import IPipelineBehavior
@@ -21,11 +21,11 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
     ) -> TResponse:
         """
         Handle validation - validates the request before passing to next handler.
-        
+
         Args:
             request: The request to validate
             next_handler: Next handler in the pipeline
-            
+
         Returns:
             Response from the next handler
         """
@@ -46,14 +46,3 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
 
         result = await next_handler()
         return result
-
-
-
-
-
-
-
-
-
-
-

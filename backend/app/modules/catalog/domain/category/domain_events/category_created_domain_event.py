@@ -20,7 +20,7 @@ class CategoryCreatedDomainEvent(DomainEvent):
             aggregate_id=category.id,
             event_type="category.created",
             category=category,
-            **data
+            **data,
         )
 
     @property
@@ -37,5 +37,3 @@ class CategoryCreatedDomainEvent(DomainEvent):
     def parent_id(self) -> UUID | None:
         """Get the parent category ID."""
         return self.category.parent_id
-
-

@@ -17,18 +17,20 @@ class SKU(BaseModel):
         """Validate SKU format."""
         if not v:
             raise ValueError("SKU cannot be empty")
-        
+
         # Remove whitespace and convert to uppercase
         v = v.strip().upper()
-        
+
         # SKU should be alphanumeric with optional hyphens and underscores
         if not re.match(r"^[A-Z0-9_-]+$", v):
-            raise ValueError("SKU must contain only letters, numbers, hyphens, and underscores")
-        
+            raise ValueError(
+                "SKU must contain only letters, numbers, hyphens, and underscores"
+            )
+
         # SKU should be between 3 and 50 characters
         if len(v) < 3 or len(v) > 50:
             raise ValueError("SKU must be between 3 and 50 characters")
-        
+
         return v
 
     def __str__(self) -> str:
@@ -48,5 +50,3 @@ class SKU(BaseModel):
     def __repr__(self) -> str:
         """Representation of SKU."""
         return f"SKU('{self.value}')"
-
-

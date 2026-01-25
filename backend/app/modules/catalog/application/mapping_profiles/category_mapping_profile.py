@@ -13,10 +13,10 @@ class CategoryMapper:
     def domain_to_dvo(category: Category) -> CategoryDVO:
         """
         Convert Category domain model to CategoryDVO.
-        
+
         Args:
             category: Category domain model
-            
+
         Returns:
             CategoryDVO
         """
@@ -35,10 +35,10 @@ class CategoryMapper:
     def dvo_to_domain(dvo: CategoryDVO) -> Category:
         """
         Convert CategoryDVO to Category domain model.
-        
+
         Args:
             dvo: CategoryDVO
-            
+
         Returns:
             Category domain model
         """
@@ -55,10 +55,10 @@ class CategoryMapper:
     def domain_to_dict(category: Category) -> dict:
         """
         Convert Category domain model to dictionary.
-        
+
         Args:
             category: Category domain model
-            
+
         Returns:
             Dictionary representation
         """
@@ -69,18 +69,22 @@ class CategoryMapper:
             "parent_id": str(category.parent_id) if category.parent_id else None,
             "is_active": category.is_active,
             "version": category.version,
-            "created_at": category.created_at.isoformat() if category.created_at else None,
-            "updated_at": category.updated_at.isoformat() if category.updated_at else None,
+            "created_at": (
+                category.created_at.isoformat() if category.created_at else None
+            ),
+            "updated_at": (
+                category.updated_at.isoformat() if category.updated_at else None
+            ),
         }
 
     @staticmethod
     def dict_to_domain(data: dict) -> Category:
         """
         Convert dictionary to Category domain model.
-        
+
         Args:
             data: Dictionary data
-            
+
         Returns:
             Category domain model
         """
@@ -92,5 +96,3 @@ class CategoryMapper:
             is_active=data.get("is_active", True),
             version=data.get("version", 1),
         )
-
-

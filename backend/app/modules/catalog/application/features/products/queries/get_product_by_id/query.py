@@ -1,6 +1,7 @@
 """GetProductByIdQuery definition - matches .NET implementation."""
 
 from uuid import UUID
+
 from pydantic import BaseModel
 
 from app.modules.catalog.application.public_interface.dto.product import ProductDto

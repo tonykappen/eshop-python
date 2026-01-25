@@ -12,10 +12,7 @@ class GetProductByIdRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
-            "example": {
-                "product_id": "123e4567-e89b-12d3-a456-426614174000"
-            }
+            "example": {"product_id": "123e4567-e89b-12d3-a456-426614174000"}
         }
-
-

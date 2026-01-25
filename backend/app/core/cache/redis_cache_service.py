@@ -15,7 +15,7 @@ logger = BaseLogger(__name__)
 class RedisCacheService(ICacheService):
     """
     Redis-based cache implementation.
-    
+
     Implements ICacheService interface using Redis as the backing store.
     Provides JSON serialization/deserialization and error handling.
     """
@@ -28,7 +28,7 @@ class RedisCacheService(ICacheService):
     ):
         """
         Initialize Redis cache service.
-        
+
         Args:
             redis_client: Optional pre-configured Redis client
             connection_string: Optional Redis connection string (defaults to settings)
@@ -49,7 +49,7 @@ class RedisCacheService(ICacheService):
     def _create_redis_client(self) -> redis.Redis:
         """
         Create Redis client with configuration.
-        
+
         Returns:
             Configured Redis async client
         """
@@ -81,10 +81,10 @@ class RedisCacheService(ICacheService):
     async def get(self, key: str) -> Any | None:
         """
         Get value from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None if not found
         """
@@ -115,7 +115,7 @@ class RedisCacheService(ICacheService):
     async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """
         Set value in cache.
-        
+
         Args:
             key: Cache key
             value: Value to cache (will be JSON serialized if not string)
@@ -148,7 +148,7 @@ class RedisCacheService(ICacheService):
     async def delete(self, key: str) -> None:
         """
         Delete value from cache.
-        
+
         Args:
             key: Cache key to delete
         """
@@ -173,10 +173,10 @@ class RedisCacheService(ICacheService):
     async def exists(self, key: str) -> bool:
         """
         Check if key exists in cache.
-        
+
         Args:
             key: Cache key to check
-            
+
         Returns:
             True if key exists, False otherwise
         """
@@ -199,10 +199,10 @@ class RedisCacheService(ICacheService):
     async def invalidate_pattern(self, pattern: str) -> None:
         """
         Invalidate all keys matching pattern.
-        
+
         Args:
             pattern: Redis key pattern (supports wildcards like *)
-            
+
         Note:
             Using KEYS command can be slow on large datasets.
             Consider using SCAN for production with many keys.
@@ -259,7 +259,7 @@ class RedisCacheService(ICacheService):
     async def ping(self) -> bool:
         """
         Ping Redis server to check connectivity.
-        
+
         Returns:
             True if Redis is reachable, False otherwise
         """
@@ -276,10 +276,10 @@ class RedisCacheService(ICacheService):
     async def get_many(self, keys: list[str]) -> dict[str, Any]:
         """
         Get multiple values from cache.
-        
+
         Args:
             keys: List of cache keys
-            
+
         Returns:
             Dictionary mapping keys to values (only includes found keys)
         """
@@ -298,7 +298,7 @@ class RedisCacheService(ICacheService):
             return result
         except Exception as e:
             logger.log_error_with_context(
-                f"Failed to get multiple cache keys",
+                "Failed to get multiple cache keys",
                 error=e,
                 context={"key_count": len(keys)},
             )
@@ -307,7 +307,7 @@ class RedisCacheService(ICacheService):
     async def set_many(self, mapping: dict[str, Any], ttl: int | None = None) -> None:
         """
         Set multiple values in cache.
-        
+
         Args:
             mapping: Dictionary of key-value pairs to cache
             ttl: Time to live in seconds (defaults to default_ttl)
@@ -318,14 +318,14 @@ class RedisCacheService(ICacheService):
         try:
             ttl = ttl or self._default_ttl
             pipeline = self.redis_client.pipeline()
-            
+
             for key, value in mapping.items():
                 if isinstance(value, str):
                     serialized_value = value
                 else:
                     serialized_value = json.dumps(value, default=str)
                 pipeline.setex(key, ttl, serialized_value)
-            
+
             await pipeline.execute()
             logger.log_debug_with_context(
                 f"Cached {len(mapping)} keys with TTL {ttl}",
@@ -333,7 +333,7 @@ class RedisCacheService(ICacheService):
             )
         except Exception as e:
             logger.log_error_with_context(
-                f"Failed to set multiple cache keys",
+                "Failed to set multiple cache keys",
                 error=e,
                 context={"key_count": len(mapping)},
             )
@@ -345,6 +345,7 @@ class RedisCacheService(ICacheService):
             try:
                 # Use asyncio to close if event loop is available
                 import asyncio
+
                 try:
                     loop = asyncio.get_event_loop()
                     if loop.is_running():

@@ -22,10 +22,10 @@ class Money(BaseModel):
             amount = v
         else:
             raise ValueError("Amount must be a number")
-        
+
         if amount < 0:
             raise ValueError("Amount cannot be negative")
-        
+
         return amount
 
     @field_validator("currency")
@@ -73,5 +73,3 @@ class Money(BaseModel):
     def is_positive(self) -> bool:
         """Check if amount is positive."""
         return self.amount > 0
-
-

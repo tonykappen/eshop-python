@@ -1,14 +1,9 @@
 """Outbox dispatcher - background worker that publishes and marks processed."""
 
 import asyncio
-import json
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Optional
-from uuid import UUID
-
-from app.core.messaging.outbox.outbox_message_orm import OutboxMessage, OutboxMessageStatus
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +40,7 @@ class OutboxDispatcher(IOutboxDispatcher):
     ):
         """
         Initialize the outbox dispatcher.
-        
+
         Args:
             session_factory: Factory for creating database sessions
             event_publisher: Event publisher for publishing integration events
@@ -59,14 +54,14 @@ class OutboxDispatcher(IOutboxDispatcher):
         self.poll_interval = poll_interval
         self.max_retries = max_retries
         self.is_running = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
 
     async def start(self) -> None:
         """Start the outbox dispatcher."""
         if self.is_running:
             logger.warning("Outbox dispatcher is already running")
             return
-        
+
         self.is_running = True
         self._task = asyncio.create_task(self._run_loop())
         logger.info("Outbox dispatcher started")
@@ -99,7 +94,7 @@ class OutboxDispatcher(IOutboxDispatcher):
         # This should be implemented by modules using their ORM model
         # The dispatcher will query for pending messages and publish them
         logger.debug("Publishing pending outbox messages")
-        
+
         # Example implementation:
         # async with self.session_factory() as session:
         #     # Query pending messages
@@ -108,15 +103,3 @@ class OutboxDispatcher(IOutboxDispatcher):
         #     #   2. Publish to event bus
         #     #   3. Mark as published (or failed)
         #     pass
-
-
-
-
-
-
-
-
-
-
-
-

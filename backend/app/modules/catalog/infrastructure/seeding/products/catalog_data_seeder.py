@@ -8,7 +8,9 @@ from app.core.database.seeding import (
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
-from app.modules.catalog.infrastructure.seeding.products.seed_product_data import CatalogInitialData
+from app.modules.catalog.infrastructure.seeding.products.seed_product_data import (
+    CatalogInitialData,
+)
 
 logger = BaseLogger(__name__)
 
@@ -49,29 +51,49 @@ class CatalogDataSeeder(IDataSeeder):
                     orm_product = ProductORM(
                         id=product.id,
                         name=product.name,
-                        sku=str(product.sku.value),  # Convert SKU value object to string
+                        sku=str(
+                            product.sku.value
+                        ),  # Convert SKU value object to string
                         description=product.description,
                         image_file=product.image_file,
-                        price_amount=str(product.price.amount),  # Convert Money amount to string
+                        price_amount=str(
+                            product.price.amount
+                        ),  # Convert Money amount to string
                         price_currency=product.price.currency,  # Extract currency from Money
                         categories=product.category,  # Note: domain uses 'category', ORM uses 'categories'
-                        version=product.version if hasattr(product, 'version') else 1,
-                        created_at=product.created_at if hasattr(product, 'created_at') else None,
-                        updated_at=product.updated_at if hasattr(product, 'updated_at') else None,
-                        created_by=product.created_by if hasattr(product, 'created_by') else None,
-                        updated_by=product.updated_by if hasattr(product, 'updated_by') else None,
+                        version=product.version if hasattr(product, "version") else 1,
+                        created_at=(
+                            product.created_at
+                            if hasattr(product, "created_at")
+                            else None
+                        ),
+                        updated_at=(
+                            product.updated_at
+                            if hasattr(product, "updated_at")
+                            else None
+                        ),
+                        created_by=(
+                            product.created_by
+                            if hasattr(product, "created_by")
+                            else None
+                        ),
+                        updated_by=(
+                            product.updated_by
+                            if hasattr(product, "updated_by")
+                            else None
+                        ),
                         is_deleted=False,
                     )
-                    
+
                     logger.log_with_context(
-                        f"Converted domain entity Product to ORM model ProductORM",
-                        "debug"
+                        "Converted domain entity Product to ORM model ProductORM",
+                        "debug",
                     )
                     logger.log_with_context(
                         f"Converted price for {product.name}: {{'amount': {product.price.amount}, 'currency': '{product.price.currency}'}} -> {orm_product.price_amount}",
-                        "debug"
+                        "debug",
                     )
-                    
+
                     orm_products.append(orm_product)
 
                 # Add products to session

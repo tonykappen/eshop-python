@@ -2,7 +2,7 @@
 
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any, Generic, TypeVar
+from typing import TypeVar
 
 from app.core.logging.base_logger import BaseLogger
 from app.core.logging.trace_context import get_request_id, get_trace_id
@@ -23,11 +23,11 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
     ) -> TResponse:
         """
         Handle logging - logs request handling start, completion, and errors.
-        
+
         Args:
             request: The request being handled
             next_handler: Next handler in the pipeline
-            
+
         Returns:
             Response from the next handler
         """
@@ -127,14 +127,3 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
             return f"{request_name.replace('Command', 'Result')}"
 
         return "Response"
-
-
-
-
-
-
-
-
-
-
-

@@ -1,15 +1,16 @@
 """GetProductsByCategory endpoint - FastAPI endpoint for getting products filtered by category."""
 
-from fastapi import APIRouter, Depends, Request, Query
 from typing import Any
 
-from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
-from app.modules.catalog.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Query, Request
+
 from app.core.auth.rbac import require_query_access
+from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
 from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
     GetProductsByCategoryQuery,
     GetProductsByCategoryResult,
 )
+from app.modules.catalog.utils import get_endpoint_factory
 
 router = APIRouter()
 

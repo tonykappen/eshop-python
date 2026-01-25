@@ -1,38 +1,47 @@
 """Dependency injection wiring for catalog module."""
 
 import logging
-from typing import Any, Dict, Type
+from typing import Any
 
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.mediator.mediator import Mediator
+from app.modules.catalog.application.context.request_context import RequestContext
 from app.modules.catalog.application.unit_of_work import ICatalogUnitOfWork
+from app.modules.catalog.domain.category.repository import CategoryRepository
+from app.modules.catalog.domain.inventory.repository import InventoryRepository
+from app.modules.catalog.domain.repositories.product.product_repository import (
+    ProductRepository,
+)
+from app.modules.catalog.infrastructure.messaging.bus import (
+    IMessageBus,
+)
+from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
+    DomainEventDispatcher,
+)
+from app.modules.catalog.infrastructure.messaging.outbox import (  # Backward compatibility
+    IOutboxPublisher,
+    IOutboxWriter,
+    OutboxPublisher,
+    OutboxWriter,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlCategoryRepository,
+    SqlInventoryRepository,
+    SqlProductRepository,
+)
 from app.modules.catalog.infrastructure.persistence.unit_of_work import (
     SqlCatalogUnitOfWork,
 )
-from app.modules.catalog.application.context.request_context import RequestContext
-from app.modules.catalog.domain.repositories.product.product_repository import ProductRepository
-from app.modules.catalog.domain.category.repository import CategoryRepository
-from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.infrastructure.messaging.bus import IMessageBus, InMemoryMessageBus
-from app.core.messaging.outbox import IOutboxService, IOutboxDispatcher
-from app.modules.catalog.infrastructure.messaging.outbox import IOutboxWriter, IOutboxPublisher  # Backward compatibility
-from app.modules.catalog.infrastructure.messaging.domain_dispatcher import DomainEventDispatcher
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository,
-    SqlCategoryRepository,
-    SqlInventoryRepository,
+from app.modules.catalog.module_interface.di.products.products_containers import (
+    get_catalog_container,
 )
-from app.modules.catalog.module_interface.di.products.products_containers import get_catalog_container
 from app.modules.catalog.module_interface.di.products.products_providers import (
-    get_catalog_engine,
-    get_catalog_session_maker,
-    get_catalog_message_bus,
     get_catalog_dispatcher,
-    get_catalog_outbox_writer,
-    get_catalog_outbox_publisher,
+    get_catalog_engine,
     get_catalog_mediator,
+    get_catalog_message_bus,
+    get_catalog_session_maker,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,27 +50,27 @@ logger = logging.getLogger(__name__)
 def wire_catalog_dependencies(app: FastAPI) -> None:
     """
     Wire catalog dependencies to FastAPI app.
-    
+
     Args:
         app: FastAPI application instance
     """
     container = get_catalog_container()
-    
+
     # Register core services
     _register_core_services(container)
-    
+
     # Register repositories
     _register_repositories(container)
-    
+
     # Register messaging services
     _register_messaging_services(container)
-    
+
     # Register application services
     _register_application_services(container)
-    
+
     # Subscribe domain events to integration events
     _subscribe_domain_events(container)
-    
+
     logger.info("Wired catalog dependencies to FastAPI app")
 
 
@@ -69,31 +78,43 @@ def _register_core_services(container) -> None:
     """Register core services in the container."""
     # Register engine and session maker as singletons
     container.register_singleton(type(get_catalog_engine()), get_catalog_engine())
-    container.register_singleton(type(get_catalog_session_maker()), get_catalog_session_maker())
-    
+    container.register_singleton(
+        type(get_catalog_session_maker()), get_catalog_session_maker()
+    )
+
     # Register message bus and dispatcher as singletons
     container.register_singleton(IMessageBus, get_catalog_message_bus())
     container.register_singleton(DomainEventDispatcher, get_catalog_dispatcher())
-    
+
     logger.debug("Registered core services")
 
 
 def _register_repositories(container) -> None:
     """Register repository factories in the container."""
     # Register repository factories
-    container.register_factory(ProductRepository, lambda: None)  # Will be resolved per request
-    container.register_factory(CategoryRepository, lambda: None)  # Will be resolved per request
-    container.register_factory(InventoryRepository, lambda: None)  # Will be resolved per request
-    
+    container.register_factory(
+        ProductRepository, lambda: None
+    )  # Will be resolved per request
+    container.register_factory(
+        CategoryRepository, lambda: None
+    )  # Will be resolved per request
+    container.register_factory(
+        InventoryRepository, lambda: None
+    )  # Will be resolved per request
+
     logger.debug("Registered repository factories")
 
 
 def _register_messaging_services(container) -> None:
     """Register messaging services in the container."""
     # Register outbox services
-    container.register_factory(IOutboxWriter, lambda: None)  # Will be resolved per request
-    container.register_factory(IOutboxPublisher, lambda: None)  # Will be resolved per request
-    
+    container.register_factory(
+        IOutboxWriter, lambda: None
+    )  # Will be resolved per request
+    container.register_factory(
+        IOutboxPublisher, lambda: None
+    )  # Will be resolved per request
+
     logger.debug("Registered messaging services")
 
 
@@ -101,20 +122,24 @@ def _register_application_services(container) -> None:
     """Register application services in the container."""
     # Register mediator
     container.register_factory(Mediator, get_catalog_mediator)
-    
+
     # Register unit of work factory
-    container.register_factory(ICatalogUnitOfWork, lambda: None)  # Will be resolved per request
-    
+    container.register_factory(
+        ICatalogUnitOfWork, lambda: None
+    )  # Will be resolved per request
+
     # Register request context factory
-    container.register_factory(RequestContext, lambda: None)  # Will be resolved per request
-    
+    container.register_factory(
+        RequestContext, lambda: None
+    )  # Will be resolved per request
+
     logger.debug("Registered application services")
 
 
 def _subscribe_domain_events(container) -> None:
     """Subscribe domain events to integration events."""
     dispatcher = container.get(DomainEventDispatcher)
-    
+
     # This would register domain event handlers that publish integration events
     # For now, we'll just log the subscription
     logger.info("Subscribed domain events to integration events")
@@ -123,76 +148,84 @@ def _subscribe_domain_events(container) -> None:
 def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> None:
     """
     Wire catalog dependencies to FastAPI app with proper dependency injection.
-    
+
     Args:
         app: FastAPI application instance
         main_container: Main application DI container (optional)
     """
     catalog_container = get_catalog_container()
-    
+
     # Register core services in catalog container
     _register_core_services(catalog_container)
     _register_repositories(catalog_container)
     _register_messaging_services(catalog_container)
     _register_application_services(catalog_container)
-    
+
     # Override FastAPI dependency providers
-    app.dependency_overrides.update({
-        # Database dependencies
-        get_catalog_engine: lambda: catalog_container.get(type(get_catalog_engine())),
-        get_catalog_session_maker: lambda: catalog_container.get(type(get_catalog_session_maker())),
-        
-        # Repository dependencies
-        ProductRepository: lambda session: SqlProductRepository(session),
-        CategoryRepository: lambda session: SqlCategoryRepository(session),
-        InventoryRepository: lambda session: SqlInventoryRepository(session),
-        
-        # Application dependencies
-        ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),
-        RequestContext: lambda: RequestContext(),
-        
-        # Messaging dependencies
-        IMessageBus: lambda: catalog_container.get(IMessageBus),
-        DomainEventDispatcher: lambda: catalog_container.get(DomainEventDispatcher),
-        IOutboxWriter: lambda session: OutboxWriter(session),
-        IOutboxPublisher: lambda outbox_writer, message_bus: OutboxPublisher(outbox_writer, message_bus),
-        
-        # Mediator dependency - use main container if available
-        Mediator: lambda: main_container.get(Mediator) if main_container else catalog_container.get(Mediator),
-    })
-    
+    app.dependency_overrides.update(
+        {
+            # Database dependencies
+            get_catalog_engine: lambda: catalog_container.get(
+                type(get_catalog_engine())
+            ),
+            get_catalog_session_maker: lambda: catalog_container.get(
+                type(get_catalog_session_maker())
+            ),
+            # Repository dependencies
+            ProductRepository: lambda session: SqlProductRepository(session),
+            CategoryRepository: lambda session: SqlCategoryRepository(session),
+            InventoryRepository: lambda session: SqlInventoryRepository(session),
+            # Application dependencies
+            ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),
+            RequestContext: lambda: RequestContext(),
+            # Messaging dependencies
+            IMessageBus: lambda: catalog_container.get(IMessageBus),
+            DomainEventDispatcher: lambda: catalog_container.get(DomainEventDispatcher),
+            IOutboxWriter: lambda session: OutboxWriter(session),
+            IOutboxPublisher: lambda outbox_writer, message_bus: OutboxPublisher(
+                outbox_writer, message_bus
+            ),
+            # Mediator dependency - use main container if available
+            Mediator: lambda: (
+                main_container.get(Mediator)
+                if main_container
+                else catalog_container.get(Mediator)
+            ),
+        }
+    )
+
     logger.info("Wired catalog dependencies to FastAPI with overrides")
 
 
-def get_catalog_dependency_overrides() -> Dict[Type[Any], Any]:
+def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
     """
     Get catalog dependency overrides for FastAPI.
-    
+
     Returns:
         Dict of dependency overrides
     """
     container = get_catalog_container()
-    
+
     return {
         # Database dependencies
         get_catalog_engine: lambda: container.get(type(get_catalog_engine())),
-        get_catalog_session_maker: lambda: container.get(type(get_catalog_session_maker())),
-        
+        get_catalog_session_maker: lambda: container.get(
+            type(get_catalog_session_maker())
+        ),
         # Repository dependencies
         ProductRepository: lambda session: SqlProductRepository(session),
         CategoryRepository: lambda session: SqlCategoryRepository(session),
         InventoryRepository: lambda session: SqlInventoryRepository(session),
-        
         # Application dependencies
         ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),
         RequestContext: lambda: RequestContext(),
-        
         # Messaging dependencies
         IMessageBus: lambda: container.get(IMessageBus),
         DomainEventDispatcher: lambda: container.get(DomainEventDispatcher),
         IOutboxWriter: lambda session: OutboxWriter(session),
-        IOutboxPublisher: lambda outbox_writer, message_bus: OutboxPublisher(outbox_writer, message_bus),
-        
+        IOutboxPublisher: lambda outbox_writer, message_bus: OutboxPublisher(
+            outbox_writer, message_bus
+        ),
         # Mediator dependency
         Mediator: lambda: container.get(Mediator),
     }
@@ -201,7 +234,7 @@ def get_catalog_dependency_overrides() -> Dict[Type[Any], Any]:
 def register_catalog_handlers_with_mediator(mediator: Mediator) -> None:
     """
     Register catalog handlers with the mediator.
-    
+
     Args:
         mediator: Mediator instance
     """
@@ -210,10 +243,12 @@ def register_catalog_handlers_with_mediator(mediator: Mediator) -> None:
     logger.info("Registered catalog handlers with mediator")
 
 
-def subscribe_domain_events_to_integration_events(dispatcher: DomainEventDispatcher) -> None:
+def subscribe_domain_events_to_integration_events(
+    dispatcher: DomainEventDispatcher,
+) -> None:
     """
     Subscribe domain events to integration events.
-    
+
     Args:
         dispatcher: Domain event dispatcher
     """

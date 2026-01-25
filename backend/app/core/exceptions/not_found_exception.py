@@ -17,7 +17,7 @@ class NotFoundException(BaseError):
     ):
         """
         Initialize not found exception with optional entity name and key.
-        
+
         Args:
             message: Error message
             name: Optional entity name (e.g., "Product")

@@ -1,17 +1,15 @@
 """Test Redis caching integration for catalog module."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
-from decimal import Decimal
+
+import pytest
 
 from app.modules.catalog.application.services.catalog_cache_service import (
-    RedisCacheService,
-    CatalogCacheService,
     CatalogCachePatterns,
+    CatalogCacheService,
+    RedisCacheService,
 )
-from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
 
 
 class TestRedisCacheService:
@@ -20,7 +18,9 @@ class TestRedisCacheService:
     @pytest.fixture
     def redis_cache_service(self):
         """Create Redis cache service with mocked Redis client."""
-        with patch('app.modules.catalog.application.services.catalog_cache_service.redis.Redis.from_url') as mock_redis:
+        with patch(
+            "app.modules.catalog.application.services.catalog_cache_service.redis.Redis.from_url"
+        ) as mock_redis:
             mock_client = AsyncMock()
             mock_redis.return_value = mock_client
             service = RedisCacheService()
@@ -33,7 +33,9 @@ class TestRedisCacheService:
         # Arrange
         key = "test:key"
         expected_value = {"id": "123", "name": "Test Product"}
-        redis_cache_service.redis_client.get.return_value = '{"id": "123", "name": "Test Product"}'
+        redis_cache_service.redis_client.get.return_value = (
+            '{"id": "123", "name": "Test Product"}'
+        )
 
         # Act
         result = await redis_cache_service.get(key)
@@ -68,7 +70,9 @@ class TestRedisCacheService:
         await redis_cache_service.set(key, value, ttl)
 
         # Assert
-        redis_cache_service.redis_client.setex.assert_called_once_with(key, ttl, '{"id": "123", "name": "Test Product"}')
+        redis_cache_service.redis_client.setex.assert_called_once_with(
+            key, ttl, '{"id": "123", "name": "Test Product"}'
+        )
 
     @pytest.mark.asyncio
     async def test_delete_cache_value(self, redis_cache_service):
@@ -118,7 +122,7 @@ class TestCatalogCacheService:
             "price": 99.99,
             "description": "Test Description",
             "picture_url": "test.jpg",
-            "category": ["Electronics"]
+            "category": ["Electronics"],
         }
         catalog_cache_service.cache.get.return_value = expected_product
 
@@ -127,7 +131,9 @@ class TestCatalogCacheService:
 
         # Assert
         assert result == expected_product
-        catalog_cache_service.cache.get.assert_called_once_with(f"catalog:product:{product_id}")
+        catalog_cache_service.cache.get.assert_called_once_with(
+            f"catalog:product:{product_id}"
+        )
 
     @pytest.mark.asyncio
     async def test_set_product_cache(self, catalog_cache_service):
@@ -140,7 +146,7 @@ class TestCatalogCacheService:
             "price": 99.99,
             "description": "Test Description",
             "picture_url": "test.jpg",
-            "category": ["Electronics"]
+            "category": ["Electronics"],
         }
         ttl = 3600
 
@@ -164,7 +170,7 @@ class TestCatalogCacheService:
             "total": 1,
             "page": 1,
             "size": 10,
-            "pages": 1
+            "pages": 1,
         }
         catalog_cache_service.cache.get.return_value = expected_result
 
@@ -200,7 +206,9 @@ class TestCatalogCacheService:
         await catalog_cache_service.invalidate_products_list()
 
         # Assert
-        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with("catalog:products:list:*")
+        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with(
+            "catalog:products:list:*"
+        )
 
     @pytest.mark.asyncio
     async def test_invalidate_all_catalog(self, catalog_cache_service):
@@ -209,7 +217,9 @@ class TestCatalogCacheService:
         await catalog_cache_service.invalidate_all_catalog()
 
         # Assert
-        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with("catalog:*")
+        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with(
+            "catalog:*"
+        )
 
 
 class TestCatalogCachePatterns:
@@ -237,7 +247,9 @@ class TestCatalogCachePatterns:
         size = 10
         filters = {"search": "test", "category": "electronics"}
         expected_key = "catalog:products:list:page:1:size:10:filters:category=electronics:search=test"
-        assert CatalogCachePatterns.products_list_key(page, size, filters) == expected_key
+        assert (
+            CatalogCachePatterns.products_list_key(page, size, filters) == expected_key
+        )
 
     def test_category_key(self):
         """Test category cache key generation."""
@@ -251,6 +263,3 @@ class TestCatalogCachePatterns:
         # CatalogCachePatterns is imported at the top
         expected_key = "catalog:categories:list"
         assert CatalogCachePatterns.categories_list_key() == expected_key
-
-
-

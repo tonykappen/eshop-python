@@ -54,7 +54,7 @@ class ORMMapper:
 
             # Handle Product-specific conversions (domain to ORM)
             is_product = domain_entity.__class__.__name__ == "Product"
-            
+
             if is_product:
                 # Convert SKU value object to string
                 if "sku" in entity_data:
@@ -67,36 +67,51 @@ class ORMMapper:
                         entity_data["sku"] = sku_value
                     else:
                         entity_data["sku"] = str(sku_value)
-                
+
                 # Convert Money value object to price_amount and price_currency
                 if "price" in entity_data:
                     price_value = entity_data["price"]
-                    if hasattr(price_value, "amount") and hasattr(price_value, "currency"):
+                    if hasattr(price_value, "amount") and hasattr(
+                        price_value, "currency"
+                    ):
                         # Money value object
                         entity_data["price_amount"] = str(price_value.amount)
                         entity_data["price_currency"] = price_value.currency
                     elif isinstance(price_value, dict):
                         # Dictionary representation
                         entity_data["price_amount"] = str(price_value.get("amount", ""))
-                        entity_data["price_currency"] = price_value.get("currency", "USD")
+                        entity_data["price_currency"] = price_value.get(
+                            "currency", "USD"
+                        )
                     # Remove price field as it doesn't exist in ORM
                     entity_data.pop("price", None)
-                
+
                 # Map category (domain) to categories (ORM)
                 if "category" in entity_data and "categories" not in entity_data:
                     entity_data["categories"] = entity_data.pop("category")
-                
+
                 # Set default audit fields if not present
                 current_time = datetime.utcnow()
-                if "created_at" not in entity_data or entity_data.get("created_at") is None:
+                if (
+                    "created_at" not in entity_data
+                    or entity_data.get("created_at") is None
+                ):
                     entity_data["created_at"] = current_time
-                if "updated_at" not in entity_data or entity_data.get("updated_at") is None:
+                if (
+                    "updated_at" not in entity_data
+                    or entity_data.get("updated_at") is None
+                ):
                     entity_data["updated_at"] = current_time
-                if "is_deleted" not in entity_data or entity_data.get("is_deleted") is None:
+                if (
+                    "is_deleted" not in entity_data
+                    or entity_data.get("is_deleted") is None
+                ):
                     entity_data["is_deleted"] = False
                 # Map last_modified (domain) to updated_at (ORM) if needed
                 if "last_modified" in entity_data and "updated_at" not in entity_data:
-                    entity_data["updated_at"] = entity_data.pop("last_modified") or current_time
+                    entity_data["updated_at"] = (
+                        entity_data.pop("last_modified") or current_time
+                    )
 
             # Filter data to only include fields that exist in ORM model
             orm_fields = cls._get_orm_model_fields(orm_model_class)
@@ -194,7 +209,7 @@ class ORMMapper:
 
             # Handle Product-specific conversions (domain to ORM)
             is_product = domain_entity.__class__.__name__ == "Product"
-            
+
             if is_product:
                 # Convert SKU value object to string
                 if "sku" in entity_data:
@@ -207,30 +222,36 @@ class ORMMapper:
                         entity_data["sku"] = sku_value
                     else:
                         entity_data["sku"] = str(sku_value)
-                
+
                 # Convert Money value object to price_amount and price_currency
                 if "price" in entity_data:
                     price_value = entity_data["price"]
-                    if hasattr(price_value, "amount") and hasattr(price_value, "currency"):
+                    if hasattr(price_value, "amount") and hasattr(
+                        price_value, "currency"
+                    ):
                         # Money value object
                         entity_data["price_amount"] = str(price_value.amount)
                         entity_data["price_currency"] = price_value.currency
                     elif isinstance(price_value, dict):
                         # Dictionary representation
                         entity_data["price_amount"] = str(price_value.get("amount", ""))
-                        entity_data["price_currency"] = price_value.get("currency", "USD")
+                        entity_data["price_currency"] = price_value.get(
+                            "currency", "USD"
+                        )
                     # Remove price field as it doesn't exist in ORM
                     entity_data.pop("price", None)
-                
+
                 # Map category (domain) to categories (ORM)
                 if "category" in entity_data and "categories" not in entity_data:
                     entity_data["categories"] = entity_data.pop("category")
-                
+
                 # Always update updated_at on update operations
                 entity_data["updated_at"] = datetime.utcnow()
                 # Map last_modified (domain) to updated_at (ORM) if present
                 if "last_modified" in entity_data:
-                    entity_data["updated_at"] = entity_data.pop("last_modified") or datetime.utcnow()
+                    entity_data["updated_at"] = (
+                        entity_data.pop("last_modified") or datetime.utcnow()
+                    )
 
             # Update ORM model attributes
             orm_fields = cls._get_orm_model_fields(type(orm_model))
@@ -339,57 +360,66 @@ class ORMMapper:
 
         # Handle Product-specific conversions
         is_product = domain_entity_class.__name__ == "Product"
-        
+
         if is_product:
             # Convert sku string to SKU value object
             if "sku" in data and isinstance(data["sku"], str):
                 try:
                     from app.modules.catalog.domain.value_objects import SKU
+
                     converted["sku"] = SKU(value=data["sku"])
                 except Exception as e:
                     logger.warning(f"Failed to convert sku to SKU value object: {e}")
                     # Fallback: try to use as-is, validation will catch it
                     converted["sku"] = data["sku"]
-            
+
             # Convert price_amount and price_currency to Money value object
             if "price_amount" in data:
                 try:
-                    from app.modules.catalog.domain.value_objects import Money
                     from decimal import Decimal
-                    
+
+                    from app.modules.catalog.domain.value_objects import Money
+
                     price_amount = data["price_amount"]
                     price_currency = data.get("price_currency") or "USD"
-                    
+
                     # Convert price_amount to Decimal if it's a string
                     if isinstance(price_amount, str):
                         price_amount = Decimal(price_amount)
                     elif not isinstance(price_amount, Decimal):
                         price_amount = Decimal(str(price_amount))
-                    
+
                     converted["price"] = Money(
-                        amount=price_amount,
-                        currency=price_currency
+                        amount=price_amount, currency=price_currency
                     )
                 except Exception as e:
-                    logger.warning(f"Failed to convert price to Money value object: {e}")
+                    logger.warning(
+                        f"Failed to convert price to Money value object: {e}"
+                    )
                     # Don't add price if conversion fails - let validation catch it
-            
+
             # Map categories (ORM) to category (domain)
             if "categories" in data and "category" in valid_fields:
                 converted["category"] = data["categories"]
             elif "categories" in data:
                 # If domain expects "categories", use it directly
                 converted["categories"] = data["categories"]
-            
+
             # Map updated_at (ORM) to last_modified (domain Entity)
             if "updated_at" in data and "last_modified" in valid_fields:
                 converted["last_modified"] = data["updated_at"]
 
         for key, value in data.items():
             # Skip fields we've already handled specially
-            if is_product and key in ("sku", "price_amount", "price_currency", "categories", "updated_at"):
+            if is_product and key in (
+                "sku",
+                "price_amount",
+                "price_currency",
+                "categories",
+                "updated_at",
+            ):
                 continue
-                
+
             # Only include fields that exist in the domain entity
             if key in valid_fields:
                 if key in type_hints:

@@ -1,3 +1,1 @@
 """Router module for catalog."""
-
-

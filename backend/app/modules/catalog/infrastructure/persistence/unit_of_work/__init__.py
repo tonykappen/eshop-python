@@ -5,14 +5,3 @@ from app.modules.catalog.infrastructure.persistence.unit_of_work.sql_catalog_uni
 )
 
 __all__ = ["SqlCatalogUnitOfWork"]
-
-
-
-
-
-
-
-
-
-
-

@@ -1,13 +1,17 @@
 """DeleteProduct endpoint - FastAPI endpoint for product deletion."""
 
-from fastapi import APIRouter, Depends, Request
 from typing import Any
 from uuid import UUID
 
-from app.core.repr.base import CQRSEndpointFactory
-from app.modules.catalog.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Request
+
 from app.core.auth.rbac import require_command_access
-from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import DeleteProductCommand, DeleteProductResult
+from app.core.repr.base import CQRSEndpointFactory
+from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import (
+    DeleteProductCommand,
+    DeleteProductResult,
+)
+from app.modules.catalog.utils import get_endpoint_factory
 
 router = APIRouter()
 

@@ -9,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import Money
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
     SqlProductRepository,
 )
-from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 
 
 class TestProductRepositoryGetById:
@@ -28,17 +28,17 @@ class TestProductRepositoryGetById:
         mock_orm = MagicMock(spec=ProductORM)
         mock_orm.id = product_id
         mock_orm.is_deleted = False
-        
+
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_orm
         mock_session.execute.return_value = mock_result
 
-        with patch.object(repo, '_orm_to_domain') as mock_mapper:
+        with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product = MagicMock(spec=Product)
             mock_mapper.return_value = mock_product
-            
+
             result = await repo.get_by_id(product_id)
-            
+
             assert result == mock_product
             mock_session.execute.assert_called_once()
             mock_mapper.assert_called_once_with(mock_orm)
@@ -55,7 +55,7 @@ class TestProductRepositoryGetById:
         mock_session.execute.return_value = mock_result
 
         result = await repo.get_by_id(product_id)
-        
+
         assert result is None
 
     @pytest.mark.asyncio
@@ -66,11 +66,13 @@ class TestProductRepositoryGetById:
 
         product_id = uuid4()
         mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = None  # Deleted products filtered out
+        mock_result.scalar_one_or_none.return_value = (
+            None  # Deleted products filtered out
+        )
         mock_session.execute.return_value = mock_result
 
         result = await repo.get_by_id(product_id)
-        
+
         assert result is None
 
 
@@ -87,17 +89,17 @@ class TestProductRepositoryGetBySku:
         mock_orm = MagicMock(spec=ProductORM)
         mock_orm.sku = sku
         mock_orm.is_deleted = False
-        
+
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_orm
         mock_session.execute.return_value = mock_result
 
-        with patch.object(repo, '_orm_to_domain') as mock_mapper:
+        with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product = MagicMock(spec=Product)
             mock_mapper.return_value = mock_product
-            
+
             result = await repo.get_by_sku(sku)
-            
+
             assert result == mock_product
             mock_mapper.assert_called_once_with(mock_orm)
 
@@ -113,7 +115,7 @@ class TestProductRepositoryGetBySku:
         mock_session.execute.return_value = mock_result
 
         result = await repo.get_by_sku(sku)
-        
+
         assert result is None
 
 
@@ -139,14 +141,18 @@ class TestProductRepositoryAdd:
 
         mock_orm = MagicMock(spec=ProductORM)
         mock_orm.id = product_id
-        
-        with patch.object(repo, '_domain_to_orm') as mock_domain_to_orm, \
-             patch.object(repo, '_orm_to_domain') as mock_orm_to_domain:
+
+        with (
+            patch.object(repo, "_domain_to_orm") as mock_domain_to_orm,
+            patch.object(repo, "_orm_to_domain") as mock_orm_to_domain,
+        ):
             mock_domain_to_orm.return_value = mock_orm
-            mock_orm_to_domain.return_value = product  # Return the same product after refresh
-            
+            mock_orm_to_domain.return_value = (
+                product  # Return the same product after refresh
+            )
+
             result = await repo.add(product)
-            
+
             assert result == product
             mock_session.add.assert_called_once_with(mock_orm)
             mock_session.flush.assert_called_once()
@@ -175,11 +181,11 @@ class TestProductRepositoryUpdate:
         )
 
         # Mock get_by_id to return the product (update calls get_by_id at the end)
-        with patch.object(repo, 'get_by_id') as mock_get_by_id:
+        with patch.object(repo, "get_by_id") as mock_get_by_id:
             mock_get_by_id.return_value = product
-            
+
             result = await repo.update(product)
-            
+
             assert result == product
             mock_session.execute.assert_called()
             mock_session.flush.assert_called_once()
@@ -197,13 +203,15 @@ class TestProductRepositoryDelete:
 
         product_id = uuid4()
         deleted_by = uuid4()
-        
+
         mock_result = MagicMock()
         mock_result.rowcount = 1
         mock_session.execute.return_value = mock_result
 
-        result = await repo.delete(product_id, deleted_by=deleted_by, deletion_reason="Test deletion")
-        
+        result = await repo.delete(
+            product_id, deleted_by=deleted_by, deletion_reason="Test deletion"
+        )
+
         assert result is True
         mock_session.execute.assert_called_once()
 
@@ -214,13 +222,13 @@ class TestProductRepositoryDelete:
         repo = SqlProductRepository(mock_session)
 
         product_id = uuid4()
-        
+
         mock_result = MagicMock()
         mock_result.rowcount = 0
         mock_session.execute.return_value = mock_result
 
         result = await repo.delete(product_id)
-        
+
         assert result is False
 
 
@@ -235,18 +243,18 @@ class TestProductRepositoryGetAll:
 
         mock_orm1 = MagicMock(spec=ProductORM)
         mock_orm2 = MagicMock(spec=ProductORM)
-        
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = [mock_orm1, mock_orm2]
         mock_session.execute.return_value = mock_result
 
-        with patch.object(repo, '_orm_to_domain') as mock_mapper:
+        with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product1 = MagicMock(spec=Product)
             mock_product2 = MagicMock(spec=Product)
             mock_mapper.side_effect = [mock_product1, mock_product2]
-            
+
             result = await repo.get_all(skip=0, limit=10)
-            
+
             assert len(result) == 2
             assert result[0] == mock_product1
             assert result[1] == mock_product2
@@ -265,18 +273,18 @@ class TestProductRepositoryGetByCategory:
         category = "Electronics"
         mock_orm1 = MagicMock(spec=ProductORM)
         mock_orm2 = MagicMock(spec=ProductORM)
-        
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = [mock_orm1, mock_orm2]
         mock_session.execute.return_value = mock_result
 
-        with patch.object(repo, '_orm_to_domain') as mock_mapper:
+        with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product1 = MagicMock(spec=Product)
             mock_product2 = MagicMock(spec=Product)
             mock_mapper.side_effect = [mock_product1, mock_product2]
-            
+
             result = await repo.get_by_category(category)
-            
+
             assert len(result) == 2
             assert result[0] == mock_product1
             assert result[1] == mock_product2
@@ -289,23 +297,25 @@ class TestProductRepositoryGetByCategory:
 
         category = "Electronics"
         mock_orm1 = MagicMock(spec=ProductORM)
-        
+
         # Mock count result
         mock_count_result = MagicMock()
         mock_count_result.scalar.return_value = 1
-        
+
         # Mock products result
         mock_products_result = MagicMock()
         mock_products_result.scalars.return_value.all.return_value = [mock_orm1]
-        
+
         mock_session.execute.side_effect = [mock_count_result, mock_products_result]
 
-        with patch.object(repo, '_orm_to_domain') as mock_mapper:
+        with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product1 = MagicMock(spec=Product)
             mock_mapper.return_value = mock_product1
-            
-            products, total_count = await repo.get_by_category(category, page=1, page_size=10)
-            
+
+            products, total_count = await repo.get_by_category(
+                category, page=1, page_size=10
+            )
+
             assert len(products) == 1
             assert total_count == 1
             assert products[0] == mock_product1
@@ -326,7 +336,7 @@ class TestProductRepositoryExists:
         mock_session.execute.return_value = mock_result
 
         result = await repo.exists_by_sku(sku)
-        
+
         assert result is True
 
     @pytest.mark.asyncio
@@ -341,7 +351,7 @@ class TestProductRepositoryExists:
         mock_session.execute.return_value = mock_result
 
         result = await repo.exists_by_sku(sku)
-        
+
         assert result is False
 
     @pytest.mark.asyncio
@@ -356,7 +366,7 @@ class TestProductRepositoryExists:
         mock_session.execute.return_value = mock_result
 
         result = await repo.exists_by_name(name)
-        
+
         assert result is True
 
 
@@ -374,6 +384,5 @@ class TestProductRepositoryCount:
         mock_session.execute.return_value = mock_result
 
         result = await repo.count()
-        
-        assert result == 5
 
+        assert result == 5

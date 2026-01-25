@@ -53,7 +53,9 @@ class DatabaseInitializer:
             )
 
         except Exception as e:
-            logger.log_error_with_context("[FAILED] Database initialization failed", error=e)
+            logger.log_error_with_context(
+                "[FAILED] Database initialization failed", error=e
+            )
             raise
 
     async def _ensure_migrations_directory(self) -> None:

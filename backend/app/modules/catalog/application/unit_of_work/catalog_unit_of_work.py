@@ -1,13 +1,13 @@
 """Catalog Unit of Work interface."""
 
 from abc import ABC, abstractmethod
-from typing import Type, TypeVar
-
-from app.core.database.session import AsyncSession
+from typing import TypeVar
 
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import ProductRepository
+from app.modules.catalog.domain.repositories.product.product_repository import (
+    ProductRepository,
+)
 
 T = TypeVar("T")
 
@@ -15,7 +15,7 @@ T = TypeVar("T")
 class ICatalogUnitOfWork(ABC):
     """
     Unit of Work interface for catalog module.
-    
+
     Provides access to repositories and transaction management for catalog operations.
     """
 
@@ -53,6 +53,11 @@ class ICatalogUnitOfWork(ABC):
         ...
 
     @abstractmethod
-    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: type[BaseException] | None) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: type[BaseException] | None,
+    ) -> None:
         """Async context manager exit."""
         ...

@@ -16,7 +16,7 @@ class MetricsRegistry:
     def initialize(cls, meter_provider: Any = None) -> None:
         """
         Initialize the meter provider.
-        
+
         Args:
             meter_provider: Optional meter provider instance
         """
@@ -30,10 +30,10 @@ class MetricsRegistry:
     def get_meter(cls, name: str) -> Any:
         """
         Get a meter instance.
-        
+
         Args:
             name: Meter name
-            
+
         Returns:
             Meter instance
         """
@@ -48,5 +48,3 @@ class MetricsRegistry:
         if cls._meter_provider:
             # Shutdown logic would go here
             logger.info("Meter provider shut down")
-
-

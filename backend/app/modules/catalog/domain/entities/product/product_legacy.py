@@ -73,7 +73,7 @@ class Product(Aggregate):
     ) -> "Product":
         """
         Create a new product, matching .NET Product.Create static method.
-        
+
         Args:
             product_id: Unique identifier for the product
             name: Product name (validated)
@@ -81,10 +81,10 @@ class Product(Aggregate):
             description: Product description (validated)
             image_file: Image file path (validated)
             price: Product price (validated)
-            
+
         Returns:
             Created Product instance with domain events
-            
+
         Raises:
             ValueError: If any validation fails
         """
@@ -115,14 +115,14 @@ class Product(Aggregate):
     ) -> None:
         """
         Update product details, matching .NET Product.Update method.
-        
+
         Args:
             name: New product name (validated)
             category: New categories list (validated)
             description: New description (validated)
             image_file: New image file path (validated)
             price: New price (validated)
-            
+
         Raises:
             ValueError: If any validation fails
         """
@@ -148,16 +148,16 @@ class Product(Aggregate):
     def change_price(self, new_price: Decimal) -> None:
         """
         Change product price with domain event.
-        
+
         Args:
             new_price: New price (validated)
-            
+
         Raises:
             ValueError: If price validation fails
         """
         if new_price <= 0:
             raise ValueError("Product price must be positive")
-            
+
         old_price = self.price
         self.price = new_price
         self.increment_version()
@@ -165,21 +165,22 @@ class Product(Aggregate):
         # Add domain event for price change
         if old_price != new_price:
             from app.modules.catalog.domain.events import ProductPriceChangedEvent
+
             self.add_domain_event(ProductPriceChangedEvent(product=self))
 
     def add_category(self, category: str) -> None:
         """
         Add a category to the product.
-        
+
         Args:
             category: Category to add (validated)
-            
+
         Raises:
             ValueError: If category is invalid
         """
         if not category or not category.strip():
             raise ValueError("Category cannot be empty")
-            
+
         cleaned_category = category.strip()
         if cleaned_category not in self.category:
             self.category.append(cleaned_category)
@@ -188,16 +189,16 @@ class Product(Aggregate):
     def remove_category(self, category: str) -> None:
         """
         Remove a category from the product.
-        
+
         Args:
             category: Category to remove
-            
+
         Raises:
             ValueError: If trying to remove the last category
         """
         if not category or not category.strip():
             raise ValueError("Category cannot be empty")
-            
+
         cleaned_category = category.strip()
         if cleaned_category in self.category:
             if len(self.category) <= 1:
@@ -208,20 +209,20 @@ class Product(Aggregate):
     def update_categories(self, categories: list[str]) -> None:
         """
         Update all categories for the product.
-        
+
         Args:
             categories: New list of categories (validated)
-            
+
         Raises:
             ValueError: If validation fails
         """
         if not categories:
             raise ValueError("Product must have at least one category")
-            
+
         # Clean and validate categories
         cleaned_categories = [cat.strip() for cat in categories if cat and cat.strip()]
         if not cleaned_categories:
             raise ValueError("Product must have at least one valid category")
-            
+
         self.category = cleaned_categories
         self.increment_version()

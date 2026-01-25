@@ -1,19 +1,17 @@
 """DeleteProductHandler with 1-1 parity to .NET implementation."""
 
-import asyncio
-from typing import Any
-from uuid import UUID
-from pydantic import BaseModel
 
+
+from app.core.database.session import AsyncSessionLocal
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.exceptions.product import (
-    ProductNotFoundError,
     ProductDeleteError,
+    ProductNotFoundError,
 )
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import SqlProductRepository as ProductRepository
-from app.core.database.session import AsyncSessionLocal
-
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
+    SqlProductRepository as ProductRepository,
+)
 
 from .delete_product_command import DeleteProductCommand, DeleteProductResult
 
@@ -24,18 +22,18 @@ class DeleteProductCommandValidator:
     def validate(self, command: DeleteProductCommand) -> list[str]:
         """
         Validate the delete product command.
-        
+
         Args:
             command: The command to validate
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         if not command.product_id:
             errors.append("Product Id is required")
-            
+
         return errors
 
 
@@ -67,7 +65,10 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         validator = DeleteProductCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.modules.catalog.domain.exceptions.product import ProductValidationError
+            from app.modules.catalog.domain.exceptions.product import (
+                ProductValidationError,
+            )
+
             raise ProductValidationError(
                 f"Command validation failed: {', '.join(errors)}"
             )
@@ -78,7 +79,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         # Use real database repository
         async with AsyncSessionLocal() as session:
             repository = ProductRepository(session)
-            
+
             # Check if product exists
             if not await repository.exists(command.product_id):
                 raise ProductNotFoundError(command.product_id)
@@ -88,7 +89,7 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 success = await repository.delete(
                     command.product_id,
                     deleted_by=command.deleted_by,
-                    deletion_reason=command.deletion_reason
+                    deletion_reason=command.deletion_reason,
                 )
                 await session.commit()
 
@@ -101,7 +102,5 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
             except Exception as e:
                 await session.rollback()
                 raise ProductDeleteError(
-                    message="Failed to delete product from database", 
-                    details=str(e)
+                    message="Failed to delete product from database", details=str(e)
                 ) from e
-

@@ -17,7 +17,7 @@ class DomainEventHandler(ABC, Generic[TEvent]):
     async def handle(self, event: TEvent) -> None:
         """
         Handle a domain event.
-        
+
         Args:
             event: The domain event to handle
         """

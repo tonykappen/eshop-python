@@ -1,9 +1,9 @@
 """Mediator for global module interface."""
 
-from app.module_interface.mediator.mediator import Mediator, IMediator
+from app.module_interface.mediator.mediator import IMediator, Mediator
 from app.module_interface.mediator.registration import (
-    register_handlers_from_modules,
     discover_and_register_handlers,
+    register_handlers_from_modules,
 )
 
 __all__ = [
@@ -12,15 +12,3 @@ __all__ = [
     "register_handlers_from_modules",
     "discover_and_register_handlers",
 ]
-
-
-
-
-
-
-
-
-
-
-
-

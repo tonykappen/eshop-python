@@ -9,7 +9,7 @@ class BadRequestException(BaseError):
     def __init__(self, message: str = "Bad request", details: str | None = None):
         """
         Initialize bad request exception.
-        
+
         Args:
             message: Error message
             details: Optional additional details

@@ -1,6 +1,6 @@
 """Request context for holding tenant/user info for auditing/policies."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -10,20 +10,24 @@ class RequestContext(BaseModel):
     """Request context holding tenant/user info for auditing/policies."""
 
     # User information
-    user_id: Optional[UUID] = Field(None, description="Current user ID")
-    username: Optional[str] = Field(None, description="Current username")
+    user_id: UUID | None = Field(None, description="Current user ID")
+    username: str | None = Field(None, description="Current username")
     user_roles: list[str] = Field(default_factory=list, description="User roles")
-    
+
     # Tenant information
-    tenant_id: Optional[UUID] = Field(None, description="Current tenant ID")
-    tenant_name: Optional[str] = Field(None, description="Current tenant name")
-    
+    tenant_id: UUID | None = Field(None, description="Current tenant ID")
+    tenant_name: str | None = Field(None, description="Current tenant name")
+
     # Request information
-    request_id: Optional[str] = Field(None, description="Request ID for tracing")
-    correlation_id: Optional[str] = Field(None, description="Correlation ID for tracing")
-    
+    request_id: str | None = Field(None, description="Request ID for tracing")
+    correlation_id: str | None = Field(
+        None, description="Correlation ID for tracing"
+    )
+
     # Additional context
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
     @property
     def is_authenticated(self) -> bool:
@@ -48,10 +52,10 @@ class RequestContext(BaseModel):
     def has_role(self, role: str) -> bool:
         """
         Check if user has a specific role.
-        
+
         Args:
             role: Role to check
-            
+
         Returns:
             True if user has the role, False otherwise
         """
@@ -60,10 +64,10 @@ class RequestContext(BaseModel):
     def has_any_role(self, roles: list[str]) -> bool:
         """
         Check if user has any of the specified roles.
-        
+
         Args:
             roles: List of roles to check
-            
+
         Returns:
             True if user has any of the roles, False otherwise
         """
@@ -72,7 +76,7 @@ class RequestContext(BaseModel):
     def add_metadata(self, key: str, value: Any) -> None:
         """
         Add metadata to the context.
-        
+
         Args:
             key: Metadata key
             value: Metadata value
@@ -82,11 +86,11 @@ class RequestContext(BaseModel):
     def get_metadata(self, key: str, default: Any = None) -> Any:
         """
         Get metadata from the context.
-        
+
         Args:
             key: Metadata key
             default: Default value if key not found
-            
+
         Returns:
             Metadata value or default
         """
@@ -108,5 +112,3 @@ class RequestContext(BaseModel):
             "is_manager": self.is_manager,
             "is_user": self.is_user,
         }
-
-

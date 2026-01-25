@@ -1,11 +1,12 @@
 """Product mapper for domain ↔ DTO ↔ contract conversions."""
 
 from decimal import Decimal
+from uuid import UUID
 
 from app.modules.catalog.application.dvos.product_dvo import ProductDVO
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.domain.value_objects import Money
+from app.modules.catalog.domain.value_objects import SKU, Money
 
 
 class ProductMapper:
@@ -15,10 +16,10 @@ class ProductMapper:
     def domain_to_dvo(product: Product) -> ProductDVO:
         """
         Convert Product domain model to ProductDVO.
-        
+
         Args:
             product: Product domain model
-            
+
         Returns:
             ProductDVO
         """
@@ -40,10 +41,10 @@ class ProductMapper:
     def dvo_to_domain(dvo: ProductDVO) -> Product:
         """
         Convert ProductDVO to Product domain model.
-        
+
         Args:
             dvo: ProductDVO
-            
+
         Returns:
             Product domain model
         """
@@ -62,10 +63,10 @@ class ProductMapper:
     def dvo_to_dto(dvo: ProductDVO) -> ProductDto:
         """
         Convert ProductDVO to ProductDto.
-        
+
         Args:
             dvo: ProductDVO
-            
+
         Returns:
             ProductDto
         """
@@ -87,10 +88,10 @@ class ProductMapper:
     def dto_to_dvo(dto: ProductDto) -> ProductDVO:
         """
         Convert ProductDto to ProductDVO.
-        
+
         Args:
             dto: ProductDto
-            
+
         Returns:
             ProductDVO
         """
@@ -112,10 +113,10 @@ class ProductMapper:
     def domain_to_dto(product: Product) -> ProductDto:
         """
         Convert Product domain model to ProductDto.
-        
+
         Args:
             product: Product domain model
-            
+
         Returns:
             ProductDto
         """
@@ -126,14 +127,12 @@ class ProductMapper:
     def dto_to_domain(dto: ProductDto) -> Product:
         """
         Convert ProductDto to Product domain model.
-        
+
         Args:
             dto: ProductDto
-            
+
         Returns:
             Product domain model
         """
         dvo = ProductMapper.dto_to_dvo(dto)
         return ProductMapper.dvo_to_domain(dvo)
-
-

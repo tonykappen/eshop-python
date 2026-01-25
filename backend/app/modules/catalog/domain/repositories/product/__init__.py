@@ -1,3 +1,1 @@
 """Product repository interface."""
-
-

@@ -2,8 +2,8 @@
 
 from app.modules.catalog.application.public_interface.dto.product.dtos import ProductDto
 from app.modules.catalog.application.public_interface.dto.product.product_public_dto import (
-    ProductPublicDto,
     ProductPublicDTO,
+    ProductPublicDto,
 )
 
 __all__ = [
@@ -11,5 +11,3 @@ __all__ = [
     "ProductPublicDto",
     "ProductPublicDTO",
 ]
-
-

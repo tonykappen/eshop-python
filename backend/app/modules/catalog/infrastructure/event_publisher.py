@@ -5,10 +5,11 @@ from uuid import UUID
 
 import aio_pika
 from faststream import FastStream
-from faststream.rabbit import RabbitBroker, RabbitMessage
+from faststream.rabbit import RabbitBroker
 
 from app.config.settings import settings
 from app.core.logging.base_logger import BaseLogger
+
 # Integration events are imported directly in the methods that use them
 # to avoid circular imports and to use the V1 classes directly
 
@@ -35,7 +36,7 @@ class CatalogEventPublisher:
         if not self._is_connected:
             try:
                 # Check if broker is already connected (FastStream broker connection state)
-                if hasattr(self.broker, 'is_connected') and self.broker.is_connected:
+                if hasattr(self.broker, "is_connected") and self.broker.is_connected:
                     self._is_connected = True
                 else:
                     # Connect the broker
@@ -46,29 +47,31 @@ class CatalogEventPublisher:
                 logger.warning(f"Failed to connect broker: {e}")
                 self._is_connected = False
                 raise
-        
+
         # Ensure exchange is declared
         await self._ensure_exchange()
 
     async def _ensure_exchange(self) -> None:
         """Ensure the catalog.events exchange exists.
-        
+
         Note: FastStream will auto-declare exchanges when publishing.
         We declare it here to ensure it exists with the right configuration
         (topic exchange, durable) before FastStream tries to use it.
         """
         if self._exchange_declared:
             return
-        
+
         try:
             # Get the connection from the broker after it's connected
             # FastStream broker wraps aio_pika connection
-            connection = getattr(self.broker, '_connection', None) or getattr(self.broker, 'connection', None)
-            
+            connection = getattr(self.broker, "_connection", None) or getattr(
+                self.broker, "connection", None
+            )
+
             if connection:
                 # Create a channel to declare the exchange
                 channel = await connection.channel()
-                
+
                 # Declare the exchange as DIRECT exchange (non-durable) to match FastStream's default
                 # FastStream auto-declares exchanges as DIRECT when publishing, so we match that behavior
                 # This prevents conflicts if the exchange already exists
@@ -76,36 +79,46 @@ class CatalogEventPublisher:
                     self.exchange_name,
                     type=aio_pika.ExchangeType.DIRECT,
                     durable=False,
-                    auto_delete=False
+                    auto_delete=False,
                 )
-                
+
                 # Close the channel (broker manages its own channels for publishing)
                 await channel.close()
-                
+
                 self._exchange_declared = True
-                logger.debug(f"Exchange '{self.exchange_name}' declared as DIRECT (matching FastStream default)")
+                logger.debug(
+                    f"Exchange '{self.exchange_name}' declared as DIRECT (matching FastStream default)"
+                )
             else:
                 logger.warning("Could not access broker connection to declare exchange")
                 # Mark as attempted to avoid infinite retry
                 # FastStream will handle it during publish
                 self._exchange_declared = True
-                
+
         except aio_pika.exceptions.ChannelClosed as e:
             # Channel was closed, but exchange might still be declared
             if "406" in str(e) or "precondition_failed" in str(e).lower():
                 self._exchange_declared = True
-                logger.debug(f"Exchange '{self.exchange_name}' already exists (possibly declared by FastStream)")
+                logger.debug(
+                    f"Exchange '{self.exchange_name}' already exists (possibly declared by FastStream)"
+                )
             else:
                 logger.warning(f"Channel error declaring exchange: {e}")
                 self._exchange_declared = True
         except Exception as e:
             # If exchange already exists (406 PRECONDITION_FAILED), that's fine
             error_str = str(e).lower()
-            if "already exists" in error_str or "406" in error_str or "precondition_failed" in error_str:
+            if (
+                "already exists" in error_str
+                or "406" in error_str
+                or "precondition_failed" in error_str
+            ):
                 self._exchange_declared = True
                 logger.debug(f"Exchange '{self.exchange_name}' already exists")
             else:
-                logger.warning(f"Could not declare exchange '{self.exchange_name}': {e}. FastStream will handle it during publish.")
+                logger.warning(
+                    f"Could not declare exchange '{self.exchange_name}': {e}. FastStream will handle it during publish."
+                )
             # Mark as attempted so we don't retry indefinitely
             self._exchange_declared = True
 
@@ -126,13 +139,13 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             # Use the create method from ProductCreatedIntegrationEventV1
             # Import the V1 class directly
             from app.modules.catalog.application.integration_events.products.product_created_integration_event_v1 import (
                 ProductCreatedIntegrationEventV1,
             )
-            
+
             event = ProductCreatedIntegrationEventV1.create(
                 product_id=product_id,
                 product_name=product_name,
@@ -144,16 +157,18 @@ class CatalogEventPublisher:
                 product_price_currency=product_price_currency,
                 metadata=additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
-                routing_key=f"product.created",
+                routing_key="product.created",
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductCreated event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductCreated event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductCreated event for product {product_id}: {e}"
+            )
 
     async def publish_product_price_changed(
         self,
@@ -170,13 +185,13 @@ class CatalogEventPublisher:
         try:
             # Ensure broker is connected before publishing
             await self._ensure_connected()
-            
+
             # Use the create method from ProductPriceChangedIntegrationEventV1
             # Import the V1 class directly
             from app.modules.catalog.application.integration_events.products.product_price_changed_integration_event_v1 import (
                 ProductPriceChangedIntegrationEventV1,
             )
-            
+
             event = ProductPriceChangedIntegrationEventV1.create(
                 product_id=product_id,
                 product_name=product_name or f"Product-{product_id}",
@@ -186,16 +201,18 @@ class CatalogEventPublisher:
                 price_currency=price_currency,
                 metadata=additional_data,
             )
-            
+
             await self.broker.publish(
                 event.model_dump(),
-                routing_key=f"product.price_changed",
+                routing_key="product.price_changed",
                 exchange=self.exchange_name,
             )
-            
+
             logger.info(f"Published ProductPriceChanged event for product {product_id}")
         except Exception as e:
-            logger.error(f"Failed to publish ProductPriceChanged event for product {product_id}: {e}")
+            logger.error(
+                f"Failed to publish ProductPriceChanged event for product {product_id}: {e}"
+            )
 
     async def publish_product_inventory_updated(
         self,
@@ -207,7 +224,9 @@ class CatalogEventPublisher:
     ) -> None:
         """Publish product inventory updated integration event."""
         # TODO: Implement when ProductInventoryUpdatedIntegrationEvent is created
-        logger.warning(f"ProductInventoryUpdated event not yet implemented for product {product_id}")
+        logger.warning(
+            f"ProductInventoryUpdated event not yet implemented for product {product_id}"
+        )
 
     async def publish_product_updated(
         self,
@@ -221,7 +240,9 @@ class CatalogEventPublisher:
     ) -> None:
         """Publish product updated integration event."""
         # TODO: Implement when ProductUpdatedIntegrationEvent is created
-        logger.warning(f"ProductUpdated event not yet implemented for product {product_id}")
+        logger.warning(
+            f"ProductUpdated event not yet implemented for product {product_id}"
+        )
 
     async def publish_product_deleted(
         self,
@@ -233,7 +254,9 @@ class CatalogEventPublisher:
     ) -> None:
         """Publish product deleted integration event."""
         # TODO: Implement when ProductDeletedIntegrationEvent is created
-        logger.warning(f"ProductDeleted event not yet implemented for product {product_id}")
+        logger.warning(
+            f"ProductDeleted event not yet implemented for product {product_id}"
+        )
 
     async def publish_product_discontinued(
         self,
@@ -245,7 +268,9 @@ class CatalogEventPublisher:
     ) -> None:
         """Publish product discontinued integration event."""
         # TODO: Implement when ProductDiscontinuedIntegrationEvent is created
-        logger.warning(f"ProductDiscontinued event not yet implemented for product {product_id}")
+        logger.warning(
+            f"ProductDiscontinued event not yet implemented for product {product_id}"
+        )
 
     async def start(self) -> None:
         """Start the event publisher."""

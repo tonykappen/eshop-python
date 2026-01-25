@@ -1,7 +1,7 @@
 """Product created integration event v1."""
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -16,7 +16,7 @@ class ProductCreatedIntegrationEventV1(BaseModel):
     event_version: str = Field(default="1.0", description="Event version")
     occurred_at: datetime = Field(..., description="When the event occurred")
     source: str = Field(default="catalog-service", description="Event source")
-    
+
     # Event data
     product_id: UUID = Field(..., description="Product ID")
     product_name: str = Field(..., description="Product name")
@@ -25,10 +25,14 @@ class ProductCreatedIntegrationEventV1(BaseModel):
     product_description: str = Field(..., description="Product description")
     product_image_file: str = Field(..., description="Product image file")
     product_price_amount: float = Field(..., description="Product price amount")
-    product_price_currency: str = Field(default="USD", description="Product price currency")
-    
+    product_price_currency: str = Field(
+        default="USD", description="Product price currency"
+    )
+
     # Additional context
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
     @classmethod
     def create(
@@ -41,11 +45,11 @@ class ProductCreatedIntegrationEventV1(BaseModel):
         product_image_file: str,
         product_price_amount: float,
         product_price_currency: str = "USD",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> "ProductCreatedIntegrationEventV1":
         """
         Create a new product created integration event.
-        
+
         Args:
             product_id: Product ID
             product_name: Product name
@@ -56,12 +60,12 @@ class ProductCreatedIntegrationEventV1(BaseModel):
             product_price_amount: Product price amount
             product_price_currency: Product price currency
             metadata: Additional metadata
-            
+
         Returns:
             ProductCreatedIntegrationEventV1 instance
         """
         import uuid
-        
+
         return cls(
             event_id=uuid.uuid4(),
             occurred_at=datetime.utcnow(),
@@ -76,7 +80,7 @@ class ProductCreatedIntegrationEventV1(BaseModel):
             metadata=metadata or {},
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary."""
         return {
             "event_id": str(self.event_id),
@@ -94,5 +98,3 @@ class ProductCreatedIntegrationEventV1(BaseModel):
             "product_price_currency": self.product_price_currency,
             "metadata": self.metadata,
         }
-
-

@@ -13,11 +13,13 @@ from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import (
 )
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import ProductRepository
+from app.modules.catalog.domain.repositories.product.product_repository import (
+    ProductRepository,
+)
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository,
     SqlCategoryRepository,
     SqlInventoryRepository,
+    SqlProductRepository,
 )
 
 if TYPE_CHECKING:
@@ -32,7 +34,7 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
     def __init__(self, session: AsyncSession) -> None:
         """
         Initialize the SQL catalog unit of work.
-        
+
         Args:
             session: Database session
         """
@@ -66,7 +68,7 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
     async def commit(self) -> None:
         """
         Commit the current transaction with interceptors.
-        
+
         Raises:
             Exception: If commit fails
         """
@@ -121,14 +123,3 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
             await self.rollback()
         else:
             await self.commit()
-
-
-
-
-
-
-
-
-
-
-

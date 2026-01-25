@@ -20,7 +20,7 @@ class ProductPriceChangedDomainEvent(DomainEvent):
             aggregate_id=product.id,
             event_type="product.price_changed",
             product=product,
-            **data
+            **data,
         )
 
     @property
@@ -42,5 +42,3 @@ class ProductPriceChangedDomainEvent(DomainEvent):
     def new_price(self) -> str:
         """Get the new price as string."""
         return str(self.product.price)
-
-

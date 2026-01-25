@@ -27,14 +27,14 @@ class TestDatabaseMigrations:
     async def test_ensure_schemas_exist(self, mock_session_local):
         """Test schema existence check."""
         from unittest.mock import AsyncMock
-        
+
         # Mock session that raises an exception (simulating DB connection failure)
         mock_session = AsyncMock()
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=None)
         mock_session.execute.side_effect = Exception("Database connection failed")
         mock_session_local.return_value = mock_session
-        
+
         # Should raise exception when DB connection fails
         with pytest.raises(Exception, match="Database connection failed"):
             await ensure_schemas_exist()

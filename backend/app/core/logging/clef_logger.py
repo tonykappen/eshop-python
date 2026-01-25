@@ -22,13 +22,13 @@ def get_service_metadata() -> dict[str, Any]:
 def get_host_metadata() -> dict[str, Any]:
     """Get host/container metadata with all required fields."""
     hostname = socket.gethostname()
-    
+
     # Get FQDN if available
     try:
         hostname_fqdn = socket.getfqdn()
     except Exception:
         hostname_fqdn = hostname
-    
+
     # Get internal IP address
     try:
         # Get primary IP (not loopback)
@@ -38,13 +38,13 @@ def get_host_metadata() -> dict[str, Any]:
         s.close()
     except Exception:
         ip = ""
-    
+
     # Get port from environment (set by uvicorn or deployment)
     port = int(os.getenv("PORT", os.getenv("UVICORN_PORT", "8000")))
-    
+
     # Get script name (entry point)
     script_name = os.getenv("SCRIPT_NAME", "app/main.py")
-    
+
     return {
         "host": hostname,
         "hostname_fqdn": hostname_fqdn,
@@ -100,23 +100,41 @@ class CLEFHandler(logging.Handler):
             # Extract message_name if present in extra data, otherwise derive from message
             message_text = record.getMessage()
             message_name = getattr(record, "message_name", None)
-            message_template = getattr(record, "@mt", None) or getattr(record, "message_template", None)
-            
+            message_template = getattr(record, "@mt", None) or getattr(
+                record, "message_template", None
+            )
+
             # For SQLAlchemy logs, extract SQL statement and set db_statement field
             db_statement = None
-            is_sqlalchemy_log = "sqlalchemy" in record.name.lower() or "engine" in record.name.lower()
-            
+            is_sqlalchemy_log = (
+                "sqlalchemy" in record.name.lower() or "engine" in record.name.lower()
+            )
+
             if is_sqlalchemy_log:
                 # SQLAlchemy logs - check if message contains SQL
                 if message_text and (
-                    message_text.strip().upper().startswith(("SELECT", "INSERT", "UPDATE", "DELETE", "BEGIN", "COMMIT", "ROLLBACK"))
+                    message_text.strip()
+                    .upper()
+                    .startswith(
+                        (
+                            "SELECT",
+                            "INSERT",
+                            "UPDATE",
+                            "DELETE",
+                            "BEGIN",
+                            "COMMIT",
+                            "ROLLBACK",
+                        )
+                    )
                 ):
                     db_statement = message_text.strip()
                     # Set message_name to appropriate db_* event for SQL queries
                     if not message_name and db_statement:
                         if db_statement.upper().startswith("SELECT"):
                             message_name = "db_query"
-                        elif db_statement.upper().startswith(("INSERT", "UPDATE", "DELETE")):
+                        elif db_statement.upper().startswith(
+                            ("INSERT", "UPDATE", "DELETE")
+                        ):
                             message_name = "db_write"
                         elif db_statement.upper().startswith("BEGIN"):
                             message_name = "db_transaction_begin"
@@ -124,7 +142,7 @@ class CLEFHandler(logging.Handler):
                             message_name = "db_transaction_commit"
                         elif db_statement.upper().startswith("ROLLBACK"):
                             message_name = "db_transaction_rollback"
-            
+
             # If no message_name, derive a meaningful name from logger/function/message
             if not message_name:
                 # Try to derive from logger name (e.g., "app.modules.catalog...handler" -> "handler")
@@ -143,22 +161,28 @@ class CLEFHandler(logging.Handler):
                         message_name = function
                     elif module:
                         module_parts = module.split(".")
-                        message_name = module_parts[-1] if module_parts else "application"
+                        message_name = (
+                            module_parts[-1] if module_parts else "application"
+                        )
                     else:
                         message_name = f"application_log_{record.levelname.lower()}"
-                
+
                 # Sanitize: remove special chars, make lowercase, replace spaces with underscores
-                message_name = "".join(c if c.isalnum() or c == "_" else "_" for c in message_name).lower()
+                message_name = "".join(
+                    c if c.isalnum() or c == "_" else "_" for c in message_name
+                ).lower()
                 # Remove consecutive underscores
                 message_name = "_".join(filter(None, message_name.split("_")))
                 # Ensure it's not empty
                 if not message_name:
                     message_name = f"application_log_{record.levelname.lower()}"
-            
+
             # Ensure @m field is never empty - use message_name as fallback
             if not message_text or message_text.strip() == "":
-                message_text = message_name or f"{record.levelname} log from {module}.{function}"
-            
+                message_text = (
+                    message_name or f"{record.levelname} log from {module}.{function}"
+                )
+
             # Create CLEF log entry
             log_entry = {
                 "@t": datetime.fromtimestamp(record.created, tz=UTC)
@@ -176,11 +200,11 @@ class CLEFHandler(logging.Handler):
                 **self._host_metadata,
                 "thread": record.threadName,
             }
-            
+
             # Only add @mt if message_template has a value (don't include empty string)
             if message_template and message_template.strip():
                 log_entry["@mt"] = message_template
-            
+
             # Add db_statement if this is a SQLAlchemy log with SQL
             if db_statement:
                 log_entry["db_statement"] = db_statement
@@ -210,9 +234,9 @@ class CLEFHandler(logging.Handler):
                     get_kc_user_name,
                     get_method,
                     get_operation_id,
+                    get_parent_span_id,
                     get_path,
                     get_path_params,
-                    get_parent_span_id,
                     get_query,
                     get_referer,
                     get_request_id,
@@ -242,7 +266,7 @@ class CLEFHandler(logging.Handler):
                     log_entry["span_id"] = span_id
                 if request_id:
                     log_entry["request_id"] = request_id
-                
+
                 # Add identity context fields
                 kc_user_id = get_kc_user_id()
                 kc_user_name = get_kc_user_name()
@@ -252,7 +276,7 @@ class CLEFHandler(logging.Handler):
                 token_id = get_token_id()
                 session_id = get_session_id()
                 tenant_id = get_tenant_id()
-                
+
                 # Always include identity fields if they exist (even if None/empty to match begin_request structure)
                 if kc_user_id is not None:
                     log_entry["kc_user_id"] = kc_user_id
@@ -272,16 +296,16 @@ class CLEFHandler(logging.Handler):
                     log_entry["session_id"] = session_id
                 if tenant_id is not None:
                     log_entry["tenant_id"] = tenant_id
-                
+
                 # Add operation context fields
                 operation_id = get_operation_id()
                 controller = get_controller()
-                
+
                 if operation_id is not None:
                     log_entry["operation_id"] = operation_id
                 if controller is not None:
                     log_entry["controller"] = controller
-                
+
                 # Add HTTP request context fields
                 method = get_method()
                 path = get_path()
@@ -298,7 +322,7 @@ class CLEFHandler(logging.Handler):
                 traceparent_raw = get_traceparent_raw()
                 tracestate = get_tracestate()
                 session_id_prefix = get_session_id_prefix()
-                
+
                 if method is not None:
                     log_entry["method"] = method
                 if path is not None:

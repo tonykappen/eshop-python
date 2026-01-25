@@ -1,4 +1,4 @@
-"""Common exception classes - BaseError and additional exceptions."""
+"""Base exception classes with 1-1 parity to .NET exceptions."""
 
 from typing import Any
 

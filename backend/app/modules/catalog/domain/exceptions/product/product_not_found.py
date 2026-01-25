@@ -11,7 +11,7 @@ class ProductNotFound(DomainException):
     def __init__(self, product_id: UUID):
         """
         Initialize the exception.
-        
+
         Args:
             product_id: The ID of the product that was not found
         """
@@ -25,7 +25,7 @@ class ProductNotFoundBySku(DomainException):
     def __init__(self, sku: str):
         """
         Initialize the exception.
-        
+
         Args:
             sku: The SKU of the product that was not found
         """
@@ -39,11 +39,9 @@ class ProductNotFoundByName(DomainException):
     def __init__(self, name: str):
         """
         Initialize the exception.
-        
+
         Args:
             name: The name of the product that was not found
         """
         self.name = name
         super().__init__(f"Product with name {name} not found")
-
-

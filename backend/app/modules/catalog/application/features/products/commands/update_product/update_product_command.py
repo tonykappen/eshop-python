@@ -1,6 +1,7 @@
 """UpdateProductCommand definition - matches .NET implementation."""
 
 from uuid import UUID
+
 from pydantic import BaseModel
 
 

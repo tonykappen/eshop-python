@@ -93,11 +93,26 @@ class CheckoutBasketHandler(
             if basket is None:
                 raise BasketNotFoundException(command.basket_checkout.user_name)
 
+            # Convert basket items to event items
+            from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
+                BasketCheckoutItem,
+            )
+            
+            event_items = [
+                BasketCheckoutItem(
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    price=item.price,
+                )
+                for item in basket.items
+            ]
+
             # Set total price on basket checkout event message
             event_message = BasketCheckoutIntegrationEvent(
                 user_name=command.basket_checkout.user_name,
                 customer_id=command.basket_checkout.customer_id,
                 total_price=basket.total_price,
+                items=event_items,
                 first_name=command.basket_checkout.first_name,
                 last_name=command.basket_checkout.last_name,
                 email_address=command.basket_checkout.email_address,

@@ -27,7 +27,11 @@ MODULE_CONFIGS = [
         "path": "app/modules/basket",
         "schema": "basket",
     },
-    # Future modules (ordering) can be added here
+    {
+        "name": "ordering",
+        "path": "app/modules/ordering",
+        "schema": "ordering",
+    },
 ]
 
 

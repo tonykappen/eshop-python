@@ -21,8 +21,13 @@ try:
     if config and config.config_file_name is not None:
         fileConfig(config.config_file_name)
     # Set the SQLAlchemy URL from settings
+    # Convert async URL to sync URL for Alembic migrations
     if config:
-        config.set_main_option("sqlalchemy.url", settings.database_connection_string)
+        db_url = settings.database_connection_string
+        # Convert postgresql+asyncpg:// to postgresql+psycopg2:// for synchronous migrations
+        if db_url.startswith("postgresql+asyncpg://"):
+            db_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+        config.set_main_option("sqlalchemy.url", db_url)
 except AttributeError:
     # context.config is not available when module is imported outside of Alembic
     # This is expected during DI scanning, so we silently ignore it

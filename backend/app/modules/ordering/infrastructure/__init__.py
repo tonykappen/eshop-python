@@ -1,1 +1,3 @@
-"""Ordering infrastructure layer - repositories and data access."""
+"""Ordering infrastructure module."""
+
+__all__ = []

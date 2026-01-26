@@ -45,6 +45,9 @@ from app.modules.basket.module_interface.router import (
 from app.modules.catalog.module_interface.router import (
     register_catalog_module_with_fastapi,
 )
+from app.modules.ordering.module_interface.router import (
+    register_ordering_module,
+)
 
 
 @asynccontextmanager
@@ -120,6 +123,35 @@ async def register_basket_router():
         raise  # Re-raise to ensure the error is visible
 
 
+# Include ordering router with DI integration
+# This will be called as a startup callback after mediator initialization
+async def register_ordering_router():
+    """Register ordering router with DI integration."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("🔧 Registering ordering router...")
+    try:
+        container = get_app_container()
+        mediator = get_mediator()
+        logger.info("Got container and mediator, calling register_ordering_module...")
+        ordering_router = register_ordering_module(container, mediator)
+        logger.info(f"Ordering router created with {len(ordering_router.routes)} routes")
+        app.include_router(ordering_router)
+        logger.info("✅ Ordering router included successfully!")
+        # Log all routes for debugging
+        for route in ordering_router.routes:
+            if hasattr(route, 'path'):
+                methods = getattr(route, 'methods', set())
+                logger.info(f"  - {methods} {route.path}")
+        print(f"✅ Successfully registered ordering router with {len(ordering_router.routes)} routes")
+    except Exception as e:
+        import traceback
+        logger.error(f"❌ ERROR: Could not register ordering router: {e}", exc_info=True)
+        print(f"ERROR: Could not register ordering router: {e}")
+        traceback.print_exc()
+        raise  # Re-raise to ensure the error is visible
+
+
 # Register lifecycle callbacks for graceful startup and shutdown
 register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)
@@ -130,7 +162,34 @@ register_startup_callback(
 register_startup_callback(
     register_basket_router
 )  # Register basket router after mediator is initialized
-print("DEBUG: Registered all startup callbacks including register_basket_router")
+register_startup_callback(
+    register_ordering_router
+)  # Register ordering router after mediator is initialized
+print("DEBUG: Registered all startup callbacks including register_basket_router and register_ordering_router")
+
+# Subscribe ordering handlers to message bus after ordering router is registered
+async def subscribe_ordering_handlers():
+    """Subscribe ordering integration event handlers to message bus."""
+    from app.modules.ordering.module_interface.router import (
+        subscribe_ordering_handlers_to_message_bus,
+    )
+    await subscribe_ordering_handlers_to_message_bus()
+    print("✅ Subscribed ordering handlers to message bus")
+
+register_startup_callback(subscribe_ordering_handlers)
+
+# Start basket outbox publisher worker after handlers are subscribed
+# (so handlers are ready before worker starts processing)
+async def start_basket_outbox_worker():
+    """Start the basket outbox publisher worker."""
+    from app.modules.basket.workers.outbox_publisher_worker import (
+        basket_outbox_publisher_worker,
+    )
+    await basket_outbox_publisher_worker.start()
+    print("✅ Started basket outbox publisher worker")
+
+register_startup_callback(start_basket_outbox_worker)
+
 register_startup_callback(database_handler.startup)
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)
@@ -138,6 +197,15 @@ register_startup_callback(auth_handler.startup)
 register_startup_callback(health_handler.startup)
 
 # Register shutdown callbacks (executed in reverse order)
+async def stop_basket_outbox_worker():
+    """Stop the basket outbox publisher worker."""
+    from app.modules.basket.workers.outbox_publisher_worker import (
+        basket_outbox_publisher_worker,
+    )
+    await basket_outbox_publisher_worker.stop()
+    print("✅ Stopped basket outbox publisher worker")
+
+register_shutdown_callback(stop_basket_outbox_worker)
 register_shutdown_callback(cleanup_dependency_injection)
 register_shutdown_callback(database_handler.shutdown)
 register_shutdown_callback(cache_handler.shutdown)

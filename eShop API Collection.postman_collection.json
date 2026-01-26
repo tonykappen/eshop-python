@@ -826,6 +826,192 @@
       ]
     },
     {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders?page_index=0&page_size=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page_index",
+                  "value": "0",
+                  "description": "Page index (0-based)"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10",
+                  "description": "Page size (1-100)"
+                }
+              ]
+            },
+            "description": "Get all orders with pagination. Returns paginated list of orders."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders/123e4567-e89b-12d3-a456-426614174000",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "123e4567-e89b-12d3-a456-426614174000"
+              ]
+            },
+            "description": "Get a specific order by ID. Returns order details including items, addresses, and payment information."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const currentUser = pm.collectionVariables.get('current_user');",
+                  "console.log('🔍 Testing order creation for user: ' + currentUser);",
+                  "",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    console.log('✅ Order creation successful for ' + currentUser);",
+                  "    const responseData = pm.response.json();",
+                  "    if (responseData.id) {",
+                  "        console.log('📦 Order ID: ' + responseData.id);",
+                  "        // Store order ID for use in other requests",
+                  "        pm.collectionVariables.set('last_order_id', responseData.id);",
+                  "    }",
+                  "} else if (pm.response.code === 401) {",
+                  "    console.log('❌ Unauthorized access for ' + currentUser);",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('🚫 Forbidden: ' + currentUser + ' cannot create orders (Admin/Manager only)');",
+                  "} else {",
+                  "    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"order\": {\n        \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n        \"customer_id\": \"123e4567-e89b-12d3-a456-426614174001\",\n        \"order_name\": \"Test Order\",\n        \"shipping_address\": {\n            \"first_name\": \"John\",\n            \"last_name\": \"Doe\",\n            \"email_address\": \"john.doe@example.com\",\n            \"address_line\": \"123 Main Street\",\n            \"country\": \"United States\",\n            \"state\": \"California\",\n            \"zip_code\": \"90210\"\n        },\n        \"billing_address\": {\n            \"first_name\": \"John\",\n            \"last_name\": \"Doe\",\n            \"email_address\": \"john.doe@example.com\",\n            \"address_line\": \"123 Main Street\",\n            \"country\": \"United States\",\n            \"state\": \"California\",\n            \"zip_code\": \"90210\"\n        },\n        \"payment\": {\n            \"card_name\": \"John Doe\",\n            \"card_number\": \"4111111111111111\",\n            \"expiration\": \"12/25\",\n            \"cvv\": \"123\",\n            \"payment_method\": 1\n        },\n        \"items\": [\n            {\n                \"order_id\": \"123e4567-e89b-12d3-a456-426614174000\",\n                \"product_id\": \"5334c996-8457-4cf0-815c-ed2b77c4ff61\",\n                \"quantity\": 2,\n                \"price\": 99.99\n            },\n            {\n                \"order_id\": \"123e4567-e89b-12d3-a456-426614174000\",\n                \"product_id\": \"c67d6323-e8b1-4bdf-9a75-b0d0d2e7e914\",\n                \"quantity\": 1,\n                \"price\": 149.99\n            }\n        ]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                ""
+              ]
+            },
+            "description": "Create a new order. Requires Admin or Manager role. The order will be created with the provided order details including shipping/billing addresses, payment information, and items."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const currentUser = pm.collectionVariables.get('current_user');",
+                  "console.log('🔍 Testing order deletion for user: ' + currentUser);",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Order deletion successful for ' + currentUser);",
+                  "    const responseData = pm.response.json();",
+                  "    if (responseData.is_success) {",
+                  "        console.log('🗑️ Order deleted successfully');",
+                  "    }",
+                  "} else if (pm.response.code === 401) {",
+                  "    console.log('❌ Unauthorized access for ' + currentUser);",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('🚫 Forbidden: ' + currentUser + ' cannot delete orders (Admin/Manager only)');",
+                  "} else if (pm.response.code === 404) {",
+                  "    console.log('⚠️ Order not found');",
+                  "} else {",
+                  "    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders/{{last_order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{last_order_id}}"
+              ]
+            },
+            "description": "Delete an order by ID. Requires Admin or Manager role. Use {{last_order_id}} variable (set automatically after creating an order) or replace with a specific order ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Order (by specific ID)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders/123e4567-e89b-12d3-a456-426614174000",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "123e4567-e89b-12d3-a456-426614174000"
+              ]
+            },
+            "description": "Delete a specific order by ID. Requires Admin or Manager role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "RBAC Tests",
       "item": [
         {
@@ -1093,6 +1279,12 @@
       "key": "current_user",
       "value": "testuser",
       "type": "string"
+    },
+    {
+      "key": "last_order_id",
+      "value": "",
+      "type": "string",
+      "description": "Stores the ID of the last created order for use in subsequent requests"
     }
   ]
 }

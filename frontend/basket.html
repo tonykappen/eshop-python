@@ -231,7 +231,8 @@
         <h1>🛒 Shopping Basket</h1>
         <div class="user-info">
             <span>Welcome, <strong id="username"></strong></span>
-            <a href="products.html" class="back-btn">Back to Products</a>
+            <a href="products.html" class="back-btn">Products</a>
+            <a href="orders.html" class="back-btn">Orders</a>
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
     </div>
@@ -658,7 +659,8 @@
                     alert('Checkout successful! Your order has been placed.');
                     // Clear basket from localStorage if stored
                     localStorage.removeItem('basket');
-                    window.location.href = 'products.html';
+                    // Redirect to orders page to view the new order
+                    window.location.href = 'orders.html';
                 } else {
                     throw new Error('Checkout was not successful. Please try again.');
                 }

@@ -85,7 +85,9 @@ class InMemoryMessageBus(IMessageBus):
                     else:
                         await handler(message)
                 except Exception as e:
-                    logger.error(f"Error in message handler: {e}")
+                    logger.error(f"Error in message handler {type(handler).__name__}: {e}", exc_info=True)
+        else:
+            logger.warning(f"No subscribers found for topic '{topic}'")
 
         logger.debug(f"Published message to topic '{topic}': {message}")
 

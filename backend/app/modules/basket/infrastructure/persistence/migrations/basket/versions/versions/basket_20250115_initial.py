@@ -1,6 +1,6 @@
 """Initial basket schema
 
-Revision ID: 0001
+Revision ID: ab74ed489aa6
 Revises: 
 Create Date: 2025-01-15 10:00:00.000000
 
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "0001"
+revision = "ab74ed489aa6"
 down_revision = None
 branch_labels = None
 depends_on = None

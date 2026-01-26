@@ -1,0 +1,1098 @@
+{
+  "info": {
+    "_postman_id": "cf4129ff-2aef-43da-9f5d-ee9e979b8d40",
+    "name": "eShop API Collection",
+    "description": "Complete eShop API collection with automatic bearer token setup",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "46582395",
+    "_collection_link": "https://go.postman.co/collection/46582395-cf4129ff-2aef-43da-9f5d-ee9e979b8d40?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Detailed Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/detailed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "detailed"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "API Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Selection",
+      "item": [
+        {
+          "name": "Switch to TestUser (Read-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('current_user', 'testuser');",
+                  "console.log('✅ Switched to testuser (Read-only access)');",
+                  "console.log('📋 Next: Run \"Get Bearer Token (TestUser)\" first, then test API requests');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Switch to Manager (Read/Write)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('current_user', 'manager');",
+                  "console.log('✅ Switched to manager (Read/Write access)');",
+                  "console.log('📋 Next: Run \"Get Bearer Token (Manager)\" first, then test API requests');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Switch to AdminUser (Full Access)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('current_user', 'adminuser');",
+                  "console.log('✅ Switched to adminuser (Full access)');",
+                  "console.log('📋 Next: Run \"Get Bearer Token (AdminUser)\" first, then test API requests');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Get Bearer Token (TestUser)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const tokenData = pm.response.json();",
+                  "    pm.collectionVariables.set('bearer_token', tokenData.access_token);",
+                  "    pm.collectionVariables.set('token_timestamp', Date.now().toString());",
+                  "    pm.collectionVariables.set('token_expires_in', tokenData.expires_in.toString());",
+                  "    pm.collectionVariables.set('current_user', 'testuser');",
+                  "    console.log('✅ TestUser token stored successfully');",
+                  "    console.log('🔑 Token: ' + tokenData.access_token.substring(0, 50) + '...');",
+                  "} else {",
+                  "    console.error('❌ Failed to get TestUser token:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "testuser"
+                },
+                {
+                  "key": "password",
+                  "value": "changeme123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bearer Token (Manager)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const tokenData = pm.response.json();",
+                  "    pm.collectionVariables.set('bearer_token', tokenData.access_token);",
+                  "    pm.collectionVariables.set('token_timestamp', Date.now().toString());",
+                  "    pm.collectionVariables.set('token_expires_in', tokenData.expires_in.toString());",
+                  "    pm.collectionVariables.set('current_user', 'manager');",
+                  "    console.log('✅ Manager token stored successfully');",
+                  "    console.log('🔑 Token: ' + tokenData.access_token.substring(0, 50) + '...');",
+                  "} else {",
+                  "    console.error('❌ Failed to get Manager token:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "manager"
+                },
+                {
+                  "key": "password",
+                  "value": "changeme123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bearer Token (AdminUser)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const tokenData = pm.response.json();",
+                  "    pm.collectionVariables.set('bearer_token', tokenData.access_token);",
+                  "    pm.collectionVariables.set('token_timestamp', Date.now().toString());",
+                  "    pm.collectionVariables.set('token_expires_in', tokenData.expires_in.toString());",
+                  "    pm.collectionVariables.set('current_user', 'adminuser');",
+                  "    console.log('✅ AdminUser token stored successfully');",
+                  "    console.log('🔑 Token: ' + tokenData.access_token.substring(0, 50) + '...');",
+                  "} else {",
+                  "    console.error('❌ Failed to get AdminUser token:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "adminuser"
+                },
+                {
+                  "key": "password",
+                  "value": "changeme123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bearer Token (Manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "manager"
+                },
+                {
+                  "key": "password",
+                  "value": "changeme123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bearer Token (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "adminuser"
+                },
+                {
+                  "key": "password",
+                  "value": "changeme123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/5334c996-8457-4cf0-815c-ed2b77c4ff61",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "5334c996-8457-4cf0-815c-ed2b77c4ff61"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product\",\n    \"price\": 99.99,\n    \"picture_url\": \"https://example.com/image.jpg\",\n    \"category\": [\"Electronics\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Product\",\n    \"description\": \"An updated test product\",\n    \"price\": 149.99,\n    \"picture_url\": \"https://example.com/updated.jpg\",\n    \"category\": [\"Electronics\", \"Updated\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/5334c996-8457-4cf0-815c-ed2b77c4ff61",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "5334c996-8457-4cf0-815c-ed2b77c4ff61"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/5334c996-8457-4cf0-815c-ed2b77c4ff61",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "5334c996-8457-4cf0-815c-ed2b77c4ff61"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Basket",
+      "item": [
+        {
+          "name": "Get Basket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/{{current_user}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                "{{current_user}}"
+              ]
+            },
+            "description": "Get shopping basket for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Basket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"shopping_cart\": {\n        \"id\": null,\n        \"user_name\": \"{{current_user}}\",\n        \"items\": []\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                ""
+              ]
+            },
+            "description": "Create a new shopping basket for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item to Basket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"shopping_cart_item\": {\n        \"id\": null,\n        \"shopping_cart_id\": null,\n        \"product_id\": \"5334c996-8457-4cf0-815c-ed2b77c4ff61\",\n        \"quantity\": 2,\n        \"color\": \"red\",\n        \"price\": 99.99,\n        \"product_name\": \"Test Product\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/{{current_user}}/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                "{{current_user}}",
+                "items"
+              ]
+            },
+            "description": "Add an item to the shopping basket. The product_id should match an existing product from the catalog."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Item from Basket",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/{{current_user}}/items/5334c996-8457-4cf0-815c-ed2b77c4ff61",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                "{{current_user}}",
+                "items",
+                "5334c996-8457-4cf0-815c-ed2b77c4ff61"
+              ]
+            },
+            "description": "Remove an item from the shopping basket by product ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item Price in Basket (Admin/Manager Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const currentUser = pm.collectionVariables.get('current_user');",
+                  "console.log('🔍 Testing price update for user: ' + currentUser);",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Price update successful for ' + currentUser);",
+                  "} else if (pm.response.code === 401) {",
+                  "    console.log('❌ Unauthorized access for ' + currentUser);",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('🚫 Forbidden: ' + currentUser + ' cannot update prices (Admin/Manager only)');",
+                  "} else {",
+                  "    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "149.99"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/{{current_user}}/items/5334c996-8457-4cf0-815c-ed2b77c4ff61/price",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                "{{current_user}}",
+                "items",
+                "5334c996-8457-4cf0-815c-ed2b77c4ff61",
+                "price"
+              ]
+            },
+            "description": "Update the price of a product in all shopping baskets (Admin/Manager only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Basket",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/{{current_user}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                "{{current_user}}"
+              ]
+            },
+            "description": "Delete the shopping basket for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout Basket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_name\": \"{{current_user}}\",\n    \"customer_id\": \"123e4567-e89b-12d3-a456-426614174000\",\n    \"total_price\": 199.98,\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email_address\": \"john.doe@example.com\",\n    \"address_line\": \"123 Main St\",\n    \"country\": \"USA\",\n    \"state\": \"CA\",\n    \"zip_code\": \"12345\",\n    \"card_name\": \"John Doe\",\n    \"card_number\": \"4111111111111111\",\n    \"expiration\": \"12/25\",\n    \"cvv\": \"123\",\n    \"payment_method\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/basket/{{current_user}}/checkout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basket",
+                "{{current_user}}",
+                "checkout"
+              ]
+            },
+            "description": "Checkout the shopping basket and process the order"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RBAC Tests",
+      "item": [
+        {
+          "name": "Test Current User Access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const currentUser = pm.collectionVariables.get('current_user');",
+                  "console.log('🔍 Testing access for user: ' + currentUser);",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Access granted for ' + currentUser);",
+                  "    const responseData = pm.response.json();",
+                  "    if (responseData.data) {",
+                  "        console.log('📊 Products returned: ' + responseData.data.length);",
+                  "    }",
+                  "} else if (pm.response.code === 401) {",
+                  "    console.log('❌ Unauthorized access for ' + currentUser);",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('🚫 Forbidden access for ' + currentUser + ' (insufficient permissions)');",
+                  "} else {",
+                  "    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test Create Product (Admin/Manager Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const currentUser = pm.collectionVariables.get('current_user');",
+                  "console.log('🔍 Testing product creation for user: ' + currentUser);",
+                  "",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    console.log('✅ Product creation successful for ' + currentUser);",
+                  "} else if (pm.response.code === 401) {",
+                  "    console.log('❌ Unauthorized access for ' + currentUser);",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('🚫 Forbidden: ' + currentUser + ' cannot create products (User role only)');",
+                  "} else {",
+                  "    console.log('⚠️ Unexpected response: ' + pm.response.code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"RBAC Test Product\",\n    \"description\": \"Testing RBAC permissions\",\n    \"price\": 49.99,\n    \"picture_url\": \"https://example.com/test.jpg\",\n    \"category\": [\"Test\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "OpenAPI",
+      "item": [
+        {
+          "name": "Get OpenAPI JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/openapi.json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "openapi.json"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "docs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// User configuration - define available users and their credentials",
+          "const users = {",
+          "    'testuser': { username: 'testuser', password: 'changeme123', role: 'User (Read-only)' },",
+          "    'manager': { username: 'manager', password: 'changeme123', role: 'Manager (Read/Write)' },",
+          "    'adminuser': { username: 'adminuser', password: 'changeme123', role: 'Admin (Full Access)' }",
+          "};",
+          "",
+          "// Get current user selection",
+          "const currentUser = pm.collectionVariables.get('current_user');",
+          "const userCreds = users[currentUser] || users['testuser'];",
+          "",
+          "// Handle 401 responses by refreshing token and retrying",
+          "if (pm.response.code === 401) {",
+          "    console.log('🔄 Token expired for ' + currentUser + ', refreshing...');",
+          "    ",
+          "    // Clear the expired token",
+          "    pm.collectionVariables.set('bearer_token', '');",
+          "    pm.collectionVariables.set('token_timestamp', '');",
+          "    ",
+          "    // Get a new token",
+          "    const tokenRequest = {",
+          "        url: pm.collectionVariables.get('keycloak_url') + '/realms/' + pm.collectionVariables.get('realm') + '/protocol/openid-connect/token',",
+          "        method: 'POST',",
+          "        header: {",
+          "            'Content-Type': 'application/x-www-form-urlencoded'",
+          "        },",
+          "        body: {",
+          "            mode: 'urlencoded',",
+          "            urlencoded: [",
+          "                { key: 'username', value: userCreds.username },",
+          "                { key: 'password', value: userCreds.password },",
+          "                { key: 'grant_type', value: 'password' },",
+          "                { key: 'client_id', value: pm.collectionVariables.get('client_id') },",
+          "                { key: 'client_secret', value: pm.collectionVariables.get('client_secret') }",
+          "            ]",
+          "        }",
+          "    };",
+          "    ",
+          "    pm.sendRequest(tokenRequest, function (err, response) {",
+          "        if (response.code === 200) {",
+          "            const tokenData = response.json();",
+          "            pm.collectionVariables.set('bearer_token', tokenData.access_token);",
+          "            pm.collectionVariables.set('token_timestamp', Date.now().toString());",
+          "            pm.collectionVariables.set('token_expires_in', tokenData.expires_in.toString());",
+          "            console.log('✅ Token refreshed successfully for ' + currentUser);",
+          "            console.log('🔄 Please retry the request manually with the new token');",
+          "        } else {",
+          "            console.error('❌ Failed to refresh token for ' + currentUser + ':', response.text());",
+          "        }",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "keycloak_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "realm",
+      "value": "eshop",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "eshop-api",
+      "type": "string"
+    },
+    {
+      "key": "client_secret",
+      "value": "eshop-secure-client-secret-2024",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "testuser",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "changeme123",
+      "type": "string"
+    },
+    {
+      "key": "bearer_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_timestamp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_expires_in",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "current_user",
+      "value": "testuser",
+      "type": "string"
+    }
+  ]
+}

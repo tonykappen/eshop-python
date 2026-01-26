@@ -22,7 +22,12 @@ MODULE_CONFIGS = [
         "path": "app/modules/catalog",
         "schema": "catalog",
     },
-    # Future modules (basket, ordering) can be added here
+    {
+        "name": "basket",
+        "path": "app/modules/basket",
+        "schema": "basket",
+    },
+    # Future modules (ordering) can be added here
 ]
 
 
@@ -90,8 +95,8 @@ async def ensure_schemas_exist() -> None:
     """Ensure all required database schemas exist (module schemas only)."""
     logger.info("[SETUP] Ensuring database schemas exist...")
 
-    # Currently only catalog is active; add more as modules are implemented
-    schemas = ["catalog"]
+    # Get schemas from module configs
+    schemas = [config["schema"] for config in MODULE_CONFIGS]
 
     try:
         async with AsyncSessionLocal() as session:
@@ -176,20 +181,25 @@ async def run_module_migrations(module_config: dict) -> None:
             return
 
         # Check migrations directory - try multiple locations:
-        # 1. Blueprint location: infrastructure/persistence/migrations/products/versions/
+        # 1. Blueprint location: infrastructure/persistence/migrations/{module_name}/versions/versions/
         # 2. Standard location: migrations/versions/ or alembic/versions/
         versions_dir = None
         use_blueprint_location = False
 
-        # Try blueprint location first (infrastructure/persistence/migrations/products/versions/)
+        # Try blueprint location first (infrastructure/persistence/migrations/{module_name}/versions/)
+        # For catalog: infrastructure/persistence/migrations/products/versions/
+        # For basket: infrastructure/persistence/migrations/basket/versions/
+        blueprint_module_name = "products" if module_name == "catalog" else module_name
         blueprint_versions_dir = (
             module_path
             / "infrastructure"
             / "persistence"
             / "migrations"
-            / "products"
+            / blueprint_module_name
             / "versions"
         )
+        
+        # Check if blueprint location exists (with nested versions/ directory)
         if (
             blueprint_versions_dir.exists()
             and (blueprint_versions_dir / "versions").exists()

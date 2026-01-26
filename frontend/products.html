@@ -41,6 +41,25 @@
         .logout-btn:hover {
             background-color: #c82333;
         }
+        .basket-btn {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .basket-btn:hover {
+            background-color: #0056b3;
+        }
+        .basket-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
         .products-container {
             background: white;
             padding: 20px;
@@ -333,6 +352,7 @@
         <h1>eShop Products</h1>
         <div class="user-info">
             <span>Welcome, <strong id="username"></strong> (<span id="userRole"></span>)</span>
+            <a href="basket.html" id="headerBasketBtn" class="basket-btn" style="display: none;">🛒 View Basket</a>
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
     </div>
@@ -356,7 +376,10 @@
             <h3>🛒 Shopping Cart</h3>
             <div id="cartItems"></div>
             <div id="cartTotal" class="cart-total"></div>
-            <button onclick="clearCart()" style="margin-top: 10px; padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Cart</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="clearCart()" style="padding: 8px 16px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Clear Cart</button>
+                <a href="basket.html" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; font-weight: bold;">View Full Basket →</a>
+            </div>
         </div>
         
         <div id="loading" class="loading">Loading products...</div>
@@ -421,7 +444,7 @@
         let totalPages = 1;
         let editingProductId = null;
         let categories = [];
-        let cart = []; // Shopping cart array
+        let basket = null; // Shopping basket from API
         let userRole = 'user'; // Default role
         
         // Check authentication
@@ -461,16 +484,17 @@
             document.getElementById('userRole').textContent = userRole;
         }
         
-        // Load cart from localStorage - use user-specific key (only for regular users)
+        // Load basket from API (only for regular users)
         if (userRole !== 'admin' && userRole !== 'manager') {
-            const cartKey = `eshop_cart_${username}`;
-            const savedCart = localStorage.getItem(cartKey);
-            if (savedCart) {
-                cart = JSON.parse(savedCart);
-            }
+            loadBasket();
+            // Show basket button in header for regular users
+            document.getElementById('headerBasketBtn').style.display = 'inline-block';
+        } else {
+            // Hide cart section for admin/manager
+            document.getElementById('cartSection').style.display = 'none';
+            // Hide basket button for admin/manager
+            document.getElementById('headerBasketBtn').style.display = 'none';
         }
-        // Always call updateCartDisplay to ensure cart section is hidden for admin/manager
-        updateCartDisplay();
         
         // Load products with pagination and search
         async function loadProducts(page = 1, searchTerm = '') {
@@ -672,7 +696,24 @@
         // Get appropriate actions based on user role
         function getProductActions(product) {
             // Ensure product ID is a string (UUID might be object)
-            const productId = product.id ? String(product.id) : '';
+            let productId = product.id;
+            if (!productId) {
+                console.error('Product ID is missing:', product);
+                return '<span style="color: red;">Error: Product ID missing</span>';
+            }
+            
+            // Convert to string if it's an object or ensure it's a valid UUID string
+            if (typeof productId !== 'string') {
+                productId = String(productId);
+            }
+            
+            // Validate UUID format (basic check)
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!uuidRegex.test(productId)) {
+                console.error('Invalid product ID format:', productId);
+                return '<span style="color: red;">Error: Invalid Product ID</span>';
+            }
+            
             const productName = product.name || 'Product';
             const productPrice = product.price || 0;
             
@@ -684,106 +725,267 @@
                 `;
             } else {
                 // Regular users can only add to cart
+                // Escape the product name for use in HTML attributes (escape single quotes)
+                const escapedName = escapeHtml(productName).replace(/'/g, "&#39;");
                 return `
-                    <button class="btn-add-cart" onclick="addToCart('${productId}', '${escapeHtml(productName)}', ${productPrice})">Add to Cart</button>
+                    <button class="btn-add-cart" onclick="addToCart('${productId}', '${escapedName}', ${productPrice})">Add to Cart</button>
                 `;
             }
         }
         
-        // Cart functionality - helper to get user-specific cart key
-        function getCartKey() {
-            return `eshop_cart_${username}`;
+        // Basket API functionality
+        async function loadBasket() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.status === 404) {
+                    // Basket doesn't exist yet
+                    basket = null;
+                    updateCartDisplay();
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                basket = data.shopping_cart || data;
+                updateCartDisplay();
+                
+            } catch (error) {
+                console.error('Failed to load basket:', error);
+                basket = null;
+                updateCartDisplay();
+            }
         }
         
-        function addToCart(productId, productName, price) {
+        async function addToCart(productId, productName, price) {
             // Only regular users can add to cart
             if (userRole === 'admin' || userRole === 'manager') {
                 return;
             }
             
-            const existingItem = cart.find(item => item.id === productId);
+            // Validate product ID
+            if (!productId) {
+                alert('Error: Product ID is missing');
+                return;
+            }
             
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({
-                    id: productId,
-                    name: productName,
-                    price: price,
-                    quantity: 1
+            // Ensure productId is a string
+            const productIdStr = String(productId);
+            
+            // Validate UUID format
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!uuidRegex.test(productIdStr)) {
+                alert(`Error: Invalid product ID format: ${productIdStr}`);
+                console.error('Invalid product ID:', productIdStr, 'Type:', typeof productId);
+                return;
+            }
+            
+            try {
+                console.log('Adding item to cart:', { productId: productIdStr, productName, price, username });
+                
+                // Add item to basket - the backend will create the basket automatically if it doesn't exist
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}/items`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        shopping_cart_item: {
+                            id: null,  // ID is optional, backend will generate it
+                            shopping_cart_id: null,  // Will be set by backend from user_name
+                            product_id: productIdStr,  // Ensure it's a string UUID
+                            quantity: 1,
+                            color: 'Default',
+                            price: price,
+                            product_name: productName
+                        }
+                    })
                 });
-            }
-            
-            // Save to localStorage with user-specific key
-            localStorage.setItem(getCartKey(), JSON.stringify(cart));
-            
-            // Update display
-            updateCartDisplay();
-            
-            // Show feedback
-            alert(`${productName} added to cart!`);
-        }
-        
-        function removeFromCart(productId) {
-            cart = cart.filter(item => item.id !== productId);
-            localStorage.setItem(getCartKey(), JSON.stringify(cart));
-            updateCartDisplay();
-        }
-        
-        function updateCartQuantity(productId, newQuantity) {
-            const item = cart.find(item => item.id === productId);
-            if (item) {
-                if (newQuantity <= 0) {
-                    removeFromCart(productId);
-                } else {
-                    item.quantity = newQuantity;
-                    localStorage.setItem(getCartKey(), JSON.stringify(cart));
-                    updateCartDisplay();
+                
+                if (!response.ok) {
+                    // Try to get error details
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        console.error('Error response:', errorData);
+                        // Handle different error response formats
+                        if (errorData.detail) {
+                            errorMessage = errorData.detail;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else if (errorData.title && errorData.detail) {
+                            errorMessage = `${errorData.title}: ${errorData.detail}`;
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse error response:', e);
+                        // Use default error message
+                    }
+                    throw new Error(errorMessage);
                 }
+                
+                // Reload basket to get updated state
+                await loadBasket();
+                
+                // Show feedback
+                alert(`${productName} added to cart!`);
+                
+            } catch (error) {
+                console.error('Failed to add item to cart:', error);
+                console.error('Error details:', {
+                    productId: productIdStr,
+                    productName,
+                    price,
+                    username,
+                    errorMessage: error.message
+                });
+                alert('Failed to add item to cart: ' + error.message);
             }
         }
         
-        function clearCart() {
-            cart = [];
-            localStorage.removeItem(getCartKey());
-            updateCartDisplay();
+        async function removeFromCart(productId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}/items/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                await loadBasket();
+                
+            } catch (error) {
+                alert('Failed to remove item: ' + error.message);
+                await loadBasket(); // Reload to sync state
+            }
+        }
+        
+        async function updateCartQuantity(productId, newQuantity) {
+            if (newQuantity <= 0) {
+                await removeFromCart(productId);
+                return;
+            }
+            
+            try {
+                // First, remove the item
+                await removeFromCart(productId);
+                
+                // Then add it back with new quantity
+                const item = basket.items.find(i => i.product_id === productId);
+                if (item) {
+                    const response = await fetch(`${API_BASE}/api/v1/basket/${username}/items`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            shopping_cart_item: {
+                                id: item.id,
+                                shopping_cart_id: basket.id,
+                                product_id: productId,
+                                quantity: newQuantity,
+                                color: item.color,
+                                price: item.price,
+                                product_name: item.product_name
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                }
+                
+                await loadBasket();
+                
+            } catch (error) {
+                alert('Failed to update quantity: ' + error.message);
+                await loadBasket(); // Reload to sync state
+            }
+        }
+        
+        async function clearCart() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok && response.status !== 404) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                basket = null;
+                updateCartDisplay();
+                
+            } catch (error) {
+                alert('Failed to clear cart: ' + error.message);
+            }
         }
         
         function updateCartDisplay() {
             const cartSection = document.getElementById('cartSection');
             const cartItems = document.getElementById('cartItems');
             const cartTotal = document.getElementById('cartTotal');
+            const headerBasketBtn = document.getElementById('headerBasketBtn');
             
             // Hide cart for admin and manager users
             if (userRole === 'admin' || userRole === 'manager') {
                 cartSection.style.display = 'none';
+                if (headerBasketBtn) headerBasketBtn.style.display = 'none';
                 return;
             }
             
-            if (cart.length === 0) {
+            if (!basket || !basket.items || basket.items.length === 0) {
                 cartSection.style.display = 'none';
+                // Still show basket button even if empty, so users can navigate
+                if (headerBasketBtn) {
+                    headerBasketBtn.style.display = 'inline-block';
+                    headerBasketBtn.textContent = '🛒 View Basket (Empty)';
+                }
                 return;
             }
             
             cartSection.style.display = 'block';
             
+            // Update header basket button with item count
+            if (headerBasketBtn) {
+                const itemCount = basket.items.reduce((sum, item) => sum + item.quantity, 0);
+                headerBasketBtn.textContent = `🛒 View Basket (${itemCount} ${itemCount === 1 ? 'item' : 'items'})`;
+                headerBasketBtn.style.display = 'inline-block';
+            }
+            
             let total = 0;
-            cartItems.innerHTML = cart.map(item => {
-                const itemTotal = item.price * item.quantity;
+            cartItems.innerHTML = basket.items.map(item => {
+                const itemTotal = parseFloat(item.price) * item.quantity;
                 total += itemTotal;
                 
                 return `
                     <div class="cart-item">
                         <div>
-                            <strong>${escapeHtml(item.name)}</strong><br>
-                            <small>$${item.price} each</small>
+                            <strong>${escapeHtml(item.product_name)}</strong><br>
+                            <small>$${parseFloat(item.price).toFixed(2)} each</small>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <button onclick="updateCartQuantity('${item.id}', ${item.quantity - 1})" style="padding: 2px 6px; font-size: 12px;">-</button>
+                            <button onclick="updateCartQuantity('${item.product_id}', ${item.quantity - 1})" style="padding: 2px 6px; font-size: 12px;">-</button>
                             <span>${item.quantity}</span>
-                            <button onclick="updateCartQuantity('${item.id}', ${item.quantity + 1})" style="padding: 2px 6px; font-size: 12px;">+</button>
+                            <button onclick="updateCartQuantity('${item.product_id}', ${item.quantity + 1})" style="padding: 2px 6px; font-size: 12px;">+</button>
                             <span style="font-weight: bold;">$${itemTotal.toFixed(2)}</span>
-                            <button onclick="removeFromCart('${item.id}')" style="padding: 2px 6px; font-size: 12px; background-color: #dc3545; color: white; border: none; border-radius: 3px;">×</button>
+                            <button onclick="removeFromCart('${item.product_id}')" style="padding: 2px 6px; font-size: 12px; background-color: #dc3545; color: white; border: none; border-radius: 3px;">×</button>
                         </div>
                     </div>
                 `;
@@ -806,8 +1008,6 @@
             // Clear user-specific data
             localStorage.removeItem('access_token');
             localStorage.removeItem('username');
-            // Clear old shared cart key if it exists (for backward compatibility)
-            localStorage.removeItem('eshop_cart');
             window.location.href = 'index.html';
         }
         

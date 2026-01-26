@@ -1,1 +1,1 @@
-"""Basket domain models and business logic."""
+"""Basket domain module."""

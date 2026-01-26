@@ -39,6 +39,9 @@ from app.core.middleware.auth_middleware import add_auth_middleware
 from app.core.middleware.metrics_middleware import add_metrics_middleware
 from app.core.middleware.tracing_middleware import add_tracing_middleware
 from app.module_interface.router import create_root_router
+from app.modules.basket.module_interface.router import (
+    register_basket_module_with_fastapi,
+)
 from app.modules.catalog.module_interface.router import (
     register_catalog_module_with_fastapi,
 )
@@ -88,6 +91,35 @@ async def register_catalog_router():
         app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
 
 
+# Include basket router with DI integration
+# This will be called as a startup callback after mediator initialization
+async def register_basket_router():
+    """Register basket router with DI integration."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("🔧 Registering basket router...")
+    try:
+        container = get_app_container()
+        mediator = get_mediator()
+        logger.info("Got container and mediator, calling register_basket_module_with_fastapi...")
+        basket_router = register_basket_module_with_fastapi(app, container, mediator)
+        logger.info(f"Basket router created with {len(basket_router.routes)} routes")
+        app.include_router(basket_router)
+        logger.info("✅ Basket router included successfully!")
+        # Log all routes for debugging
+        for route in basket_router.routes:
+            if hasattr(route, 'path'):
+                methods = getattr(route, 'methods', set())
+                logger.info(f"  - {methods} {route.path}")
+        print(f"✅ Successfully registered basket router with {len(basket_router.routes)} routes")
+    except Exception as e:
+        import traceback
+        logger.error(f"❌ ERROR: Could not register basket router: {e}", exc_info=True)
+        print(f"ERROR: Could not register basket router: {e}")
+        traceback.print_exc()
+        raise  # Re-raise to ensure the error is visible
+
+
 # Register lifecycle callbacks for graceful startup and shutdown
 register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)
@@ -95,6 +127,10 @@ register_startup_callback(initialize_mediator)
 register_startup_callback(
     register_catalog_router
 )  # Register catalog router after mediator is initialized
+register_startup_callback(
+    register_basket_router
+)  # Register basket router after mediator is initialized
+print("DEBUG: Registered all startup callbacks including register_basket_router")
 register_startup_callback(database_handler.startup)
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)

@@ -24,7 +24,7 @@ class TestCreateBasketHandler:
     """Test CreateBasketHandler."""
 
     @pytest.mark.asyncio
-    async def test_handle_success(self):
+    async def test_handle_success(self) -> None:
         """Test successful basket creation."""
         mock_repository = AsyncMock()
         handler = CreateBasketHandler(repository=mock_repository)
@@ -50,7 +50,7 @@ class TestCreateBasketHandler:
         mock_repository.create_basket.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_with_items_success(self):
+    async def test_handle_with_items_success(self) -> None:
         """Test successful basket creation with items."""
         mock_repository = AsyncMock()
         handler = CreateBasketHandler(repository=mock_repository)
@@ -84,7 +84,7 @@ class TestCreateBasketHandler:
         mock_repository.create_basket.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_empty_user_name_raises_error(self):
+    async def test_handle_empty_user_name_raises_error(self) -> None:
         """Test that empty user name raises validation error."""
         mock_repository = AsyncMock()
         handler = CreateBasketHandler(repository=mock_repository)
@@ -98,5 +98,7 @@ class TestCreateBasketHandler:
         command = CreateBasketCommand(shopping_cart=shopping_cart_dto)
         token = CancellationToken()
 
-        with pytest.raises(Exception):  # BadRequestException
+        from app.core.exceptions.bad_request_exception import BadRequestException
+
+        with pytest.raises(BadRequestException):
             await handler.handle(command, token)

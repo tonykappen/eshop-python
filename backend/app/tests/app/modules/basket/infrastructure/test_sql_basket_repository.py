@@ -1,6 +1,5 @@
 """Tests for SQL Basket repository implementation."""
 
-from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -21,7 +20,7 @@ class TestBasketRepositoryGetBasket:
     """Test get_basket method."""
 
     @pytest.mark.asyncio
-    async def test_get_basket_success(self):
+    async def test_get_basket_success(self) -> None:
         """Test successful get basket."""
         mock_session = AsyncMock(spec=AsyncSession)
         repo = SqlBasketRepository(mock_session)
@@ -36,7 +35,9 @@ class TestBasketRepositoryGetBasket:
         mock_result.scalar_one_or_none.return_value = mock_orm
         mock_session.execute.return_value = mock_result
 
-        with patch.object(repo, "_orm_to_domain", new_callable=AsyncMock) as mock_mapper:
+        with patch.object(
+            repo, "_orm_to_domain", new_callable=AsyncMock
+        ) as mock_mapper:
             mock_basket = MagicMock(spec=ShoppingCart)
             mock_mapper.return_value = mock_basket
 
@@ -47,7 +48,7 @@ class TestBasketRepositoryGetBasket:
             mock_mapper.assert_called_once_with(mock_orm)
 
     @pytest.mark.asyncio
-    async def test_get_basket_not_found_raises_exception(self):
+    async def test_get_basket_not_found_raises_exception(self) -> None:
         """Test get basket when basket not found."""
         mock_session = AsyncMock(spec=AsyncSession)
         repo = SqlBasketRepository(mock_session)
@@ -65,7 +66,7 @@ class TestBasketRepositoryCreateBasket:
     """Test create_basket method."""
 
     @pytest.mark.asyncio
-    async def test_create_basket_success(self):
+    async def test_create_basket_success(self) -> None:
         """Test successful basket creation."""
         mock_session = AsyncMock(spec=AsyncSession)
         repo = SqlBasketRepository(mock_session)
@@ -83,7 +84,9 @@ class TestBasketRepositoryCreateBasket:
             mock_result.scalar_one.return_value = mock_orm
             mock_session.execute.return_value = mock_result
 
-            with patch.object(repo, "_orm_to_domain", new_callable=AsyncMock) as mock_domain_mapper:
+            with patch.object(
+                repo, "_orm_to_domain", new_callable=AsyncMock
+            ) as mock_domain_mapper:
                 mock_domain_mapper.return_value = basket
 
                 result = await repo.create_basket(basket)
@@ -99,7 +102,7 @@ class TestBasketRepositoryDeleteBasket:
     """Test delete_basket method."""
 
     @pytest.mark.asyncio
-    async def test_delete_basket_success(self):
+    async def test_delete_basket_success(self) -> None:
         """Test successful basket deletion."""
         mock_session = AsyncMock(spec=AsyncSession)
         repo = SqlBasketRepository(mock_session)

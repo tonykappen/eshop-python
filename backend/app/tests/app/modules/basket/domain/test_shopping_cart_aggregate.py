@@ -6,13 +6,12 @@ from uuid import uuid4
 import pytest
 
 from app.modules.basket.domain.entities.basket.shopping_cart import ShoppingCart
-from app.modules.basket.domain.entities.basket.shopping_cart_item import ShoppingCartItem
 
 
 class TestShoppingCartCreation:
     """Test ShoppingCart creation."""
 
-    def test_create_shopping_cart_success(self):
+    def test_create_shopping_cart_success(self) -> None:
         """Test successful shopping cart creation."""
         cart_id = uuid4()
         user_name = "testuser"
@@ -24,7 +23,7 @@ class TestShoppingCartCreation:
         assert len(cart.items) == 0
         assert cart.total_price == Decimal("0")
 
-    def test_create_shopping_cart_empty_user_name_raises_error(self):
+    def test_create_shopping_cart_empty_user_name_raises_error(self) -> None:
         """Test that empty user name raises error."""
         cart_id = uuid4()
 
@@ -35,7 +34,7 @@ class TestShoppingCartCreation:
 class TestShoppingCartAddItem:
     """Test adding items to shopping cart."""
 
-    def test_add_item_success(self):
+    def test_add_item_success(self) -> None:
         """Test successfully adding an item."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         product_id = uuid4()
@@ -57,7 +56,7 @@ class TestShoppingCartAddItem:
         assert item.product_name == "Test Product"
         assert cart.total_price == Decimal("21.98")
 
-    def test_add_item_increments_existing_item(self):
+    def test_add_item_increments_existing_item(self) -> None:
         """Test that adding existing item increments quantity."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         product_id = uuid4()
@@ -82,7 +81,7 @@ class TestShoppingCartAddItem:
         assert cart.items[0].quantity == 5
         assert cart.total_price == Decimal("54.95")
 
-    def test_add_item_zero_quantity_raises_error(self):
+    def test_add_item_zero_quantity_raises_error(self) -> None:
         """Test that zero quantity raises error."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
 
@@ -95,7 +94,7 @@ class TestShoppingCartAddItem:
                 product_name="Test Product",
             )
 
-    def test_add_item_zero_price_raises_error(self):
+    def test_add_item_zero_price_raises_error(self) -> None:
         """Test that zero price raises error."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
 
@@ -112,7 +111,7 @@ class TestShoppingCartAddItem:
 class TestShoppingCartRemoveItem:
     """Test removing items from shopping cart."""
 
-    def test_remove_item_success(self):
+    def test_remove_item_success(self) -> None:
         """Test successfully removing an item."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         product_id = uuid4()
@@ -130,7 +129,7 @@ class TestShoppingCartRemoveItem:
         assert len(cart.items) == 0
         assert cart.total_price == Decimal("0")
 
-    def test_remove_nonexistent_item_no_op(self):
+    def test_remove_nonexistent_item_no_op(self) -> None:
         """Test that removing nonexistent item is a no-op."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         product_id = uuid4()
@@ -144,7 +143,7 @@ class TestShoppingCartRemoveItem:
 class TestShoppingCartTotalPrice:
     """Test total price calculation."""
 
-    def test_total_price_multiple_items(self):
+    def test_total_price_multiple_items(self) -> None:
         """Test total price with multiple items."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
 
@@ -167,7 +166,7 @@ class TestShoppingCartTotalPrice:
         expected_total = Decimal("10.99") * 2 + Decimal("5.50") * 1
         assert cart.total_price == expected_total
 
-    def test_total_price_empty_cart(self):
+    def test_total_price_empty_cart(self) -> None:
         """Test total price for empty cart."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         assert cart.total_price == Decimal("0")
@@ -176,7 +175,7 @@ class TestShoppingCartTotalPrice:
 class TestShoppingCartVersion:
     """Test version incrementing."""
 
-    def test_version_increments_on_add_item(self):
+    def test_version_increments_on_add_item(self) -> None:
         """Test that version increments when adding item."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         initial_version = cart.version
@@ -191,7 +190,7 @@ class TestShoppingCartVersion:
 
         assert cart.version == initial_version + 1
 
-    def test_version_increments_on_remove_item(self):
+    def test_version_increments_on_remove_item(self) -> None:
         """Test that version increments when removing item."""
         cart = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
         product_id = uuid4()

@@ -20,7 +20,7 @@ class TestGetBasketHandler:
     """Test GetBasketHandler."""
 
     @pytest.mark.asyncio
-    async def test_handle_success(self):
+    async def test_handle_success(self) -> None:
         """Test successful basket retrieval."""
         mock_repository = AsyncMock()
         handler = GetBasketHandler(repository=mock_repository)
@@ -49,4 +49,6 @@ class TestGetBasketHandler:
         assert isinstance(result, GetBasketResult)
         assert result.shopping_cart.user_name == "testuser"
         assert len(result.shopping_cart.items) == 1
-        mock_repository.get_basket.assert_called_once_with("testuser", as_no_tracking=True)
+        mock_repository.get_basket.assert_called_once_with(
+            "testuser", as_no_tracking=True
+        )

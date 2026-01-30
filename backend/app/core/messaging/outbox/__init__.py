@@ -10,6 +10,11 @@ from app.core.messaging.outbox.outbox_message_orm import (
 )
 from app.core.messaging.outbox.outbox_publisher_worker import OutboxPublisherWorker
 from app.core.messaging.outbox.outbox_service import IOutboxService, OutboxService
+from app.core.messaging.outbox.worker_factory import create_outbox_worker
+from app.core.messaging.outbox.worker_registry import (
+    OutboxWorkerRegistry,
+    outbox_worker_registry,
+)
 
 __all__ = [
     "OutboxMessage",
@@ -19,4 +24,7 @@ __all__ = [
     "OutboxDispatcher",
     "IOutboxDispatcher",
     "OutboxPublisherWorker",
+    "OutboxWorkerRegistry",
+    "outbox_worker_registry",
+    "create_outbox_worker",
 ]

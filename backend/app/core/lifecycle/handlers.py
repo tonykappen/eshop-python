@@ -168,14 +168,12 @@ class MessagingLifecycleHandler:
                     "[OK] RabbitMQ message bus connected", "info"
                 )
 
-            # Start outbox publisher worker
-            from app.modules.catalog.workers.outbox_publisher_worker import (
-                outbox_publisher_worker,
-            )
+            # Start all registered outbox publisher workers
+            from app.core.messaging.outbox import outbox_worker_registry
 
-            await outbox_publisher_worker.start()
+            await outbox_worker_registry.start_all()
             logger.log_with_context(
-                "[OK] Outbox publisher worker started", "info"
+                "[OK] Outbox publisher workers started", "info"
             )
 
             # Verify messaging connectivity
@@ -194,19 +192,17 @@ class MessagingLifecycleHandler:
         """Close messaging connections gracefully."""
         logger.log_with_context("[MESSAGING] Closing messaging connections...", "info")
         try:
-            # Stop outbox publisher worker
+            # Stop all registered outbox publisher workers
             try:
-                from app.modules.catalog.workers.outbox_publisher_worker import (
-                    outbox_publisher_worker,
-                )
+                from app.core.messaging.outbox import outbox_worker_registry
 
-                await outbox_publisher_worker.stop()
+                await outbox_worker_registry.stop_all()
                 logger.log_with_context(
-                    "[OK] Outbox publisher worker stopped", "info"
+                    "[OK] Outbox publisher workers stopped", "info"
                 )
             except Exception as e:
                 logger.log_warning_with_context(
-                    "Failed to stop outbox publisher worker", context={"error": str(e)}
+                    "Failed to stop outbox publisher workers", context={"error": str(e)}
                 )
 
             # Disconnect RabbitMQ message bus

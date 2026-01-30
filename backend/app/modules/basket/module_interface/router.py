@@ -270,7 +270,7 @@ async def subscribe_basket_handlers_to_message_bus() -> None:
     from app.modules.basket.application.integration_event_handlers.products.product_price_changed_integration_event_handler import (
         ProductPriceChangedIntegrationEventHandler,
     )
-    from app.modules.catalog.application.integration_events.products.product_price_changed_integration_event_v1 import (
+    from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
         ProductPriceChangedIntegrationEventV1,
     )
     

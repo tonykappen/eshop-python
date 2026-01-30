@@ -1,4 +1,9 @@
-"""Converts ProductDeletedDomainEvent → ProductDeletedIntegrationEvent + Outbox Pattern."""
+"""Legacy bus handler for ProductDeletedDomainEvent - now handled by OutboxEnqueuerInterceptor.
+
+This handler is kept for backward compatibility but is no longer used.
+Outbox enqueuing now happens in OutboxEnqueuerInterceptor (before commit).
+Internal reactions are handled by ProductDeletedDomainEventHandler (after commit).
+"""
 
 import logging
 from typing import Any
@@ -11,70 +16,41 @@ logger = logging.getLogger(__name__)
 
 
 class ProductDeletedDomainEventBusHandler:
-    """Converts ProductDeletedDomainEvent to ProductDeletedIntegrationEvent and writes to Outbox."""
+    """
+    Legacy bus handler for ProductDeletedDomainEvent.
+
+    NOTE: This handler is deprecated. Outbox enqueuing is now handled by
+    OutboxEnqueuerInterceptor in the before_commit hook. This handler is kept
+    for backward compatibility but should not be registered.
+    """
 
     def __init__(self, event_publisher: Any = None, outbox_service: Any = None):
         """
         Initialize the handler.
 
         Args:
-            event_publisher: Event publisher service
-            outbox_service: Outbox service for reliable messaging
+            event_publisher: Event publisher service (not used)
+            outbox_service: Outbox service (not used)
         """
         self.event_publisher = event_publisher
         self.outbox_service = outbox_service
+        logger.warning(
+            "ProductDeletedDomainEventBusHandler is deprecated. "
+            "Use OutboxEnqueuerInterceptor instead."
+        )
 
     async def handle(self, domain_event: ProductDeletedDomainEvent) -> None:
         """
-        Handle product deleted domain event and publish integration event via outbox.
+        Handle product deleted domain event (deprecated).
+
+        This method is no longer called. Outbox enqueuing happens in
+        OutboxEnqueuerInterceptor before commit.
 
         Args:
             domain_event: Product deleted domain event
         """
-        logger.info(
-            f"Converting deleted domain event to integration event for product {domain_event.product_id}"
+        logger.warning(
+            f"ProductDeletedDomainEventBusHandler.handle() called for product {domain_event.product_id}. "
+            "This handler is deprecated and should not be used."
         )
-
-        try:
-            # Create integration event
-            # Note: We need to create ProductDeletedIntegrationEvent
-            # For now, we'll use a placeholder structure
-            integration_event_data = {
-                "event_type": "product.deleted.v1",
-                "product_id": str(domain_event.product_id),
-                "product_name": domain_event.product_name,
-                "product_sku": domain_event.product_sku,
-                "deleted_at": (
-                    domain_event.occurred_at.isoformat()
-                    if hasattr(domain_event, "occurred_at")
-                    else None
-                ),
-                "metadata": {
-                    "domain_event_id": str(domain_event.id),
-                    "domain_event_type": domain_event.event_type,
-                    "domain_event_version": str(domain_event.version),
-                },
-            }
-
-            # Write to outbox for reliable delivery (required by blueprint)
-            if self.outbox_service:
-                await self.outbox_service.write_integration_event(
-                    integration_event_data
-                )
-                logger.info(
-                    f"Written product deleted integration event to outbox for product {domain_event.product_id}"
-                )
-            elif self.event_publisher:
-                # Fallback to direct publish (less reliable)
-                await self.event_publisher.publish(integration_event_data)
-                logger.info(
-                    f"Published product deleted integration event for product {domain_event.product_id}"
-                )
-            else:
-                logger.warning(
-                    "No event publisher or outbox service configured, integration event not published"
-                )
-
-        except Exception as e:
-            logger.error(f"Error publishing product deleted integration event: {e}")
-            # Don't re-raise the exception to avoid breaking the domain event processing
+        # Do nothing - outbox enqueuing is handled by interceptor

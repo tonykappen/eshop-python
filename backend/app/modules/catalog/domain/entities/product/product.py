@@ -156,7 +156,7 @@ class Product(Aggregate):
                 ProductPriceChangedDomainEvent,
             )
 
-            self.add_domain_event(ProductPriceChangedDomainEvent(product=self))
+            self.add_domain_event(ProductPriceChangedDomainEvent(product=self, old_price=old_price))
 
     def change_price(self, new_price: Money) -> None:
         """

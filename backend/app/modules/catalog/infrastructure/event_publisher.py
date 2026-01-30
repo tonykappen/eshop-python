@@ -203,40 +203,19 @@ class CatalogEventPublisher:
         product_price_currency: str = "USD",
         **additional_data: Any,
     ) -> None:
-        """Publish product created integration event."""
-        try:
-            # Ensure broker is connected before publishing
-            await self._ensure_connected()
-
-            # Use the create method from ProductCreatedIntegrationEventV1
-            # Import the V1 class directly
-            from app.modules.catalog.application.integration_events.products.product_created_integration_event_v1 import (
-                ProductCreatedIntegrationEventV1,
-            )
-
-            event = ProductCreatedIntegrationEventV1.create(
-                product_id=product_id,
-                product_name=product_name,
-                product_sku=product_sku or f"SKU-{product_id}",
-                product_categories=product_categories or [],
-                product_description=product_description or "",
-                product_image_file=product_image_file or "",
-                product_price_amount=price,
-                product_price_currency=product_price_currency,
-                metadata=additional_data,
-            )
-
-            await self.broker.publish(
-                event.model_dump(),
-                routing_key="product.created",
-                exchange=self.exchange_name,
-            )
-
-            logger.info(f"Published ProductCreated event for product {product_id}")
-        except Exception as e:
-            logger.error(
-                f"Failed to publish ProductCreated event for product {product_id}: {e}"
-            )
+        """
+        DEPRECATED: ProductCreated events are internal-only and should not be published externally.
+        
+        Per architecture specification, ProductCreated is an internal-only event.
+        External systems must discover products via APIs, not events.
+        
+        This method is kept for backward compatibility but will not publish events.
+        """
+        logger.warning(
+            f"publish_product_created called for product {product_id} but ProductCreated "
+            "events are internal-only and will not be published externally per architecture."
+        )
+        # Do not publish - ProductCreated is internal-only
 
     async def publish_product_price_changed(
         self,
@@ -256,7 +235,7 @@ class CatalogEventPublisher:
 
             # Use the create method from ProductPriceChangedIntegrationEventV1
             # Import the V1 class directly
-            from app.modules.catalog.application.integration_events.products.product_price_changed_integration_event_v1 import (
+            from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
                 ProductPriceChangedIntegrationEventV1,
             )
 
@@ -270,13 +249,17 @@ class CatalogEventPublisher:
                 metadata=additional_data,
             )
 
+            event_data = event.model_dump()
             await self.broker.publish(
-                event.model_dump(),
+                event_data,
                 routing_key="product.price_changed",
                 exchange=self.exchange_name,
             )
 
-            logger.info(f"Published ProductPriceChanged event for product {product_id}")
+            logger.info(
+                f"Published ProductPriceChanged event for product {product_id} "
+                f"(old_price: {old_price}, new_price: {new_price}, routing_key: product.price_changed, exchange: {self.exchange_name})"
+            )
         except Exception as e:
             logger.error(
                 f"Failed to publish ProductPriceChanged event for product {product_id}: {e}"

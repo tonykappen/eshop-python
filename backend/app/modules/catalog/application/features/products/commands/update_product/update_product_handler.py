@@ -95,11 +95,14 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Use cached repository with Redis
+        # Use Unit of Work to ensure interceptors are called
+        from app.modules.catalog.infrastructure.persistence.unit_of_work import (
+            SqlCatalogUnitOfWork,
+        )
+
         async with AsyncSessionLocal() as session:
-            sql_repo = SqlProductRepository(session)
-            cache_service = CatalogCacheService(RedisCacheService())
-            repository = CachedProductRepository(sql_repo, cache_service)
+            uow = SqlCatalogUnitOfWork(session)
+            repository = uow.products
 
             # Find the product
             product = await repository.get_by_id(command.id)
@@ -107,16 +110,57 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 raise ProductNotFoundError(command.id)
 
             try:
-                # Update product with new values
+                # Store old price for comparison
+                old_price = product.price
+                
+                # Update product with new values (raises domain events)
+                # This MUST happen before repository.update() to preserve domain events
                 self._update_product_with_new_values(product, command)
+                
+                # Log if price changed and domain event was raised
+                import logging
+                logger = logging.getLogger(__name__)
+                if old_price != product.price:
+                    logger.info(f"Price changed from {old_price} to {product.price}, domain events: {len(product.domain_events) if hasattr(product, 'domain_events') else 0}")
+                else:
+                    logger.info(f"Price unchanged: {product.price}, domain events: {len(product.domain_events) if hasattr(product, 'domain_events') else 0}")
 
-                # Save to database
-                await repository.update(product)
-                await session.commit()
+                # Track entity in UoW for interceptors BEFORE repository.update()
+                # (repository.update() returns a new entity without domain events)
+                uow._entities.append(product)
+
+                # Save to database (this returns a new entity, but we keep the original in _entities)
+                updated_product = await repository.update(product)
+                
+                # Replace the entity in _entities with the updated one, but preserve domain events
+                # by copying them from the original entity
+                # IMPORTANT: We need to update the product reference in domain events to point to updated_product
+                if updated_product and hasattr(product, "domain_events") and product.domain_events:
+                    # Copy domain events from original to updated entity
+                    if hasattr(updated_product, "domain_events"):
+                        # Deep copy the domain events list
+                        updated_product.domain_events = []
+                        for event in product.domain_events:
+                            # Create a copy of the event with updated product reference
+                            # This ensures the event has the latest product data
+                            from copy import deepcopy
+                            event_copy = deepcopy(event)
+                            # Update the product reference in the event to point to updated_product
+                            if hasattr(event_copy, 'product'):
+                                event_copy.product = updated_product
+                            updated_product.domain_events.append(event_copy)
+                        logger.info(f"Copied {len(updated_product.domain_events)} domain events to updated entity: {[type(e).__name__ for e in updated_product.domain_events]}")
+                    # Update the tracked entity - use updated_product with preserved events
+                    uow._entities = [updated_product if e is product else e for e in uow._entities]
+                else:
+                    logger.warning(f"No domain events to copy. Original had events: {hasattr(product, 'domain_events') and bool(product.domain_events) if hasattr(product, 'domain_events') else False}")
+
+                # Commit via UoW (calls interceptors)
+                await uow.commit()
 
                 return UpdateProductResult(is_success=True)
             except Exception as e:
-                await session.rollback()
+                await uow.rollback()
                 raise ProductUpdateError(
                     message="Failed to update product in database", details=str(e)
                 ) from e

@@ -5,13 +5,13 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.catalog.application.integration_events.products.product_created_integration_event_v1 import (
+from app.modules.catalog.contracts.products.integration_events.v1.product_created_integration_event import (
     ProductCreatedIntegrationEventV1,
 )
-from app.modules.catalog.application.integration_events.products.product_deleted_integration_event import (
+from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import (
     ProductDeletedIntegrationEvent,
 )
-from app.modules.catalog.application.integration_events.products.product_price_changed_integration_event_v1 import (
+from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
     ProductPriceChangedIntegrationEventV1,
 )
 

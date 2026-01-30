@@ -91,6 +91,12 @@ def register_catalog_module(container: Container, mediator: Mediator) -> APIRout
     dispatcher = catalog_container.get(DomainEventDispatcher)
     subscribe_domain_events_to_integration_events(dispatcher)
 
+    # Register commit interceptors
+    from app.modules.catalog.application.transactions.register_interceptors import (
+        register_catalog_commit_interceptors,
+    )
+    register_catalog_commit_interceptors()
+
     # Create main router
     router = APIRouter(prefix="/api/v1", tags=["catalog"])
 
@@ -132,6 +138,12 @@ def register_catalog_module_with_fastapi(
     # Subscribe domain events to integration events
     dispatcher = catalog_container.get(DomainEventDispatcher)
     subscribe_domain_events_to_integration_events(dispatcher)
+
+    # Register commit interceptors
+    from app.modules.catalog.application.transactions.register_interceptors import (
+        register_catalog_commit_interceptors,
+    )
+    register_catalog_commit_interceptors()
 
     # Create main router
     router = APIRouter(prefix="/api/v1", tags=["catalog"])

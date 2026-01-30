@@ -78,27 +78,56 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
         """
         Commit the current transaction with interceptors.
 
+        Collects domain events from entities before commit to ensure
+        outbox enqueuing happens inside the transaction.
+
         Raises:
             Exception: If commit fails
         """
         try:
-            # Execute before commit hooks
+            # Collect all entities with domain events before commit
+            # This ensures domain events are available to interceptors
+            entities_with_events = []
+            
+            # Collect from tracked entities list
+            entities_with_events.extend(self._entities)
+            
+            # Also collect from SQLAlchemy session's change tracker
+            # (in case entities are tracked by SQLAlchemy but not in _entities)
+            # Note: This is a fallback - ideally entities should be in _entities
+            for obj in self._session.identity_map.values():
+                if obj not in entities_with_events:
+                    entities_with_events.append(obj)
+            
+            # Collect domain events from all entities before commit
+            # This ensures they're available to the OutboxEnqueuerInterceptor
+            all_domain_events = []
+            for entity in entities_with_events:
+                if hasattr(entity, "domain_events") and entity.domain_events:
+                    all_domain_events.extend(entity.domain_events)
+
+            if all_domain_events:
+                logger.debug(
+                    f"Collected {len(all_domain_events)} domain events from {len(entities_with_events)} entities"
+                )
+
+            # Execute before commit hooks (outbox enqueuing happens here)
             await commit_interceptor_registry.execute_before_commit(
-                self._session, self._entities
+                self._session, entities_with_events
             )
 
-            # Flush changes to database
+            # Flush changes to database (includes outbox rows)
             await self._session.flush()
 
-            # Commit the transaction
+            # Commit the transaction (product + outbox row atomically)
             await self._session.commit()
 
-            # Execute after commit hooks
+            # Execute after commit hooks (domain event dispatching happens here)
             await commit_interceptor_registry.execute_after_commit(
-                self._session, self._entities
+                self._session, entities_with_events
             )
 
-            logger.info(f"Successfully committed {len(self._entities)} entities")
+            logger.info(f"Successfully committed {len(entities_with_events)} entities")
 
         except Exception as e:
             # Execute rollback hooks

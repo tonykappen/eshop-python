@@ -12,9 +12,6 @@ from app.modules.catalog.application.domain_event_handlers.inventory.stock_adjus
 from app.modules.catalog.application.integration_event_handlers.inventory.react_to_stock_adjusted_integration_event_handler import (
     ReactToStockAdjustedIntegrationEventHandler,
 )
-from app.modules.catalog.application.integration_event_handlers.products.publish_product_created_integration_event_handler import (
-    PublishProductCreatedIntegrationEventHandler,
-)
 
 # TODO: Create domain event handlers for products
 # from app.modules.catalog.domain.domain_event_handlers.products.product_created_domain_event_handler import (
@@ -67,16 +64,7 @@ class DomainEventSubscriptions:
             ProductPriceChangedDomainEvent,
         )
 
-        # Product created integration event publisher
-        if self.event_publisher:
-            product_created_integration_handler = (
-                PublishProductCreatedIntegrationEventHandler(self.event_publisher)
-            )
-            domain_event_dispatcher.register_handler(
-                ProductCreatedDomainEvent, product_created_integration_handler.handle
-            )
-
-        # Product created domain event handler (internal reactions)
+        # Product created domain event handler (internal reactions only - no external publishing)
         from app.modules.catalog.application.domain_event_handlers.products.product_created_domain_event_handler import (
             ProductCreatedDomainEventHandler,
         )

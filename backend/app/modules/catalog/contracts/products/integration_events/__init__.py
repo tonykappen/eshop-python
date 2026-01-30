@@ -1,0 +1,1 @@
+"""Integration events contracts package."""

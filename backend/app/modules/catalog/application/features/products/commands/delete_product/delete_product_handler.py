@@ -1,8 +1,10 @@
 """DeleteProductHandler with 1-1 parity to .NET implementation."""
 
-
+import logging
 
 from app.core.database.session import AsyncSessionLocal
+
+logger = logging.getLogger(__name__)
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.exceptions.product import (
@@ -83,33 +85,55 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Use cached repository with Redis
+        # Use Unit of Work to ensure interceptors are called
+        from app.modules.catalog.infrastructure.persistence.unit_of_work import (
+            SqlCatalogUnitOfWork,
+        )
+
         async with AsyncSessionLocal() as session:
-            sql_repo = SqlProductRepository(session)
-            cache_service = CatalogCacheService(RedisCacheService())
-            repository = CachedProductRepository(sql_repo, cache_service)
+            uow = SqlCatalogUnitOfWork(session)
+            repository = uow.products
 
             # Check if product exists
             if not await repository.exists(command.product_id):
                 raise ProductNotFoundError(command.product_id)
 
             try:
-                # Delete the product with audit trail
+                # Load domain entity to raise domain event
+                product = await repository.get_by_id(command.product_id)
+                if product is None:
+                    raise ProductNotFoundError(command.product_id)
+
+                # Call domain method to raise domain event (soft delete)
+                product.deactivate()
+
+                # Track entity in UoW for interceptors BEFORE delete
+                # This ensures domain events are available to interceptors
+                uow._entities.append(product)
+
+                # Delete the product (soft delete via repository)
+                # Note: repository.delete() does a direct SQL UPDATE, which bypasses
+                # SQLAlchemy's entity tracking. However, we've already added the entity
+                # to uow._entities above, so interceptors will still see it.
                 success = await repository.delete(
                     command.product_id,
                     deleted_by=command.deleted_by,
                     deletion_reason=command.deletion_reason,
                 )
-                await session.commit()
 
                 if not success:
                     raise ProductDeleteError(
                         message="Failed to delete product from database"
                     )
 
+                # Commit via UoW (calls interceptors, including OutboxEnqueuerInterceptor)
+                # The entity in uow._entities will be processed by interceptors
+                await uow.commit()
+
+                logger.info(f"Product {command.product_id} soft-deleted successfully.")
                 return DeleteProductResult(is_success=True)
             except Exception as e:
-                await session.rollback()
+                await uow.rollback()
                 raise ProductDeleteError(
                     message="Failed to delete product from database", details=str(e)
                 ) from e

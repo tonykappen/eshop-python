@@ -267,6 +267,28 @@ def subscribe_domain_events_to_integration_events(
     Args:
         dispatcher: Domain event dispatcher
     """
-    # This would register domain event handlers that publish integration events
-    # For now, we'll just log the subscription
+    # Register internal domain event handlers (for cache, metrics, etc.)
+    from app.modules.catalog.application.domain_event_handlers.products.product_deleted_domain_event_handler import (
+        ProductDeletedDomainEventHandler,
+    )
+    from app.modules.catalog.application.domain_event_handlers.products.product_price_changed_domain_event_handler import (
+        ProductPriceChangedDomainEventHandler,
+    )
+    from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
+        ProductDeletedDomainEvent,
+    )
+    from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
+        ProductPriceChangedDomainEvent,
+    )
+
+    # Register ProductDeletedDomainEvent handler
+    product_deleted_handler = ProductDeletedDomainEventHandler()
+    dispatcher.register_handler(ProductDeletedDomainEvent, product_deleted_handler)
+    logger.info("Registered ProductDeletedDomainEventHandler")
+
+    # Register ProductPriceChangedDomainEvent handler
+    product_price_changed_handler = ProductPriceChangedDomainEventHandler()
+    dispatcher.register_handler(ProductPriceChangedDomainEvent, product_price_changed_handler)
+    logger.info("Registered ProductPriceChangedDomainEventHandler")
+
     logger.info("Subscribed domain events to integration events")

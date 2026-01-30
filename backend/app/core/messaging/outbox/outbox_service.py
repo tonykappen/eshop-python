@@ -71,13 +71,26 @@ class OutboxService(IOutboxService):
             trace_context = get_trace_context()
             baggage = get_baggage()
 
-            # Convert event to dict if it's an IntegrationEvent
+            # Convert event to dict if it's an IntegrationEvent or Pydantic model
+            # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
             if isinstance(event, IntegrationEvent):
-                event_data = event.model_dump()
+                event_data = event.model_dump(mode='json')
                 event_type = event.event_type
-            else:
+            elif hasattr(event, "model_dump") and hasattr(event, "event_type"):
+                # Handle Pydantic models that have event_type (like ProductDeletedIntegrationEvent)
+                # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
+                event_data = event.model_dump(mode='json')
+                event_type = event.event_type
+            elif isinstance(event, dict):
                 event_data = event
                 event_type = event.get("event_type", "unknown")
+            else:
+                # Fallback: try to get event_type attribute or use class name
+                if hasattr(event, "model_dump"):
+                    event_data = event.model_dump(mode='json')
+                else:
+                    event_data = str(event)
+                event_type = getattr(event, "event_type", getattr(event, "__class__", type(event)).__name__)
 
             # Create outbox message
             message = OutboxMessage(

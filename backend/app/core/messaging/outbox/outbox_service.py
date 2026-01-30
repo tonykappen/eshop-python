@@ -1,5 +1,6 @@
 """Outbox service - appends events to Outbox inside same TX."""
 
+import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -44,14 +45,17 @@ class IOutboxService(ABC):
 class OutboxService(IOutboxService):
     """Outbox service implementation - writes events to outbox table."""
 
-    def __init__(self, session: Any):
+    def __init__(self, session: Any, outbox_orm_class: type[Any] | None = None):
         """
         Initialize the outbox service.
 
         Args:
             session: Database session (must be part of the same transaction)
+            outbox_orm_class: Optional ORM class for outbox messages. If not provided,
+                            will try to auto-detect from common module locations.
         """
         self.session = session
+        self.outbox_orm_class = outbox_orm_class or self._get_outbox_orm_class()
 
     async def write_integration_event(
         self, event: IntegrationEvent | dict[str, Any]
@@ -97,6 +101,45 @@ class OutboxService(IOutboxService):
             logger.error(f"Error writing integration event to outbox: {e}")
             raise
 
+    def _get_outbox_orm_class(self) -> type[Any] | None:
+        """
+        Try to auto-detect the outbox ORM class from common module locations.
+
+        Returns:
+            Outbox ORM class if found, None otherwise
+        """
+        try:
+            # Try catalog module first (most common)
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
+                OutboxORM,
+            )
+
+            return OutboxORM
+        except ImportError:
+            pass
+
+        try:
+            # Try ordering module
+            from app.modules.ordering.infrastructure.orm_models import OutboxORM
+
+            return OutboxORM
+        except ImportError:
+            pass
+
+        try:
+            # Try basket module
+            from app.modules.basket.infrastructure.orm_models import OutboxORM
+
+            return OutboxORM
+        except ImportError:
+            pass
+
+        logger.warning(
+            "Could not auto-detect outbox ORM class. "
+            "Please provide outbox_orm_class parameter when initializing OutboxService."
+        )
+        return None
+
     async def write_message(self, message: OutboxMessage) -> None:
         """
         Write outbox message to database.
@@ -105,26 +148,56 @@ class OutboxService(IOutboxService):
             message: Outbox message to write
         """
         try:
-            # Import here to avoid circular dependency
-            # Modules will provide their own ORM model that implements this
-            # For now, we'll log it - actual implementation should be in module-specific code
-            logger.debug(f"Writing outbox message to database: {message.id}")
+            if self.outbox_orm_class is None:
+                raise ValueError(
+                    "Outbox ORM class not set. "
+                    "Please provide outbox_orm_class when initializing OutboxService."
+                )
 
-            # This should be implemented by modules using their ORM model
-            # Example:
-            # from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import OutboxORM
-            # outbox_record = OutboxORM(
-            #     id=message.id,
-            #     event_type=message.event_type,
-            #     event_data=json.dumps(message.event_data),
-            #     status=message.status.value,
-            #     created_at=message.created_at,
-            #     retry_count=message.retry_count,
-            #     max_retries=message.max_retries,
-            #     correlation_id=message.correlation_id,
-            # )
-            # self.session.add(outbox_record)
+            # Convert event_data to JSON string if it's a dict
+            event_data_str = (
+                json.dumps(message.event_data)
+                if isinstance(message.event_data, dict)
+                else str(message.event_data)
+            )
+
+            # Convert timezone-aware datetime to timezone-naive for database
+            # Database column is TIMESTAMP WITHOUT TIME ZONE
+            created_at_naive = (
+                message.created_at.replace(tzinfo=None)
+                if message.created_at.tzinfo is not None
+                else message.created_at
+            )
+            processed_at_naive = (
+                message.processed_at.replace(tzinfo=None)
+                if message.processed_at and message.processed_at.tzinfo is not None
+                else message.processed_at
+            )
+
+            # Create outbox ORM record
+            outbox_record = self.outbox_orm_class(
+                id=message.id,
+                event_type=message.event_type,
+                event_data=event_data_str,
+                status=message.status.value,
+                created_at=created_at_naive,
+                retry_count=message.retry_count,
+                max_retries=message.max_retries,
+                correlation_id=message.correlation_id,
+            )
+            
+            # Set processed_at if provided
+            if processed_at_naive:
+                outbox_record.processed_at = processed_at_naive
+
+            # Add to session (will be committed with the transaction)
+            self.session.add(outbox_record)
+
+            logger.info(
+                f"Written outbox message to database: {message.id} "
+                f"(event_type: {message.event_type})"
+            )
 
         except Exception as e:
-            logger.error(f"Error writing outbox message: {e}")
+            logger.error(f"Error writing outbox message to database: {e}", exc_info=True)
             raise

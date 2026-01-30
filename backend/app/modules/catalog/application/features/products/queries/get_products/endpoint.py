@@ -9,7 +9,7 @@ from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
 from app.modules.catalog.utils import get_endpoint_factory
 
-from .query import GetProductsQuery, GetProductsResult
+from .get_products_query import GetProductsQuery, GetProductsResult
 
 router = APIRouter()
 

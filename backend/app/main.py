@@ -81,11 +81,8 @@ async def register_catalog_router():
         catalog_router = register_catalog_module_with_fastapi(app, container, mediator)
         app.include_router(catalog_router)
     except Exception as e:
-        print(f"Warning: Could not register catalog router: {e}")
-        # Fallback to basic router
-        from app.modules.catalog.presentation.router import router as catalog_router
-
-        app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
+        print(f"Error: Could not register catalog router: {e}")
+        raise
 
 
 # Register lifecycle callbacks for graceful startup and shutdown

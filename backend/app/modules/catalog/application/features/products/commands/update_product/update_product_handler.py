@@ -11,8 +11,15 @@ from app.modules.catalog.domain.exceptions.product import (
     ProductUpdateError,
     ProductValidationError,
 )
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+    CachedProductRepository,
+)
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository as ProductRepository,
+    SqlProductRepository,
 )
 
 from .update_product_command import UpdateProductCommand, UpdateProductResult
@@ -88,9 +95,11 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Use real database repository
+        # Use cached repository with Redis
         async with AsyncSessionLocal() as session:
-            repository = ProductRepository(session)
+            sql_repo = SqlProductRepository(session)
+            cache_service = CatalogCacheService(RedisCacheService())
+            repository = CachedProductRepository(sql_repo, cache_service)
 
             # Find the product
             product = await repository.get_by_id(command.id)

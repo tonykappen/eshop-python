@@ -27,11 +27,11 @@ from app.modules.catalog.application.features.products.commands.delete_product.d
 from app.modules.catalog.application.features.products.commands.update_product.update_product_command import (
     UpdateProductCommand,
 )
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )
-from app.modules.catalog.application.features.products.queries.get_products.query import (
+from app.modules.catalog.application.features.products.queries.get_products.get_products_query import (
     GetProductsQuery,
 )
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
@@ -398,12 +398,21 @@ async def get_deleted_products(
     """
     # Use direct repository access for admin operations
     from app.core.database.session import AsyncSessionLocal
+    from app.modules.catalog.application.services.catalog_cache_service import (
+        CatalogCacheService,
+        RedisCacheService,
+    )
+    from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+        CachedProductRepository,
+    )
     from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
         SqlProductRepository,
     )
 
     async with AsyncSessionLocal() as session:
-        repository = SqlProductRepository(session)
+        sql_repo = SqlProductRepository(session)
+        cache_service = CatalogCacheService(RedisCacheService())
+        repository = CachedProductRepository(sql_repo, cache_service)
         products, total_count = await repository.get_deleted_products(page, page_size)
 
         # Convert to DTOs
@@ -449,13 +458,22 @@ async def restore_product(
 
     # Use direct repository access for admin operations
     from app.core.database.session import AsyncSessionLocal
+    from app.modules.catalog.application.services.catalog_cache_service import (
+        CatalogCacheService,
+        RedisCacheService,
+    )
     from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
+    from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+        CachedProductRepository,
+    )
     from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
         SqlProductRepository,
     )
 
     async with AsyncSessionLocal() as session:
-        repository = SqlProductRepository(session)
+        sql_repo = SqlProductRepository(session)
+        cache_service = CatalogCacheService(RedisCacheService())
+        repository = CachedProductRepository(sql_repo, cache_service)
 
         # Check if product exists and is deleted
         deleted_product = await repository.get_deleted_by_id(product_id)

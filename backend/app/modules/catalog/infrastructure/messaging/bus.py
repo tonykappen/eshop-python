@@ -1,8 +1,12 @@
 """Message bus abstraction for catalog module."""
 
+import asyncio
+import json
 import logging
 from abc import ABC, abstractmethod
+from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
 
 try:
     import aio_pika
@@ -143,6 +147,63 @@ class RabbitMQMessageBus(IMessageBus):
         self._connection = None
         self._channel = None
 
+    async def _log_connection_event(self, status: str, error: str | None = None) -> None:
+        """
+        Log RabbitMQ connection event to outbox table.
+
+        Args:
+            status: Connection status (connected, disconnected, failed)
+            error: Optional error message
+        """
+        try:
+            from app.modules.catalog.infrastructure.persistence.db_context import (
+                get_session_maker,
+            )
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
+                OutboxORM,
+            )
+
+            session_maker = get_session_maker()
+            async with session_maker() as session:
+                try:
+                    # Create connection event data
+                    event_data = {
+                        "event_type": "RabbitMQConnectionEvent",
+                        "status": status,
+                        "connection_string": self.connection_string.split("@")[
+                            -1
+                        ],  # Hide credentials
+                        "timestamp": datetime.now(UTC).isoformat(),
+                    }
+                    if error:
+                        event_data["error"] = error
+
+                    # Create outbox record
+                    # Use timezone-naive datetime for database (TIMESTAMP WITHOUT TIME ZONE)
+                    now_naive = datetime.now(UTC).replace(tzinfo=None)
+                    outbox_record = OutboxORM(
+                        id=uuid4(),
+                        event_type="RabbitMQConnectionEvent",
+                        event_data=json.dumps(event_data),
+                        status="pending",
+                        created_at=now_naive,
+                    )
+
+                    session.add(outbox_record)
+                    await session.commit()
+
+                    logger.debug(
+                        f"Logged RabbitMQ connection event to outbox: {status}"
+                    )
+                except Exception as e:
+                    await session.rollback()
+                    logger.warning(
+                        f"Failed to log RabbitMQ connection event to outbox: {e}"
+                    )
+        except Exception as e:
+            # Don't fail connection if logging fails
+            logger.debug(f"Could not log connection event to outbox: {e}")
+
     async def connect(self) -> None:
         """Connect to RabbitMQ."""
         try:
@@ -152,8 +213,12 @@ class RabbitMQMessageBus(IMessageBus):
             self._channel = await self._connection.channel()
 
             logger.info("Connected to RabbitMQ")
+            # Log connection event to outbox
+            asyncio.create_task(self._log_connection_event("connected"))
         except Exception as e:
             logger.error(f"Failed to connect to RabbitMQ: {e}")
+            # Log connection failure to outbox
+            asyncio.create_task(self._log_connection_event("failed", str(e)))
             raise
 
     async def disconnect(self) -> None:
@@ -161,6 +226,8 @@ class RabbitMQMessageBus(IMessageBus):
         if self._connection:
             await self._connection.close()
             logger.info("Disconnected from RabbitMQ")
+            # Log disconnection event to outbox
+            asyncio.create_task(self._log_connection_event("disconnected"))
 
     async def publish(self, message: Any, topic: str | None = None) -> None:
         """
@@ -170,7 +237,8 @@ class RabbitMQMessageBus(IMessageBus):
             message: Message to publish
             topic: Optional topic/channel
         """
-        if not self._channel:
+        # Ensure connection is established
+        if not self._connection or not self._channel:
             await self.connect()
 
         topic = topic or "default"

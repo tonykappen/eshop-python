@@ -7,11 +7,18 @@ from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+    CachedProductRepository,
+)
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository as ProductRepository,
+    SqlProductRepository,
 )
 
-from .query import GetProductsByCategoryQuery, GetProductsByCategoryResult
+from .get_products_by_category_query import GetProductsByCategoryQuery, GetProductsByCategoryResult
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +48,11 @@ class GetProductsByCategoryHandler(
         # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Use real database repository
+        # Use cached repository with Redis
         async with AsyncSessionLocal() as session:
-            repository = ProductRepository(session)
+            sql_repo = SqlProductRepository(session)
+            cache_service = CatalogCacheService(RedisCacheService())
+            repository = CachedProductRepository(sql_repo, cache_service)
 
             logger.info(
                 f"GetProductsByCategoryHandler: category={query.category}, "

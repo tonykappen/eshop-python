@@ -155,10 +155,28 @@ class MessagingLifecycleHandler:
             "[MESSAGING] Initializing messaging connections...", "info"
         )
         try:
-            # Initialize RabbitMQ connection
-            # import aio_pika
-            # self.connection = await aio_pika.connect_robust(settings.rabbitmq_connection_string)
-            # self.channel = await self.connection.channel()
+            # Connect RabbitMQ message bus
+            from app.modules.catalog.module_interface.di.products.products_providers import (
+                get_catalog_message_bus,
+            )
+
+            message_bus = get_catalog_message_bus()
+            if hasattr(message_bus, "connect"):
+                await message_bus.connect()
+                self.is_connected = True
+                logger.log_with_context(
+                    "[OK] RabbitMQ message bus connected", "info"
+                )
+
+            # Start outbox publisher worker
+            from app.modules.catalog.workers.outbox_publisher_worker import (
+                outbox_publisher_worker,
+            )
+
+            await outbox_publisher_worker.start()
+            logger.log_with_context(
+                "[OK] Outbox publisher worker started", "info"
+            )
 
             # Verify messaging connectivity
             await self._verify_messaging_connectivity()
@@ -174,12 +192,40 @@ class MessagingLifecycleHandler:
 
     async def shutdown(self) -> None:
         """Close messaging connections gracefully."""
-        if not self.is_connected:
-            logger.log_with_context("Messaging connections already closed", "info")
-            return
-
         logger.log_with_context("[MESSAGING] Closing messaging connections...", "info")
         try:
+            # Stop outbox publisher worker
+            try:
+                from app.modules.catalog.workers.outbox_publisher_worker import (
+                    outbox_publisher_worker,
+                )
+
+                await outbox_publisher_worker.stop()
+                logger.log_with_context(
+                    "[OK] Outbox publisher worker stopped", "info"
+                )
+            except Exception as e:
+                logger.log_warning_with_context(
+                    "Failed to stop outbox publisher worker", context={"error": str(e)}
+                )
+
+            # Disconnect RabbitMQ message bus
+            try:
+                from app.modules.catalog.module_interface.di.products.products_providers import (
+                    get_catalog_message_bus,
+                )
+
+                message_bus = get_catalog_message_bus()
+                if hasattr(message_bus, "disconnect"):
+                    await message_bus.disconnect()
+                    logger.log_with_context(
+                        "[OK] RabbitMQ message bus disconnected", "info"
+                    )
+            except Exception as e:
+                logger.log_warning_with_context(
+                    "Failed to disconnect message bus", context={"error": str(e)}
+                )
+
             if self.channel:
                 # await self.channel.close()
                 logger.log_with_context("Message channel closed", "info")

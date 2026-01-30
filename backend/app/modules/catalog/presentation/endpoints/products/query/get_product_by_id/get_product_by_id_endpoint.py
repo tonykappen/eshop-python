@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 
 from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )

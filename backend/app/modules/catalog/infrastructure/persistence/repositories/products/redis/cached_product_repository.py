@@ -128,36 +128,61 @@ class CachedProductRepository(ProductRepository):
         """Search products by name (not cached due to dynamic nature)."""
         return await self._repository.search_by_name(search_term)
 
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[Product]:
-        """Get all products with pagination (cached)."""
-        page = (skip // limit) + 1 if limit > 0 else 1
-        page_size = limit
+    async def get_all(
+        self, page: int = 1, page_size: int = 10, skip: int | None = None, limit: int | None = None
+    ) -> tuple[list[Product], int]:
+        """
+        Get all products with pagination (cached).
+        
+        Matches SqlProductRepository signature: get_all(page, page_size) -> tuple[list[Product], int]
+        Also supports interface signature: get_all(skip, limit) by converting to page/page_size.
+        """
+        # Handle both signatures: (page, page_size) or (skip, limit)
+        if skip is not None and limit is not None:
+            # Convert skip/limit to page/page_size
+            actual_page = (skip // limit) + 1 if limit > 0 else 1
+            actual_page_size = limit
+        else:
+            # Use page/page_size directly
+            actual_page = page
+            actual_page_size = page_size
 
         # Try cache first
-        cached_data = await self._cache.get_products_list(page, page_size, None)
+        cached_data = await self._cache.get_products_list(actual_page, actual_page_size, None)
 
         if cached_data:
             try:
-                return [
+                products = [
                     self._deserialize_product(p)
                     for p in cached_data.get("products", [])
                 ]
+                total_count = cached_data.get("total_count", len(products))
+                return products, total_count
             except Exception as e:
                 logger.warning(f"Failed to deserialize cached product list: {e}")
 
         # Cache miss - get from repository
-        result = await self._repository.get_all(skip, limit)
+        # SqlProductRepository.get_all() takes page/page_size and returns tuple[list[Product], int]
+        result = await self._repository.get_all(actual_page, actual_page_size)
+        
+        # Handle tuple return (products, total_count)
+        if isinstance(result, tuple):
+            products, total_count = result
+        else:
+            # Fallback if it's just a list
+            products = result if isinstance(result, list) else [result]
+            total_count = len(products)
 
         # Cache the result
         await self._cache.set_products_list(
-            page,
-            page_size,
-            {"products": [self._serialize_product(p) for p in result]},
+            actual_page,
+            actual_page_size,
+            {"products": [self._serialize_product(p) for p in products], "total_count": total_count},
             None,
             self._default_ttl,
         )
 
-        return result
+        return products, total_count
 
     async def count(self) -> int:
         """Get total count of products (not cached)."""

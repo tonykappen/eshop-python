@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.presentation.deps import get_catalog_session
+from app.modules.catalog.module_interface.di.products.products_providers import (
+    get_catalog_session,
+)
 
 logger = logging.getLogger(__name__)
 

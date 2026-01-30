@@ -13,8 +13,15 @@ from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import (
 )
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
 from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+    CachedProductRepository,
 )
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
     SqlCategoryRepository,
@@ -46,9 +53,11 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
 
     @property
     def products(self) -> ProductRepository:
-        """Get product repository."""
+        """Get product repository with Redis caching."""
         if self._products_repo is None:
-            self._products_repo = SqlProductRepository(self._session)
+            sql_repo = SqlProductRepository(self._session)
+            cache_service = CatalogCacheService(RedisCacheService())
+            self._products_repo = CachedProductRepository(sql_repo, cache_service)
         return self._products_repo
 
     @property

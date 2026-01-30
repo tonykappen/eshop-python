@@ -19,9 +19,11 @@ from app.modules.catalog.domain.inventory.repository import InventoryRepository
 from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
 )
+from app.config.settings import settings
 from app.modules.catalog.infrastructure.messaging.bus import (
     IMessageBus,
     InMemoryMessageBus,
+    RabbitMQMessageBus,
 )
 from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
     DomainEventDispatcher,
@@ -33,6 +35,13 @@ from app.modules.catalog.infrastructure.messaging.outbox import (  # Keep for ba
 from app.modules.catalog.infrastructure.persistence.db_context import (
     get_engine,
     get_session_maker,
+)
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+    CachedProductRepository,
 )
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
     SqlCategoryRepository,
@@ -87,20 +96,37 @@ async def get_catalog_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+# Cache service provider
+@lru_cache(maxsize=1)
+def get_catalog_cache_service() -> CatalogCacheService:
+    """
+    Get catalog cache service.
+
+    Returns:
+        CatalogCacheService: Cache service instance
+    """
+    redis_cache_service = RedisCacheService()
+    return CatalogCacheService(redis_cache_service)
+
+
 # Repository providers
 async def get_product_repository(
     session: AsyncSession = Depends(get_catalog_session),
+    cache_service: CatalogCacheService = Depends(get_catalog_cache_service),
 ) -> ProductRepository:
     """
-    Get product repository.
+    Get product repository with Redis caching.
 
     Args:
         session: Database session
+        cache_service: Cache service for Redis operations
 
     Returns:
-        ProductRepository: Product repository instance
+        ProductRepository: Product repository instance with caching
     """
-    return SqlProductRepository(session)
+    # Wrap SQL repository with cached repository
+    sql_repo = SqlProductRepository(session)
+    return CachedProductRepository(sql_repo, cache_service)
 
 
 async def get_category_repository(
@@ -168,11 +194,11 @@ def get_catalog_message_bus() -> IMessageBus:
     Get catalog message bus.
 
     Returns:
-        IMessageBus: Message bus instance
+        IMessageBus: Message bus instance (always RabbitMQ)
     """
-    # In a real implementation, this would be configured based on environment
-    # For now, return in-memory bus
-    return InMemoryMessageBus()
+    # Always use RabbitMQ - connection will be established in lifecycle handler
+    bus = RabbitMQMessageBus(settings.rabbitmq_connection_string)
+    return bus
 
 
 @lru_cache(maxsize=1)
@@ -198,7 +224,11 @@ async def get_catalog_outbox_service(
     Returns:
         IOutboxService: Outbox service instance
     """
-    return OutboxService(session)
+    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
+        OutboxORM,
+    )
+
+    return OutboxService(session, outbox_orm_class=OutboxORM)
 
 
 async def get_catalog_outbox_writer(

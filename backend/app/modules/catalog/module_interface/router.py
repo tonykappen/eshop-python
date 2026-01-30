@@ -29,19 +29,19 @@ from app.modules.catalog.application.features.products.commands.update_product.u
 from app.modules.catalog.application.features.products.queries.get_product_by_id.handler import (
     GetProductByIdHandler,
 )
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdQuery,
 )
 from app.modules.catalog.application.features.products.queries.get_products.handler import (
     GetProductsHandler,
 )
-from app.modules.catalog.application.features.products.queries.get_products.query import (
+from app.modules.catalog.application.features.products.queries.get_products.get_products_query import (
     GetProductsQuery,
 )
 from app.modules.catalog.application.features.products.queries.get_products_by_category.handler import (
     GetProductsByCategoryHandler,
 )
-from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
+from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
     GetProductsByCategoryQuery,
 )
 from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (

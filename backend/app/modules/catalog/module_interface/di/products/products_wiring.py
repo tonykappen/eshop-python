@@ -25,6 +25,13 @@ from app.modules.catalog.infrastructure.messaging.outbox import (  # Backward co
     OutboxPublisher,
     OutboxWriter,
 )
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
+)
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
+    CachedProductRepository,
+)
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
     SqlCategoryRepository,
     SqlInventoryRepository,
@@ -172,7 +179,11 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
                 type(get_catalog_session_maker())
             ),
             # Repository dependencies
-            ProductRepository: lambda session: SqlProductRepository(session),
+            # Wrap ProductRepository with CachedProductRepository for Redis caching
+            ProductRepository: lambda session: CachedProductRepository(
+                SqlProductRepository(session),
+                CatalogCacheService(RedisCacheService())
+            ),
             CategoryRepository: lambda session: SqlCategoryRepository(session),
             InventoryRepository: lambda session: SqlInventoryRepository(session),
             # Application dependencies
@@ -213,7 +224,11 @@ def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
             type(get_catalog_session_maker())
         ),
         # Repository dependencies
-        ProductRepository: lambda session: SqlProductRepository(session),
+        # Wrap ProductRepository with CachedProductRepository for Redis caching
+        ProductRepository: lambda session: CachedProductRepository(
+            SqlProductRepository(session),
+            CatalogCacheService(RedisCacheService())
+        ),
         CategoryRepository: lambda session: SqlCategoryRepository(session),
         InventoryRepository: lambda session: SqlInventoryRepository(session),
         # Application dependencies

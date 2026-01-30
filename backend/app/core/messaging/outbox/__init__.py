@@ -8,6 +8,7 @@ from app.core.messaging.outbox.outbox_message_orm import (
     OutboxMessage,
     OutboxMessageStatus,
 )
+from app.core.messaging.outbox.outbox_publisher_worker import OutboxPublisherWorker
 from app.core.messaging.outbox.outbox_service import IOutboxService, OutboxService
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "IOutboxService",
     "OutboxDispatcher",
     "IOutboxDispatcher",
+    "OutboxPublisherWorker",
 ]

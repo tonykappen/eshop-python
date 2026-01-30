@@ -25,6 +25,45 @@
                 "app.main:app",
                 "--host", "0.0.0.0",
                 "--port", "8000",
+                "--log-level", "debug"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "preLaunchTask": "Poetry Install",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "DEBUG": "true",
+                "LOG_LEVEL": "DEBUG",
+                "LOG_ENABLE_SEQ": "true",
+                "SEQ_URL": "http://localhost:5341",
+                "SEQ_API_KEY": "l6obaob16J6292tGOfnc",
+                "DATABASE_HOST": "localhost",
+                "DATABASE_PORT": "5432",
+                "DATABASE_NAME": "eshop",
+                "DATABASE_USER": "postgres",
+                "DATABASE_PASSWORD": "postgres",
+                "REDIS_HOST": "localhost",
+                "REDIS_PORT": "6379",
+                "RABBITMQ_HOST": "localhost",
+                "RABBITMQ_PORT": "5672",
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "subProcess": true,
+            "python": "${command:python.interpreterPath}",
+            "gevent": false
+        },
+        {
+            "name": "Debug Backend (uvicorn with reload)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--host", "0.0.0.0",
+                "--port", "8000",
                 "--reload",
                 "--log-level", "debug"
             ],
@@ -51,7 +90,11 @@
                 "KEYCLOAK_SERVER_URL": "http://localhost:8080"
             },
             "justMyCode": false,
-            "stopOnEntry": false
+            "stopOnEntry": false,
+            "subProcess": true,
+            "python": "${command:python.interpreterPath}",
+            "gevent": false,
+            "note": "Note: Breakpoints in async event handlers may not work with --reload. Use 'Debug Backend (uvicorn)' without reload for debugging event handlers."
         },
         {
             "name": "Debug Frontend (HTTP Server)",

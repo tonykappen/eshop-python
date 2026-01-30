@@ -17,11 +17,17 @@ This directory contains VS Code configuration files for debugging the eShop appl
    - Runs `backend/app/main.py` directly
    - Good for debugging startup issues
 
-2. **Debug Backend (uvicorn)** - Uvicorn-based launch with hot reload
-   - Runs with `uvicorn app.main:app --reload`
-   - Best for development with automatic reloading
+2. **Debug Backend (uvicorn)** - Uvicorn-based launch (recommended for debugging)
+   - Runs with `uvicorn app.main:app` (without --reload)
+   - **Best for debugging async event handlers and breakpoints**
+   - Note: Breakpoints in async event handlers (like ProductPriceChangedDomainEventBusHandler) will work properly
 
-3. **Debug Backend Tests** - Run pytest with coverage
+3. **Debug Backend (uvicorn with reload)** - Uvicorn with hot reload
+   - Runs with `uvicorn app.main:app --reload`
+   - Good for development with automatic reloading
+   - **Warning**: Breakpoints in async event handlers may not work with --reload due to subprocess spawning
+
+4. **Debug Backend Tests** - Run pytest with coverage
    - Executes backend tests with coverage reporting
    - Uses test database configuration
 
@@ -122,6 +128,13 @@ All debug configurations include the necessary environment variables:
 2. **Module Not Found**: Ensure you're running from the correct directory
 3. **Database Connection Issues**: Check if PostgreSQL is running
 4. **Debug Session Won't Stop**: Use "Stop All Debug Sessions" compound
+5. **Breakpoints Not Hitting in Async Event Handlers**:
+   - Use "Debug Backend (uvicorn)" configuration (without --reload)
+   - The `--reload` flag spawns a subprocess which breaks debugging
+   - Ensure `justMyCode: false` is set (already configured)
+   - Set breakpoints in the event handler method (e.g., `ProductPriceChangedDomainEventBusHandler.handle`)
+   - Trigger the event (e.g., update a product price via API)
+   - Breakpoints should now hit properly
 
 ## Prerequisites
 

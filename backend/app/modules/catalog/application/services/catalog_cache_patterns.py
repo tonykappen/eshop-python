@@ -17,7 +17,7 @@ class CatalogCachePatterns:
         Returns:
             Cache key string
         """
-        return f"product:{product_id}"
+        return f"catalog:product:{product_id}"
 
     @staticmethod
     def product_list_key(
@@ -35,8 +35,8 @@ class CatalogCachePatterns:
             Cache key string
         """
         if category:
-            return f"list:products:category:{category}:page:{page}:size:{page_size}"
-        return f"list:products:page:{page}:size:{page_size}"
+            return f"catalog:products:list:category:{category}:page:{page}:size:{page_size}"
+        return f"catalog:products:list:page:{page}:size:{page_size}"
 
     @staticmethod
     def category_key(category_id: UUID) -> str:

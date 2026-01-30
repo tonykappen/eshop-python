@@ -31,6 +31,66 @@ class CatalogEventPublisher:
         """Create RabbitMQ broker with configuration."""
         return RabbitBroker(settings.rabbitmq_connection_string)
 
+    async def _log_connection_event(self, status: str, error: str | None = None) -> None:
+        """
+        Log RabbitMQ connection event to outbox table.
+
+        Args:
+            status: Connection status (connected, disconnected, failed)
+            error: Optional error message
+        """
+        try:
+            import asyncio
+            import json
+            from datetime import UTC, datetime
+            from uuid import uuid4
+
+            from app.modules.catalog.infrastructure.persistence.db_context import (
+                get_session_maker,
+            )
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
+                OutboxORM,
+            )
+
+            session_maker = get_session_maker()
+            async with session_maker() as session:
+                try:
+                    # Create connection event data
+                    event_data = {
+                        "event_type": "RabbitMQConnectionEvent",
+                        "status": status,
+                        "exchange": self.exchange_name,
+                        "timestamp": datetime.now(UTC).isoformat(),
+                    }
+                    if error:
+                        event_data["error"] = error
+
+                    # Create outbox record
+                    # Use timezone-naive datetime for database (TIMESTAMP WITHOUT TIME ZONE)
+                    now_naive = datetime.now(UTC).replace(tzinfo=None)
+                    outbox_record = OutboxORM(
+                        id=uuid4(),
+                        event_type="RabbitMQConnectionEvent",
+                        event_data=json.dumps(event_data),
+                        status="pending",
+                        created_at=now_naive,
+                    )
+
+                    session.add(outbox_record)
+                    await session.commit()
+
+                    logger.debug(
+                        f"Logged RabbitMQ connection event to outbox: {status}"
+                    )
+                except Exception as e:
+                    await session.rollback()
+                    logger.warning(
+                        f"Failed to log RabbitMQ connection event to outbox: {e}"
+                    )
+        except Exception as e:
+            # Don't fail connection if logging fails
+            logger.debug(f"Could not log connection event to outbox: {e}")
+
     async def _ensure_connected(self) -> None:
         """Ensure broker is connected before publishing."""
         if not self._is_connected:
@@ -43,9 +103,17 @@ class CatalogEventPublisher:
                     await self.broker.connect()
                     self._is_connected = True
                     logger.debug("RabbitMQ broker connected")
+                    # Log connection event to outbox
+                    import asyncio
+
+                    asyncio.create_task(self._log_connection_event("connected"))
             except Exception as e:
                 logger.warning(f"Failed to connect broker: {e}")
                 self._is_connected = False
+                # Log connection failure to outbox
+                import asyncio
+
+                asyncio.create_task(self._log_connection_event("failed", str(e)))
                 raise
 
         # Ensure exchange is declared
@@ -280,9 +348,17 @@ class CatalogEventPublisher:
             # Declare exchange during startup
             await self._ensure_exchange()
             logger.info("Catalog event publisher started and connected")
+            # Log connection event to outbox
+            import asyncio
+
+            asyncio.create_task(self._log_connection_event("connected"))
         except Exception as e:
             logger.error(f"Failed to start catalog event publisher: {e}")
             self._is_connected = False
+            # Log connection failure to outbox
+            import asyncio
+
+            asyncio.create_task(self._log_connection_event("failed", str(e)))
             raise
 
     async def stop(self) -> None:
@@ -292,6 +368,10 @@ class CatalogEventPublisher:
                 await self.broker.close()
             self._is_connected = False
             logger.info("Catalog event publisher stopped")
+            # Log disconnection event to outbox
+            import asyncio
+
+            asyncio.create_task(self._log_connection_event("disconnected"))
         except Exception as e:
             logger.error(f"Failed to stop catalog event publisher: {e}")
             self._is_connected = False

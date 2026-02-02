@@ -20,13 +20,14 @@ class IMessageBus(ABC):
     """Interface for message bus."""
 
     @abstractmethod
-    async def publish(self, message: Any, topic: str | None = None) -> None:
+    async def publish(self, message: Any, topic: str | None = None, exchange: str | None = None) -> None:
         """
         Publish a message to the bus.
 
         Args:
             message: Message to publish
-            topic: Optional topic/channel
+            topic: Optional topic/channel (routing key)
+            exchange: Optional exchange name (defaults to default exchange)
         """
         pass
 
@@ -61,13 +62,14 @@ class InMemoryMessageBus(IMessageBus):
         self._subscribers: dict[str, list[Any]] = {}
         self._message_history: list[dict[str, Any]] = []
 
-    async def publish(self, message: Any, topic: str | None = None) -> None:
+    async def publish(self, message: Any, topic: str | None = None, exchange: str | None = None) -> None:
         """
         Publish a message to the bus.
 
         Args:
             message: Message to publish
-            topic: Optional topic/channel
+            topic: Optional topic/channel (routing key)
+            exchange: Optional exchange name (ignored for in-memory bus)
         """
         topic = topic or "default"
 
@@ -252,13 +254,14 @@ class RabbitMQMessageBus(IMessageBus):
                     self._log_connection_event("disconnected", None, outbox_orm_class, get_session_maker)
                 )
 
-    async def publish(self, message: Any, topic: str | None = None) -> None:
+    async def publish(self, message: Any, topic: str | None = None, exchange: str | None = None) -> None:
         """
         Publish a message to RabbitMQ.
 
         Args:
             message: Message to publish
-            topic: Optional topic/channel
+            topic: Optional topic/channel (routing key)
+            exchange: Optional exchange name (defaults to default exchange)
         """
         # Ensure connection is established
         if not self._connection or not self._channel:
@@ -280,12 +283,35 @@ class RabbitMQMessageBus(IMessageBus):
             # Publish to exchange
             if aio_pika is None:
                 raise ImportError("aio_pika is not installed")
-            await self._channel.default_exchange.publish(
-                aio_pika.Message(message_json.encode()),
-                routing_key=topic,
-            )
-
-            logger.debug(f"Published message to RabbitMQ topic '{topic}': {message}")
+            
+            if exchange:
+                # Try to get existing exchange first (passive=True doesn't create, just checks)
+                # If exchange exists, use it as-is to avoid type mismatch errors
+                try:
+                    exchange_obj = await self._channel.declare_exchange(
+                        exchange, aio_pika.ExchangeType.DIRECT, passive=True
+                    )
+                    logger.debug(f"Using existing exchange '{exchange}'")
+                except Exception:
+                    # Exchange doesn't exist, declare it as DIRECT to match CatalogEventPublisher
+                    # DIRECT exchange matches FastStream's default behavior
+                    exchange_obj = await self._channel.declare_exchange(
+                        exchange, aio_pika.ExchangeType.DIRECT, durable=False
+                    )
+                    logger.debug(f"Declared new exchange '{exchange}' as DIRECT")
+                
+                await exchange_obj.publish(
+                    aio_pika.Message(message_json.encode()),
+                    routing_key=topic,
+                )
+                logger.debug(f"Published message to RabbitMQ exchange '{exchange}' with routing key '{topic}': {message}")
+            else:
+                # Use default exchange
+                await self._channel.default_exchange.publish(
+                    aio_pika.Message(message_json.encode()),
+                    routing_key=topic,
+                )
+                logger.debug(f"Published message to RabbitMQ topic '{topic}': {message}")
 
         except Exception as e:
             logger.error(f"Error publishing message to RabbitMQ: {e}")

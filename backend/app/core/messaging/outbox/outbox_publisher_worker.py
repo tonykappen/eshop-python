@@ -187,9 +187,16 @@ class OutboxPublisherWorker:
                         f"Failed to connect message bus before publishing: {e}"
                     )
 
+            # Determine exchange based on event type using configurable resolver
+            from app.core.messaging.exchange_resolver import get_exchange_for_event_type
+
+            exchange = get_exchange_for_event_type(outbox_message.event_type)
+
             # Publish message
             await self.message_bus.publish(
-                outbox_message.event_data, outbox_message.event_type
+                outbox_message.event_data, 
+                outbox_message.event_type,
+                exchange=exchange
             )
 
             # Mark as published

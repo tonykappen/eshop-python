@@ -257,8 +257,17 @@ class OutboxPublisher(IOutboxPublisher):
             # Mark as processing
             await self.outbox_writer.mark_as_processing(message.id)
 
+            # Determine exchange based on event type using configurable resolver
+            from app.core.messaging.exchange_resolver import get_exchange_for_event_type
+
+            exchange = get_exchange_for_event_type(message.event_type)
+
             # Publish to message bus
-            await self.message_bus.publish(message.event_data, message.event_type)
+            await self.message_bus.publish(
+                message.event_data, 
+                message.event_type,
+                exchange=exchange
+            )
 
             # Mark as published
             await self.outbox_writer.mark_as_published(message.id)

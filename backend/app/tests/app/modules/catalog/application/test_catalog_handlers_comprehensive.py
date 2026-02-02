@@ -31,7 +31,7 @@ from app.modules.catalog.application.features.products.commands.update_product.u
 from app.modules.catalog.application.features.products.queries.get_product_by_id.handler import (
     GetProductByIdHandler,
 )
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdQuery,
     GetProductByIdResult,
 )

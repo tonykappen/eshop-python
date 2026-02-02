@@ -1,4 +1,4 @@
-"""Message bus abstraction for catalog module."""
+"""Message bus abstraction for messaging infrastructure."""
 
 import asyncio
 import json
@@ -147,22 +147,24 @@ class RabbitMQMessageBus(IMessageBus):
         self._connection = None
         self._channel = None
 
-    async def _log_connection_event(self, status: str, error: str | None = None) -> None:
+    async def _log_connection_event(
+        self, status: str, error: str | None = None, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
         """
         Log RabbitMQ connection event to outbox table.
 
         Args:
             status: Connection status (connected, disconnected, failed)
             error: Optional error message
+            outbox_orm_class: Optional outbox ORM class (module-specific)
+            get_session_maker: Optional session maker function (module-specific)
         """
-        try:
-            from app.modules.catalog.infrastructure.persistence.db_context import (
-                get_session_maker,
-            )
-            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-                OutboxORM,
-            )
+        # Only log if module-specific dependencies are provided
+        if not outbox_orm_class or not get_session_maker:
+            logger.debug("Outbox logging skipped - module-specific dependencies not provided")
+            return
 
+        try:
             session_maker = get_session_maker()
             async with session_maker() as session:
                 try:
@@ -181,7 +183,7 @@ class RabbitMQMessageBus(IMessageBus):
                     # Create outbox record
                     # Use timezone-naive datetime for database (TIMESTAMP WITHOUT TIME ZONE)
                     now_naive = datetime.now(UTC).replace(tzinfo=None)
-                    outbox_record = OutboxORM(
+                    outbox_record = outbox_orm_class(
                         id=uuid4(),
                         event_type="RabbitMQConnectionEvent",
                         event_data=json.dumps(event_data),
@@ -204,8 +206,14 @@ class RabbitMQMessageBus(IMessageBus):
             # Don't fail connection if logging fails
             logger.debug(f"Could not log connection event to outbox: {e}")
 
-    async def connect(self) -> None:
-        """Connect to RabbitMQ."""
+    async def connect(self, outbox_orm_class: Any = None, get_session_maker: Any = None) -> None:
+        """
+        Connect to RabbitMQ.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         try:
             import aio_pika
 
@@ -213,21 +221,36 @@ class RabbitMQMessageBus(IMessageBus):
             self._channel = await self._connection.channel()
 
             logger.info("Connected to RabbitMQ")
-            # Log connection event to outbox
-            asyncio.create_task(self._log_connection_event("connected"))
+            # Log connection event to outbox if dependencies provided
+            if outbox_orm_class and get_session_maker:
+                asyncio.create_task(
+                    self._log_connection_event("connected", None, outbox_orm_class, get_session_maker)
+                )
         except Exception as e:
             logger.error(f"Failed to connect to RabbitMQ: {e}")
-            # Log connection failure to outbox
-            asyncio.create_task(self._log_connection_event("failed", str(e)))
+            # Log connection failure to outbox if dependencies provided
+            if outbox_orm_class and get_session_maker:
+                asyncio.create_task(
+                    self._log_connection_event("failed", str(e), outbox_orm_class, get_session_maker)
+                )
             raise
 
-    async def disconnect(self) -> None:
-        """Disconnect from RabbitMQ."""
+    async def disconnect(self, outbox_orm_class: Any = None, get_session_maker: Any = None) -> None:
+        """
+        Disconnect from RabbitMQ.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         if self._connection:
             await self._connection.close()
             logger.info("Disconnected from RabbitMQ")
-            # Log disconnection event to outbox
-            asyncio.create_task(self._log_connection_event("disconnected"))
+            # Log disconnection event to outbox if dependencies provided
+            if outbox_orm_class and get_session_maker:
+                asyncio.create_task(
+                    self._log_connection_event("disconnected", None, outbox_orm_class, get_session_maker)
+                )
 
     async def publish(self, message: Any, topic: str | None = None) -> None:
         """

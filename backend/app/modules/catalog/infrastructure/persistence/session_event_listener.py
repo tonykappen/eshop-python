@@ -1,4 +1,8 @@
-"""SQLAlchemy event listeners for catalog module to hook into session commits."""
+"""SQLAlchemy event listeners for catalog module to hook into session commits.
+
+NOTE: This file is kept for backward compatibility.
+New code should use app.core.database.session_event_listener instead.
+"""
 
 import logging
 from typing import Any
@@ -6,7 +10,7 @@ from typing import Any
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.application.transactions.commit_interceptors import (
+from app.core.transactions.commit_interceptors import (
     commit_interceptor_registry,
 )
 

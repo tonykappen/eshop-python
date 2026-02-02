@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.catalog.infrastructure.event_publisher import (
+from app.core.messaging.event_publisher import (
     CatalogEventPublisher,
     CatalogEventPublisherFactory,
 )

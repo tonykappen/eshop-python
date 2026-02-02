@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
+from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
     GetProductsByCategoryQuery,
     GetProductsByCategoryResult,
 )

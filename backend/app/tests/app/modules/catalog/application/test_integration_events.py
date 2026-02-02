@@ -5,107 +5,12 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.catalog.contracts.products.integration_events.v1.product_created_integration_event import (
-    ProductCreatedIntegrationEventV1,
-)
 from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import (
     ProductDeletedIntegrationEvent,
 )
 from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
     ProductPriceChangedIntegrationEventV1,
 )
-
-
-class TestProductCreatedIntegrationEventV1:
-    """Test ProductCreatedIntegrationEventV1."""
-
-    def test_create_event_success(self):
-        """Test successful event creation."""
-        product_id = uuid4()
-
-        event = ProductCreatedIntegrationEventV1.create(
-            product_id=product_id,
-            product_name="Test Product",
-            product_sku="TEST-001",
-            product_categories=["Electronics"],
-            product_description="A test product",
-            product_image_file="test.jpg",
-            product_price_amount=99.99,
-            product_price_currency="USD",
-        )
-
-        assert event.product_id == product_id
-        assert event.product_name == "Test Product"
-        assert event.product_sku == "TEST-001"
-        assert event.product_categories == ["Electronics"]
-        assert event.product_description == "A test product"
-        assert event.product_image_file == "test.jpg"
-        assert event.product_price_amount == 99.99
-        assert event.product_price_currency == "USD"
-        assert event.event_type == "product.created.v1"
-        assert event.event_version == "1.0"
-        assert event.source == "catalog-service"
-        assert event.event_id is not None
-        assert event.occurred_at is not None
-
-    def test_create_event_with_metadata(self):
-        """Test event creation with metadata."""
-        product_id = uuid4()
-        metadata = {"key": "value", "source": "test"}
-
-        event = ProductCreatedIntegrationEventV1.create(
-            product_id=product_id,
-            product_name="Test Product",
-            product_sku="TEST-002",
-            product_categories=["Electronics"],
-            product_description="A test product",
-            product_image_file="",
-            product_price_amount=99.99,
-            metadata=metadata,
-        )
-
-        assert event.metadata == metadata
-
-    def test_create_event_with_empty_image(self):
-        """Test event creation with empty image file."""
-        product_id = uuid4()
-
-        event = ProductCreatedIntegrationEventV1.create(
-            product_id=product_id,
-            product_name="Test Product",
-            product_sku="TEST-003",
-            product_categories=["Electronics"],
-            product_description="A test product",
-            product_image_file="",
-            product_price_amount=99.99,
-        )
-
-        assert event.product_image_file == ""
-
-    def test_event_to_dict(self):
-        """Test event serialization to dictionary."""
-        product_id = uuid4()
-
-        event = ProductCreatedIntegrationEventV1.create(
-            product_id=product_id,
-            product_name="Test Product",
-            product_sku="TEST-004",
-            product_categories=["Electronics"],
-            product_description="A test product",
-            product_image_file="test.jpg",
-            product_price_amount=99.99,
-        )
-
-        data = event.to_dict()
-
-        assert data["product_id"] == str(product_id)
-        assert data["product_name"] == "Test Product"
-        assert data["product_sku"] == "TEST-004"
-        assert data["product_categories"] == ["Electronics"]
-        assert data["product_price_amount"] == 99.99
-        assert data["event_type"] == "product.created.v1"
-        assert "event_id" in data
-        assert "occurred_at" in data
 
 
 class TestProductPriceChangedIntegrationEventV1:
@@ -284,15 +189,6 @@ class TestIntegrationEventConsistency:
         product_id = uuid4()
 
         events = [
-            ProductCreatedIntegrationEventV1.create(
-                product_id=product_id,
-                product_name="Test",
-                product_sku="TEST-001",
-                product_categories=["Electronics"],
-                product_description="Test",
-                product_image_file="",
-                product_price_amount=99.99,
-            ),
             ProductPriceChangedIntegrationEventV1.create(
                 product_id=product_id,
                 product_name="Test",
@@ -325,15 +221,6 @@ class TestIntegrationEventConsistency:
         product_id = uuid4()
 
         events = [
-            ProductCreatedIntegrationEventV1.create(
-                product_id=product_id,
-                product_name="Test",
-                product_sku="TEST-001",
-                product_categories=["Electronics"],
-                product_description="Test",
-                product_image_file="",
-                product_price_amount=99.99,
-            ),
             ProductPriceChangedIntegrationEventV1.create(
                 product_id=product_id,
                 product_name="Test",

@@ -1,4 +1,9 @@
-"""Domain event to integration event subscriptions."""
+"""Domain event to integration event subscriptions.
+
+NOTE: This file contains catalog-specific subscriptions.
+It's kept in core/messaging for organizational purposes but contains
+module-specific logic that may need to be refactored in the future.
+"""
 
 import logging
 from typing import Any
@@ -20,7 +25,7 @@ from app.modules.catalog.application.integration_event_handlers.inventory.react_
 # from app.modules.catalog.domain.domain_event_handlers.products.product_price_changed_domain_event_handler import (
 #     ProductPriceChangedDomainEventHandler,
 # )
-from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
+from app.core.messaging.domain_dispatcher import (
     domain_event_dispatcher,
 )
 

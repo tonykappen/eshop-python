@@ -9,7 +9,10 @@ import pytest
 
 # Import directly from file to avoid circular import issues
 # Use absolute path to avoid path calculation issues
-logging_behavior_path = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "app" / "core" / "application" / "behaviors" / "logging_behavior.py"
+# Test file is at: backend/app/tests/app/core/application/behaviors/test_logging_behavior.py
+# Target file is at: backend/app/core/application/behaviors/logging_behavior.py
+# Need to go up 7 levels to get to backend/, then add app/core/...
+logging_behavior_path = Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent / "app" / "core" / "application" / "behaviors" / "logging_behavior.py"
 
 spec = importlib.util.spec_from_file_location(
     "logging_behavior",

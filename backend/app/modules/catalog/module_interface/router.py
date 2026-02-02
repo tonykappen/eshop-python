@@ -44,7 +44,7 @@ from app.modules.catalog.application.features.products.queries.get_products_by_c
 from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
     GetProductsByCategoryQuery,
 )
-from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
+from app.core.messaging.domain_dispatcher import (
     DomainEventDispatcher,
 )
 

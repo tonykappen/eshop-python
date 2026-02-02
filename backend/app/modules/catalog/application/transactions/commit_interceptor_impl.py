@@ -1,143 +1,14 @@
-"""Concrete commit interceptor implementations."""
+"""Catalog-specific commit interceptor implementations."""
 
-import logging
 from typing import Any
 
 from app.core.database.session import AsyncSession
-from app.modules.catalog.application.context.request_context import RequestContext
-from app.modules.catalog.application.transactions.commit_interceptors import (
+from app.core.logging.base_logger import BaseLogger
+from app.core.transactions.commit_interceptors import (
     ICommitInterceptor,
 )
 
-logger = logging.getLogger(__name__)
-
-
-class AuditStampInterceptor(ICommitInterceptor):
-    """Interceptor for adding audit stamps to entities."""
-
-    def __init__(self, request_context: RequestContext):
-        """
-        Initialize the interceptor.
-
-        Args:
-            request_context: Request context for audit information
-        """
-        self.request_context = request_context
-
-    async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        """
-        Add audit stamps before commit.
-
-        Args:
-            session: Database session
-            entities: List of entities being committed
-        """
-        current_time = self.request_context.get_metadata("current_time")
-        user_id = self.request_context.user_id
-
-        for entity in entities:
-            if hasattr(entity, "updated_at"):
-                entity.updated_at = current_time
-
-            if hasattr(entity, "updated_by") and user_id:
-                entity.updated_by = user_id
-
-            # For new entities, set created_at and created_by
-            if hasattr(entity, "created_at") and not entity.created_at:
-                entity.created_at = current_time
-
-            if (
-                hasattr(entity, "created_by")
-                and user_id
-                and not hasattr(entity, "created_by")
-            ):
-                entity.created_by = user_id
-
-    async def after_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        """
-        Called after successful commit.
-
-        Args:
-            session: Database session
-            entities: List of entities that were committed
-        """
-        logger.info(f"Audit stamps applied to {len(entities)} entities")
-
-    async def on_rollback(
-        self, session: AsyncSession, entities: list[Any], error: Exception
-    ) -> None:
-        """
-        Called on rollback.
-
-        Args:
-            session: Database session
-            entities: List of entities that were rolled back
-            error: Exception that caused the rollback
-        """
-        logger.warning(
-            f"Rollback occurred, audit stamps not applied to {len(entities)} entities: {error}"
-        )
-
-
-class CacheInvalidationInterceptor(ICommitInterceptor):
-    """Interceptor for cache invalidation after commit."""
-
-    def __init__(self, cache_service: Any = None):
-        """
-        Initialize the interceptor.
-
-        Args:
-            cache_service: Cache service for invalidation
-        """
-        self.cache_service = cache_service
-
-    async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        """
-        Called before commit.
-
-        Args:
-            session: Database session
-            entities: List of entities being committed
-        """
-        # Nothing to do before commit
-        pass
-
-    async def after_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        """
-        Invalidate cache after successful commit.
-
-        Args:
-            session: Database session
-            entities: List of entities that were committed
-        """
-        if not self.cache_service:
-            return
-
-        try:
-            for entity in entities:
-                # Invalidate cache for the entity
-                if hasattr(entity, "id"):
-                    cache_key = f"entity:{type(entity).__name__}:{entity.id}"
-                    await self.cache_service.invalidate(cache_key)
-
-            logger.info(f"Cache invalidated for {len(entities)} entities")
-        except Exception as e:
-            logger.error(f"Error invalidating cache: {e}")
-
-    async def on_rollback(
-        self, session: AsyncSession, entities: list[Any], error: Exception
-    ) -> None:
-        """
-        Called on rollback.
-
-        Args:
-            session: Database session
-            entities: List of entities that were rolled back
-            error: Exception that caused the rollback
-        """
-        logger.info(
-            f"Rollback occurred, cache not invalidated for {len(entities)} entities"
-        )
+logger = BaseLogger(__name__)
 
 
 class OutboxEnqueuerInterceptor(ICommitInterceptor):
@@ -175,18 +46,19 @@ class OutboxEnqueuerInterceptor(ICommitInterceptor):
             for entity in entities:
                 if hasattr(entity, "domain_events") and entity.domain_events:
                     domain_events.extend(entity.domain_events)
-                    logger.debug(
-                        f"Found {len(entity.domain_events)} domain events on entity {type(entity).__name__}: "
-                        f"{[e.event_type for e in entity.domain_events]}"
+                    logger.log_debug_with_context(
+                        f"Found {len(entity.domain_events)} domain events on entity {type(entity).__name__}",
+                        context={"event_types": [e.event_type for e in entity.domain_events]},
                     )
 
             if not domain_events:
-                logger.debug("No domain events found in entities, skipping outbox enqueuing")
+                logger.log_debug_with_context("No domain events found in entities, skipping outbox enqueuing")
                 return
 
-            logger.info(
-                f"Collected {len(domain_events)} domain events for outbox processing: "
-                f"{[e.event_type for e in domain_events]}"
+            logger.log_with_context(
+                f"Collected {len(domain_events)} domain events for outbox processing",
+                "info",
+                context={"event_types": [e.event_type for e in domain_events], "count": len(domain_events)},
             )
 
             # Create outbox service with current session (inside transaction)
@@ -197,18 +69,21 @@ class OutboxEnqueuerInterceptor(ICommitInterceptor):
                 if isinstance(event, ProductDeletedDomainEvent):
                     enqueuer = ProductDeletedOutboxEnqueuer(outbox_service)
                     await enqueuer.enqueue(event)
-                    logger.debug(
-                        f"Enqueued ProductDeleted event to outbox: {event.product_id}"
+                    logger.log_debug_with_context(
+                        "Enqueued ProductDeleted event to outbox",
+                        context={"product_id": str(event.product_id)},
                     )
 
-            logger.info(
-                f"Outbox enqueuing completed for {len(domain_events)} domain events"
+            logger.log_with_context(
+                f"Outbox enqueuing completed for {len(domain_events)} domain events",
+                "info",
+                context={"event_count": len(domain_events)},
             )
 
         except Exception as e:
-            logger.error(
-                f"Error enqueuing outbox messages: {e}",
-                exc_info=True,
+            logger.log_exception_detailed(
+                "Error enqueuing outbox messages",
+                exception=e,
             )
             # Re-raise to ensure transaction rollback on failure
             raise
@@ -235,8 +110,10 @@ class OutboxEnqueuerInterceptor(ICommitInterceptor):
             entities: List of entities that were rolled back
             error: Exception that caused the rollback
         """
-        logger.info(
-            f"Rollback occurred, outbox messages not enqueued for {len(entities)} entities"
+        logger.log_with_context(
+            f"Rollback occurred, outbox messages not enqueued for {len(entities)} entities",
+            "info",
+            context={"entity_count": len(entities)},
         )
 
 
@@ -288,16 +165,19 @@ class DomainEventPublisherInterceptor(ICommitInterceptor):
             for entity in entities:
                 if hasattr(entity, "domain_events") and entity.domain_events:
                     domain_events.extend(entity.domain_events)
-                    logger.debug(
-                        f"Collected {len(entity.domain_events)} domain events from entity {type(entity).__name__}"
+                    logger.log_debug_with_context(
+                        f"Collected {len(entity.domain_events)} domain events from entity {type(entity).__name__}",
+                        context={"entity_type": type(entity).__name__, "event_count": len(entity.domain_events)},
                     )
 
             if not domain_events:
-                logger.debug("No domain events to dispatch after commit")
+                logger.log_debug_with_context("No domain events to dispatch after commit")
                 return
 
-            logger.info(
-                f"Dispatching {len(domain_events)} domain events after commit: {[type(e).__name__ for e in domain_events]}"
+            logger.log_with_context(
+                f"Dispatching {len(domain_events)} domain events after commit",
+                "info",
+                context={"event_types": [type(e).__name__ for e in domain_events], "count": len(domain_events)},
             )
 
             # Dispatch to domain event dispatcher (internal handlers)
@@ -319,21 +199,24 @@ class DomainEventPublisherInterceptor(ICommitInterceptor):
                         try:
                             publisher = ProductPriceChangedDirectPublisher(self.event_publisher)
                             await publisher.publish(event)
-                            logger.debug(
-                                f"Directly published ProductPriceChanged event: {event.product_id}"
+                            logger.log_debug_with_context(
+                                "Directly published ProductPriceChanged event",
+                                context={"product_id": str(event.product_id)},
                             )
                         except Exception as e:
-                            logger.error(
-                                f"Error in direct publish for ProductPriceChanged: {e}",
-                                exc_info=True,
+                            logger.log_exception_detailed(
+                                "Error in direct publish for ProductPriceChanged",
+                                exception=e,
                             )
                             # Don't re-raise - best-effort delivery
 
-            logger.info(
-                f"Domain events dispatched for {len(entities)} entities ({len(domain_events)} events)"
+            logger.log_with_context(
+                f"Domain events dispatched for {len(entities)} entities ({len(domain_events)} events)",
+                "info",
+                context={"entity_count": len(entities), "event_count": len(domain_events)},
             )
         except Exception as e:
-            logger.error(f"Error dispatching domain events: {e}", exc_info=True)
+            logger.log_exception_detailed("Error dispatching domain events", exception=e)
             # Don't re-raise - domain event dispatch failures shouldn't break the commit
 
     async def on_rollback(
@@ -347,6 +230,8 @@ class DomainEventPublisherInterceptor(ICommitInterceptor):
             entities: List of entities that were rolled back
             error: Exception that caused the rollback
         """
-        logger.info(
-            f"Rollback occurred, domain events not dispatched for {len(entities)} entities"
+        logger.log_with_context(
+            f"Rollback occurred, domain events not dispatched for {len(entities)} entities",
+            "info",
+            context={"entity_count": len(entities)},
         )

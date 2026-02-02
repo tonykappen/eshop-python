@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalog.application.transactions.commit_interceptors import (
+from app.core.transactions.commit_interceptors import (
     commit_interceptor_registry,
 )
 from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import (

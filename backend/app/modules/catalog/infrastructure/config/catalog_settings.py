@@ -3,14 +3,6 @@
 
 from pydantic_settings import BaseSettings
 
-from app.modules.catalog.infrastructure.catalog_logging import CatalogLoggingConfig
-from app.modules.catalog.infrastructure.observability.catalog_metrics import (
-    CatalogMetricsConfig,
-)
-from app.modules.catalog.infrastructure.observability.catalog_tracing import (
-    CatalogTracingConfig,
-)
-
 # Import existing config classes to maintain backward compatibility
 from app.modules.catalog.infrastructure.persistence.db_context import (
     CatalogDatabaseConfig,
@@ -49,29 +41,11 @@ class CatalogSettings(BaseSettings):
 
         # Initialize sub-configurations
         self._database_config = CatalogDatabaseConfig()
-        self._logging_config = CatalogLoggingConfig()
-        self._metrics_config = CatalogMetricsConfig()
-        self._tracing_config = CatalogTracingConfig()
 
     @property
     def database(self) -> CatalogDatabaseConfig:
         """Get database configuration."""
         return self._database_config
-
-    @property
-    def logging(self) -> CatalogLoggingConfig:
-        """Get logging configuration."""
-        return self._logging_config
-
-    @property
-    def metrics(self) -> CatalogMetricsConfig:
-        """Get metrics configuration."""
-        return self._metrics_config
-
-    @property
-    def tracing(self) -> CatalogTracingConfig:
-        """Get tracing configuration."""
-        return self._tracing_config
 
 
 # Global settings instance for convenient access
@@ -85,8 +59,5 @@ catalog_settings = CatalogSettings()
 __all__ = [
     "CatalogSettings",
     "CatalogDatabaseConfig",
-    "CatalogLoggingConfig",
-    "CatalogMetricsConfig",
-    "CatalogTracingConfig",
     "catalog_settings",
 ]

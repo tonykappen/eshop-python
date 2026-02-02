@@ -159,10 +159,19 @@ class MessagingLifecycleHandler:
             from app.modules.catalog.module_interface.di.products.products_providers import (
                 get_catalog_message_bus,
             )
+            from app.modules.catalog.infrastructure.persistence.db_context import (
+                get_session_maker,
+            )
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
+                OutboxORM,
+            )
 
             message_bus = get_catalog_message_bus()
             if hasattr(message_bus, "connect"):
-                await message_bus.connect()
+                await message_bus.connect(
+                    outbox_orm_class=OutboxORM,
+                    get_session_maker=get_session_maker,
+                )
                 self.is_connected = True
                 logger.log_with_context(
                     "[OK] RabbitMQ message bus connected", "info"

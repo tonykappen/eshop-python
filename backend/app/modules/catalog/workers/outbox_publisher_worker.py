@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from app.config.settings import settings
 from app.core.messaging.outbox import create_outbox_worker
-from app.modules.catalog.infrastructure.messaging.bus import RabbitMQMessageBus
+from app.core.messaging.bus import RabbitMQMessageBus
 from app.modules.catalog.infrastructure.persistence.db_context import (
     get_session_maker,
 )

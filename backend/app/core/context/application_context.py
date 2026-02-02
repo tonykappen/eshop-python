@@ -1,4 +1,4 @@
-"""Request context for holding tenant/user info for auditing/policies."""
+"""Application request context for holding tenant/user info for auditing/policies."""
 
 from typing import Any
 from uuid import UUID

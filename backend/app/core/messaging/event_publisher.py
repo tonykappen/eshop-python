@@ -1,4 +1,8 @@
-"""Event publisher service for catalog integration events."""
+"""Event publisher service for integration events.
+
+NOTE: This contains CatalogEventPublisher which is catalog-specific.
+Other modules should create their own event publishers following this pattern.
+"""
 
 from typing import Any
 from uuid import UUID
@@ -31,26 +35,32 @@ class CatalogEventPublisher:
         """Create RabbitMQ broker with configuration."""
         return RabbitBroker(settings.rabbitmq_connection_string)
 
-    async def _log_connection_event(self, status: str, error: str | None = None) -> None:
+    async def _log_connection_event(
+        self,
+        status: str,
+        error: str | None = None,
+        outbox_orm_class: Any = None,
+        get_session_maker: Any = None,
+    ) -> None:
         """
         Log RabbitMQ connection event to outbox table.
 
         Args:
             status: Connection status (connected, disconnected, failed)
             error: Optional error message
+            outbox_orm_class: Optional outbox ORM class (module-specific)
+            get_session_maker: Optional session maker function (module-specific)
         """
+        # Only log if module-specific dependencies are provided
+        if not outbox_orm_class or not get_session_maker:
+            logger.debug("Outbox logging skipped - module-specific dependencies not provided")
+            return
+
         try:
             import asyncio
             import json
             from datetime import UTC, datetime
             from uuid import uuid4
-
-            from app.modules.catalog.infrastructure.persistence.db_context import (
-                get_session_maker,
-            )
-            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-                OutboxORM,
-            )
 
             session_maker = get_session_maker()
             async with session_maker() as session:
@@ -68,7 +78,7 @@ class CatalogEventPublisher:
                     # Create outbox record
                     # Use timezone-naive datetime for database (TIMESTAMP WITHOUT TIME ZONE)
                     now_naive = datetime.now(UTC).replace(tzinfo=None)
-                    outbox_record = OutboxORM(
+                    outbox_record = outbox_orm_class(
                         id=uuid4(),
                         event_type="RabbitMQConnectionEvent",
                         event_data=json.dumps(event_data),
@@ -91,8 +101,16 @@ class CatalogEventPublisher:
             # Don't fail connection if logging fails
             logger.debug(f"Could not log connection event to outbox: {e}")
 
-    async def _ensure_connected(self) -> None:
-        """Ensure broker is connected before publishing."""
+    async def _ensure_connected(
+        self, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
+        """
+        Ensure broker is connected before publishing.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         if not self._is_connected:
             try:
                 # Check if broker is already connected (FastStream broker connection state)
@@ -103,17 +121,23 @@ class CatalogEventPublisher:
                     await self.broker.connect()
                     self._is_connected = True
                     logger.debug("RabbitMQ broker connected")
-                    # Log connection event to outbox
-                    import asyncio
+                    # Log connection event to outbox if dependencies provided
+                    if outbox_orm_class and get_session_maker:
+                        import asyncio
 
-                    asyncio.create_task(self._log_connection_event("connected"))
+                        asyncio.create_task(
+                            self._log_connection_event("connected", None, outbox_orm_class, get_session_maker)
+                        )
             except Exception as e:
                 logger.warning(f"Failed to connect broker: {e}")
                 self._is_connected = False
-                # Log connection failure to outbox
-                import asyncio
+                # Log connection failure to outbox if dependencies provided
+                if outbox_orm_class and get_session_maker:
+                    import asyncio
 
-                asyncio.create_task(self._log_connection_event("failed", str(e)))
+                    asyncio.create_task(
+                        self._log_connection_event("failed", str(e), outbox_orm_class, get_session_maker)
+                    )
                 raise
 
         # Ensure exchange is declared
@@ -226,12 +250,14 @@ class CatalogEventPublisher:
         product_name: str | None = None,
         product_sku: str | None = None,
         price_currency: str = "USD",
+        outbox_orm_class: Any = None,
+        get_session_maker: Any = None,
         **additional_data: Any,
     ) -> None:
         """Publish product price changed integration event."""
         try:
             # Ensure broker is connected before publishing
-            await self._ensure_connected()
+            await self._ensure_connected(outbox_orm_class, get_session_maker)
 
             # Use the create method from ProductPriceChangedIntegrationEventV1
             # Import the V1 class directly
@@ -323,38 +349,63 @@ class CatalogEventPublisher:
             f"ProductDiscontinued event not yet implemented for product {product_id}"
         )
 
-    async def start(self) -> None:
-        """Start the event publisher."""
+    async def start(
+        self, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
+        """
+        Start the event publisher.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         try:
             await self.broker.connect()
             self._is_connected = True
             # Declare exchange during startup
             await self._ensure_exchange()
             logger.info("Catalog event publisher started and connected")
-            # Log connection event to outbox
-            import asyncio
+            # Log connection event to outbox if dependencies provided
+            if outbox_orm_class and get_session_maker:
+                import asyncio
 
-            asyncio.create_task(self._log_connection_event("connected"))
+                asyncio.create_task(
+                    self._log_connection_event("connected", None, outbox_orm_class, get_session_maker)
+                )
         except Exception as e:
             logger.error(f"Failed to start catalog event publisher: {e}")
             self._is_connected = False
-            # Log connection failure to outbox
-            import asyncio
+            # Log connection failure to outbox if dependencies provided
+            if outbox_orm_class and get_session_maker:
+                import asyncio
 
-            asyncio.create_task(self._log_connection_event("failed", str(e)))
+                asyncio.create_task(
+                    self._log_connection_event("failed", str(e), outbox_orm_class, get_session_maker)
+                )
             raise
 
-    async def stop(self) -> None:
-        """Stop the event publisher."""
+    async def stop(
+        self, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
+        """
+        Stop the event publisher.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         try:
             if self._is_connected and self.broker.is_connected:
                 await self.broker.close()
             self._is_connected = False
             logger.info("Catalog event publisher stopped")
-            # Log disconnection event to outbox
-            import asyncio
+            # Log disconnection event to outbox if dependencies provided
+            if outbox_orm_class and get_session_maker:
+                import asyncio
 
-            asyncio.create_task(self._log_connection_event("disconnected"))
+                asyncio.create_task(
+                    self._log_connection_event("disconnected", None, outbox_orm_class, get_session_maker)
+                )
         except Exception as e:
             logger.error(f"Failed to stop catalog event publisher: {e}")
             self._is_connected = False
@@ -373,15 +424,31 @@ class CatalogEventPublisherFactory:
         return cls._instance
 
     @classmethod
-    async def create_and_start(cls) -> CatalogEventPublisher:
-        """Create and start event publisher."""
+    async def create_and_start(
+        cls, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> CatalogEventPublisher:
+        """
+        Create and start event publisher.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         publisher = cls.get_instance()
-        await publisher.start()
+        await publisher.start(outbox_orm_class, get_session_maker)
         return publisher
 
     @classmethod
-    async def stop(cls) -> None:
-        """Stop the event publisher."""
+    async def stop(
+        cls, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
+        """
+        Stop the event publisher.
+
+        Args:
+            outbox_orm_class: Optional outbox ORM class for logging (module-specific)
+            get_session_maker: Optional session maker function for logging (module-specific)
+        """
         if cls._instance:
-            await cls._instance.stop()
+            await cls._instance.stop(outbox_orm_class, get_session_maker)
             cls._instance = None

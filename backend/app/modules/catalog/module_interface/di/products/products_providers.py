@@ -12,7 +12,7 @@ from app.core.messaging.outbox import (
     IOutboxService,
     OutboxService,
 )
-from app.modules.catalog.application.context.request_context import RequestContext
+from app.core.context.application_context import RequestContext
 from app.modules.catalog.application.unit_of_work import ICatalogUnitOfWork
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
@@ -20,15 +20,15 @@ from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
 )
 from app.config.settings import settings
-from app.modules.catalog.infrastructure.messaging.bus import (
+from app.core.messaging.bus import (
     IMessageBus,
     InMemoryMessageBus,
     RabbitMQMessageBus,
 )
-from app.modules.catalog.infrastructure.messaging.domain_dispatcher import (
+from app.core.messaging.domain_dispatcher import (
     DomainEventDispatcher,
 )
-from app.modules.catalog.infrastructure.messaging.outbox import (  # Keep for backward compatibility
+from app.core.messaging.outbox import (  # Keep for backward compatibility
     OutboxPublisher,
     OutboxWriter,
 )

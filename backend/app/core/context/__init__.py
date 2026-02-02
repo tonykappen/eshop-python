@@ -13,6 +13,7 @@ from app.core.context.request_context import (
     set_operation_context,
     set_trace_context,
 )
+from app.core.context.application_context import RequestContext
 
 __all__ = [
     "get_trace_id",
@@ -25,4 +26,5 @@ __all__ = [
     "set_operation_context",
     "set_http_request_context",
     "clear_trace_context",
+    "RequestContext",
 ]

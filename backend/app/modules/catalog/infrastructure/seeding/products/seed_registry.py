@@ -1,8 +1,8 @@
 """Registry of seeds."""
 
-import logging
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class Seed:
@@ -54,7 +54,10 @@ class SeedRegistry:
             self._default_seeds_registered = True
         except ImportError as e:
             # If import fails (e.g., during module scanning), we'll try again later
-            logger.debug(f"Could not register default seeds yet (will retry): {e}")
+            logger.log_debug_with_context(
+                "Could not register default seeds yet (will retry)",
+                context={"error": str(e)}
+            )
 
     def _register_default_seeds(self) -> None:
         """Register default seeds (deprecated - use _ensure_default_seeds_registered)."""
@@ -68,10 +71,16 @@ class SeedRegistry:
             seed: Seed to register
         """
         if seed.version in self._seeds:
-            logger.warning(f"Seed {seed.version} already registered, overwriting")
+            logger.log_warning_with_context(
+                "Seed already registered, overwriting",
+                context={"version": seed.version}
+            )
 
         self._seeds[seed.version] = seed
-        logger.debug(f"Registered seed: {seed.version}")
+        logger.log_debug_with_context(
+            "Registered seed",
+            context={"version": seed.version}
+        )
 
     def get_seed(self, version: str) -> Seed | None:
         """
@@ -123,7 +132,10 @@ class SeedRegistry:
         self._ensure_default_seeds_registered()
         if version in self._seeds:
             del self._seeds[version]
-            logger.debug(f"Unregistered seed: {version}")
+            logger.log_debug_with_context(
+                "Unregistered seed",
+                context={"version": version}
+            )
 
     def clear_seeds(self) -> None:
         """Clear all registered seeds."""
@@ -131,7 +143,7 @@ class SeedRegistry:
         self._default_seeds_registered = (
             False  # Reset flag so seeds can be re-registered
         )
-        logger.info("Cleared all seeds")
+        logger.log_with_context("Cleared all seeds")
 
     def get_seed_summary(self) -> dict[str, str]:
         """

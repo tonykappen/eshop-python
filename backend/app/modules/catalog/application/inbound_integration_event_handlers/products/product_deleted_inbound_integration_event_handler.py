@@ -1,13 +1,13 @@
 """Inbound handler for ProductDeleted integration event."""
 
-import logging
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import (
     ProductDeletedIntegrationEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductDeletedInboundIntegrationEventHandler:
@@ -29,18 +29,22 @@ class ProductDeletedInboundIntegrationEventHandler:
         Args:
             event_data: Raw event data from message broker
         """
-        logger.info(
-            f"Processing inbound ProductDeleted integration event: {event_data.get('event_id')}"
+        logger.log_with_context(
+            "Processing inbound ProductDeleted integration event",
+            context={"event_id": event_data.get('event_id')}
         )
 
         try:
             # Validate event against contract schema
             integration_event = ProductDeletedIntegrationEvent(**event_data)
 
-            logger.info(
-                f"Validated ProductDeleted event for product {integration_event.product_id}: "
-                f"deleted_at={integration_event.deleted_at}, "
-                f"reason={integration_event.deletion_reason}"
+            logger.log_with_context(
+                "Validated ProductDeleted event",
+                context={
+                    "product_id": str(integration_event.product_id),
+                    "deleted_at": str(integration_event.deleted_at) if integration_event.deleted_at else None,
+                    "deletion_reason": integration_event.deletion_reason
+                }
             )
 
             # TODO: (Future) Inbox deduplication check
@@ -54,14 +58,15 @@ class ProductDeletedInboundIntegrationEventHandler:
             # This could perform soft delete, create tombstone, or ignore if already deleted
             await self._sync_deletion(integration_event)
 
-            logger.info(
-                f"Successfully processed inbound ProductDeleted event for product {integration_event.product_id}"
+            logger.log_with_context(
+                "Successfully processed inbound ProductDeleted event",
+                context={"product_id": str(integration_event.product_id)}
             )
 
         except Exception as e:
-            logger.error(
-                f"Error processing inbound ProductDeleted integration event: {e}",
-                exc_info=True,
+            logger.log_exception_detailed(
+                "Error processing inbound ProductDeleted integration event",
+                exception=e
             )
             # Re-raise to allow message broker to handle retry/dead-letter
             raise
@@ -80,9 +85,13 @@ class ProductDeletedInboundIntegrationEventHandler:
         Args:
             event: Validated ProductDeletedIntegrationEvent
         """
-        logger.info(
-            f"Syncing deletion for product {event.product_id}: "
-            f"deleted_at={event.deleted_at}, reason={event.deletion_reason}"
+        logger.log_with_context(
+            "Syncing deletion",
+            context={
+                "product_id": str(event.product_id),
+                "deleted_at": str(event.deleted_at) if event.deleted_at else None,
+                "deletion_reason": event.deletion_reason
+            }
         )
 
         # TODO: Implement sync logic

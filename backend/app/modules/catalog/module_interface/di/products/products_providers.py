@@ -1,12 +1,12 @@
 """Dependency injection providers for catalog module."""
 
-import logging
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.mediator import Mediator
 from app.core.messaging.outbox import (
     IOutboxService,
@@ -55,7 +55,7 @@ from app.modules.catalog.module_interface.di.products.products_containers import
     get_catalog_container,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 # Database providers

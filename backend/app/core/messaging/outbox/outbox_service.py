@@ -1,19 +1,19 @@
 """Outbox service - appends events to Outbox inside same TX."""
 
 import json
-import logging
 from abc import ABC, abstractmethod
 from typing import Any
 from uuid import uuid4
 
 from app.core.context.request_context import get_baggage, get_trace_context
+from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.integration_event import IntegrationEvent
 from app.core.messaging.outbox.outbox_message_orm import (
     OutboxMessage,
     OutboxMessageStatus,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class IOutboxService(ABC):
@@ -106,12 +106,16 @@ class OutboxService(IOutboxService):
             # Write to database (within the same transaction)
             await self.write_message(message)
 
-            logger.debug(
-                f"Written integration event to outbox: {message.id} ({event_type})"
+            logger.log_debug_with_context(
+                "Written integration event to outbox",
+                context={"message_id": str(message.id), "event_type": event_type}
             )
 
         except Exception as e:
-            logger.error(f"Error writing integration event to outbox: {e}")
+            logger.log_error_with_context(
+                "Error writing integration event to outbox",
+                error=e
+            )
             raise
 
     def _get_outbox_orm_class(self) -> type[Any] | None:
@@ -147,7 +151,7 @@ class OutboxService(IOutboxService):
         except ImportError:
             pass
 
-        logger.warning(
+        logger.log_warning_with_context(
             "Could not auto-detect outbox ORM class. "
             "Please provide outbox_orm_class parameter when initializing OutboxService."
         )
@@ -206,11 +210,14 @@ class OutboxService(IOutboxService):
             # Add to session (will be committed with the transaction)
             self.session.add(outbox_record)
 
-            logger.info(
-                f"Written outbox message to database: {message.id} "
-                f"(event_type: {message.event_type})"
+            logger.log_with_context(
+                "Written outbox message to database",
+                context={"message_id": str(message.id), "event_type": message.event_type}
             )
 
         except Exception as e:
-            logger.error(f"Error writing outbox message to database: {e}", exc_info=True)
+            logger.log_exception_detailed(
+                "Error writing outbox message to database",
+                exception=e
+            )
             raise

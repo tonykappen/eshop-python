@@ -1,8 +1,8 @@
 """Direct publisher for ProductPriceChanged integration event (best-effort delivery)."""
 
-import logging
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
     ProductPriceChangedIntegrationEventV1,
 )
@@ -10,7 +10,7 @@ from app.modules.catalog.domain.domain_events.products.product_price_changed_dom
     ProductPriceChangedDomainEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductPriceChangedDirectPublisher:
@@ -35,8 +35,9 @@ class ProductPriceChangedDirectPublisher:
         Args:
             domain_event: Product price changed domain event
         """
-        logger.info(
-            f"Publishing product price changed integration event for product {domain_event.product_id}"
+        logger.log_with_context(
+            "Publishing product price changed integration event",
+            context={"product_id": str(domain_event.product_id)}
         )
 
         try:
@@ -49,7 +50,10 @@ class ProductPriceChangedDirectPublisher:
             if domain_event.old_price:
                 old_price_amount = float(domain_event.old_price.amount)
             else:
-                logger.warning(f"Old price not available in domain event for product {domain_event.product_id}, using 0.0")
+                logger.log_warning_with_context(
+                    "Old price not available in domain event, using 0.0",
+                    context={"product_id": str(domain_event.product_id)}
+                )
 
             # Publish directly to message broker (best-effort)
             # CatalogEventPublisher has specific methods, so use publish_product_price_changed
@@ -91,15 +95,20 @@ class ProductPriceChangedDirectPublisher:
                     f"Event publisher {type(self.event_publisher).__name__} doesn't have publish or publish_product_price_changed method"
                 )
 
-            logger.info(
-                f"Successfully published product price changed integration event for product {domain_event.product_id} "
-                f"(old_price: {old_price_amount}, new_price: {new_price_amount}, event_id: {integration_event_id})"
+            logger.log_with_context(
+                "Successfully published product price changed integration event",
+                context={
+                    "product_id": str(domain_event.product_id),
+                    "old_price": old_price_amount,
+                    "new_price": new_price_amount,
+                    "event_id": integration_event_id
+                }
             )
 
         except Exception as e:
-            logger.error(
-                f"Error publishing product price changed integration event: {e}",
-                exc_info=True,
+            logger.log_exception_detailed(
+                "Error publishing product price changed integration event",
+                exception=e
             )
             # Don't re-raise - best-effort delivery means failures are acceptable
             # Consumers can reconcile state via get_product_by_id API

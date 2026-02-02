@@ -1,11 +1,11 @@
 """Initial catalog seed data aligned with alembic migration."""
 
-import logging
 from uuid import uuid4
 
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.infrastructure.persistence.orm.category_orm import CategoryORM
 from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import (
     InventoryItemORM,
@@ -13,7 +13,7 @@ from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm impor
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 from app.modules.catalog.infrastructure.seeding.products.seed_registry import Seed
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CatalogInitialSeed(Seed):
@@ -33,7 +33,7 @@ class CatalogInitialSeed(Seed):
         Args:
             session: Database session
         """
-        logger.info("Executing initial catalog seed")
+        logger.log_with_context("Executing initial catalog seed")
 
         # Create categories first
         categories = await self._create_categories(session)
@@ -44,7 +44,7 @@ class CatalogInitialSeed(Seed):
         # Create inventory items
         await self._create_inventory_items(session, products)
 
-        logger.info("Initial catalog seed completed successfully")
+        logger.log_with_context("Initial catalog seed completed successfully")
 
     async def _create_categories(self, session: AsyncSession) -> dict[str, str]:
         """
@@ -110,7 +110,10 @@ class CatalogInitialSeed(Seed):
             await session.execute(insert(CategoryORM).values(**category_data))
             category_ids[category_data["name"]] = category_data["id"]
 
-        logger.info(f"Created {len(categories_data)} categories")
+        logger.log_with_context(
+            "Created categories",
+            context={"category_count": len(categories_data)}
+        )
         return category_ids
 
     async def _create_products(
@@ -207,7 +210,10 @@ class CatalogInitialSeed(Seed):
             await session.execute(insert(ProductORM).values(**product_data))
             product_ids[product_data["sku"]] = product_data["id"]
 
-        logger.info(f"Created {len(products_data)} products")
+        logger.log_with_context(
+            "Created products",
+            context={"product_count": len(products_data)}
+        )
         return product_ids
 
     async def _create_inventory_items(
@@ -288,4 +294,7 @@ class CatalogInitialSeed(Seed):
                 insert(InventoryItemORM).values(**inventory_item_data)
             )
 
-        logger.info(f"Created {len(inventory_data)} inventory items")
+        logger.log_with_context(
+            "Created inventory items",
+            context={"inventory_count": len(inventory_data)}
+        )

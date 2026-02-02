@@ -1,8 +1,7 @@
 """GetProductsByCategoryHandler - Category-filter handler for products."""
 
-import logging
-
 from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
@@ -20,7 +19,7 @@ from app.modules.catalog.infrastructure.persistence.repositories.products.sql im
 
 from .get_products_by_category_query import GetProductsByCategoryQuery, GetProductsByCategoryResult
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class GetProductsByCategoryHandler(
@@ -54,9 +53,13 @@ class GetProductsByCategoryHandler(
             cache_service = CatalogCacheService(RedisCacheService())
             repository = CachedProductRepository(sql_repo, cache_service)
 
-            logger.info(
-                f"GetProductsByCategoryHandler: category={query.category}, "
-                f"page={query.page}, page_size={query.page_size}"
+            logger.log_with_context(
+                "GetProductsByCategoryHandler",
+                context={
+                    "category": query.category,
+                    "page": query.page,
+                    "page_size": query.page_size
+                }
             )
 
             # Get products by category
@@ -71,15 +74,22 @@ class GetProductsByCategoryHandler(
                 products = result
                 total_count = len(products)
 
-            logger.info(
-                f"Repository returned {len(products)} products for category '{query.category}', "
-                f"total_count={total_count}"
+            logger.log_with_context(
+                "Repository returned products for category",
+                context={
+                    "category": query.category,
+                    "product_count": len(products),
+                    "total_count": total_count
+                }
             )
 
             # Convert to DTOs
             product_dtos = [self._map_to_dto(product) for product in products]
 
-            logger.info(f"Converted to {len(product_dtos)} DTOs")
+            logger.log_with_context(
+                "Converted to DTOs",
+                context={"dto_count": len(product_dtos)}
+            )
 
             # Calculate total pages
             total_pages = (

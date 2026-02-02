@@ -1,6 +1,5 @@
 """Database context for catalog module - combines config and session management."""
 
-import logging
 from collections.abc import AsyncGenerator
 
 from pydantic import Field
@@ -12,7 +11,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class CatalogDatabaseConfig(BaseSettings):
@@ -116,7 +117,7 @@ def get_engine() -> AsyncEngine:
             echo_pool=catalog_db_config.echo_pool,
             isolation_level=catalog_db_config.isolation_level,
         )
-        logger.info("Created catalog database engine")
+        logger.log_with_context("Created catalog database engine")
 
     return _engine
 
@@ -137,7 +138,7 @@ def get_session_maker() -> async_sessionmaker[AsyncSession]:
             class_=AsyncSession,
             expire_on_commit=False,
         )
-        logger.info("Created catalog session maker")
+        logger.log_with_context("Created catalog session maker")
 
     return _session_maker
 
@@ -156,7 +157,10 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             yield session
         except Exception as e:
             await session.rollback()
-            logger.error(f"Database session error: {e}")
+            logger.log_error_with_context(
+                "Database session error",
+                error=e
+            )
             raise
         finally:
             await session.close()
@@ -170,4 +174,4 @@ async def close_engine() -> None:
         await _engine.dispose()
         _engine = None
         _session_maker = None
-        logger.info("Closed catalog database engine")
+        logger.log_with_context("Closed catalog database engine")

@@ -3,6 +3,9 @@
 from typing import Any, Protocol
 
 from app.core.database.session import AsyncSession
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class ICommitInterceptor(Protocol):
@@ -92,10 +95,10 @@ class CommitInterceptorRegistry:
                 await interceptor.before_commit(session, entities)
             except Exception as e:
                 # Log error but don't fail the commit
-                import logging
-
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error in before_commit interceptor: {e}")
+                logger.log_error_with_context(
+                    "Error in before_commit interceptor",
+                    error=e
+                )
 
     async def execute_after_commit(
         self, session: AsyncSession, entities: list[Any]
@@ -112,10 +115,10 @@ class CommitInterceptorRegistry:
                 await interceptor.after_commit(session, entities)
             except Exception as e:
                 # Log error but don't fail the operation
-                import logging
-
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error in after_commit interceptor: {e}")
+                logger.log_error_with_context(
+                    "Error in after_commit interceptor",
+                    error=e
+                )
 
     async def execute_on_rollback(
         self, session: AsyncSession, entities: list[Any], error: Exception
@@ -133,10 +136,10 @@ class CommitInterceptorRegistry:
                 await interceptor.on_rollback(session, entities, error)
             except Exception as e:
                 # Log error but don't fail the rollback
-                import logging
-
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error in on_rollback interceptor: {e}")
+                logger.log_error_with_context(
+                    "Error in on_rollback interceptor",
+                    error=e
+                )
 
 
 # Global registry instance

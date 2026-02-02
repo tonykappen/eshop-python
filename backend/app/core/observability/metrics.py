@@ -1,9 +1,10 @@
 """Global OTEL/Prometheus metric registry."""
 
-import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class MetricsRegistry:
@@ -22,9 +23,9 @@ class MetricsRegistry:
         """
         if meter_provider:
             cls._meter_provider = meter_provider
-            logger.info("Meter provider initialized")
+            logger.log_with_context("Meter provider initialized")
         else:
-            logger.warning("No meter provider provided, using default")
+            logger.log_warning_with_context("No meter provider provided, using default")
 
     @classmethod
     def get_meter(cls, name: str) -> Any:
@@ -39,7 +40,7 @@ class MetricsRegistry:
         """
         if cls._meter_provider:
             return cls._meter_provider.get_meter(name)
-        logger.warning("Meter provider not initialized, returning None")
+        logger.log_warning_with_context("Meter provider not initialized, returning None")
         return None
 
     @classmethod
@@ -47,4 +48,4 @@ class MetricsRegistry:
         """Shutdown the meter provider."""
         if cls._meter_provider:
             # Shutdown logic would go here
-            logger.info("Meter provider shut down")
+            logger.log_with_context("Meter provider shut down")

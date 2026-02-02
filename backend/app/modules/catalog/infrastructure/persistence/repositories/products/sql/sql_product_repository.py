@@ -1,11 +1,11 @@
 """SQL implementation of IProductRepository."""
 
-import logging
 from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
@@ -13,7 +13,7 @@ from app.modules.catalog.domain.repositories.product.product_repository import (
 from app.modules.catalog.domain.value_objects import SKU, Money
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class SqlProductRepository(ProductRepository):
@@ -39,6 +39,14 @@ class SqlProductRepository(ProductRepository):
             Product if found, None otherwise
         """
         try:
+            logger.log_with_context(
+                "Querying database for product by ID",
+                context={
+                    "product_id": str(product_id),
+                    "source": "database",
+                    "operation": "get_by_id"
+                }
+            )
             stmt = select(ProductORM).where(
                 ProductORM.id == product_id, ProductORM.is_deleted == False
             )
@@ -46,11 +54,37 @@ class SqlProductRepository(ProductRepository):
             product_orm = result.scalar_one_or_none()
 
             if product_orm:
+                logger.log_with_context(
+                    "Product found in database",
+                    context={
+                        "product_id": str(product_id),
+                        "source": "database",
+                        "operation": "get_by_id",
+                        "found": True
+                    }
+                )
                 return self._orm_to_domain(product_orm)
+            logger.log_debug_with_context(
+                "Product not found in database",
+                context={
+                    "product_id": str(product_id),
+                    "source": "database",
+                    "operation": "get_by_id",
+                    "found": False
+                }
+            )
             return None
 
         except Exception as e:
-            logger.error(f"Error getting product by ID {product_id}: {e}")
+            logger.log_error_with_context(
+                f"Error getting product by ID {product_id}: {e}",
+                error=e,
+                context={
+                    "product_id": str(product_id),
+                    "source": "database",
+                    "operation": "get_by_id"
+                }
+            )
             raise
 
     async def get_deleted_by_id(self, product_id: UUID) -> Product | None:
@@ -143,6 +177,16 @@ class SqlProductRepository(ProductRepository):
             List of products, or tuple of (products, total_count) if pagination params provided
         """
         try:
+            logger.log_with_context(
+                "Querying database for products by category",
+                context={
+                    "category": category,
+                    "page": page,
+                    "page_size": page_size,
+                    "source": "database",
+                    "operation": "get_by_category"
+                }
+            )
             # If pagination params provided, use paginated version
             if page != 1 or page_size != 10:
                 from sqlalchemy import func
@@ -174,6 +218,18 @@ class SqlProductRepository(ProductRepository):
                 products = [
                     self._orm_to_domain(product_orm) for product_orm in products_orm
                 ]
+                logger.log_with_context(
+                    "Products by category retrieved from database",
+                    context={
+                        "category": category,
+                        "page": page,
+                        "page_size": page_size,
+                        "source": "database",
+                        "operation": "get_by_category",
+                        "product_count": len(products),
+                        "total_count": total_count
+                    }
+                )
                 return products, total_count
 
             # Non-paginated version (matches abstract interface)
@@ -184,10 +240,30 @@ class SqlProductRepository(ProductRepository):
             result = await self.session.execute(stmt)
             products_orm = result.scalars().all()
 
-            return [self._orm_to_domain(product_orm) for product_orm in products_orm]
+            products = [self._orm_to_domain(product_orm) for product_orm in products_orm]
+            logger.log_with_context(
+                "Products by category retrieved from database",
+                context={
+                    "category": category,
+                    "source": "database",
+                    "operation": "get_by_category",
+                    "product_count": len(products)
+                }
+            )
+            return products
 
         except Exception as e:
-            logger.error(f"Error getting products by category {category}: {e}")
+            logger.log_error_with_context(
+                f"Error getting products by category {category}: {e}",
+                error=e,
+                context={
+                    "category": category,
+                    "page": page,
+                    "page_size": page_size,
+                    "source": "database",
+                    "operation": "get_by_category"
+                }
+            )
             raise
 
     async def search_by_name(self, search_term: str) -> list[Product]:
@@ -482,8 +558,14 @@ class SqlProductRepository(ProductRepository):
         try:
             from sqlalchemy import func
 
-            logger.debug(
-                f"SqlProductRepository.get_all: page={page}, page_size={page_size}"
+            logger.log_with_context(
+                "Querying database for all products",
+                context={
+                    "page": page,
+                    "page_size": page_size,
+                    "source": "database",
+                    "operation": "get_all"
+                }
             )
 
             # Get total count
@@ -492,7 +574,6 @@ class SqlProductRepository(ProductRepository):
             )
             count_result = await self.session.execute(count_stmt)
             total_count = count_result.scalar() or 0
-            logger.debug(f"SqlProductRepository.get_all: total_count={total_count}")
 
             # Get paginated results
             offset = (page - 1) * page_size
@@ -506,9 +587,6 @@ class SqlProductRepository(ProductRepository):
 
             result = await self.session.execute(stmt)
             products_orm = result.scalars().all()
-            logger.debug(
-                f"SqlProductRepository.get_all: found {len(products_orm)} ORM products"
-            )
 
             products = []
             for product_orm in products_orm:
@@ -516,19 +594,41 @@ class SqlProductRepository(ProductRepository):
                     product = self._orm_to_domain(product_orm)
                     products.append(product)
                 except Exception as e:
-                    logger.error(
+                    logger.log_exception_detailed(
                         f"Error converting ORM to domain for product {product_orm.id}: {e}",
-                        exc_info=True,
+                        exception=e,
+                        context={
+                            "product_id": str(product_orm.id),
+                            "source": "database",
+                            "operation": "get_all"
+                        }
                     )
                     raise
 
-            logger.debug(
-                f"SqlProductRepository.get_all: converted {len(products)} domain products"
+            logger.log_with_context(
+                "Products retrieved from database",
+                context={
+                    "page": page,
+                    "page_size": page_size,
+                    "source": "database",
+                    "operation": "get_all",
+                    "product_count": len(products),
+                    "total_count": total_count
+                }
             )
             return products, total_count
 
         except Exception as e:
-            logger.error(f"Error getting all products: {e}", exc_info=True)
+            logger.log_exception_detailed(
+                f"Error getting all products: {e}",
+                exception=e,
+                context={
+                    "page": page,
+                    "page_size": page_size,
+                    "source": "database",
+                    "operation": "get_all"
+                }
+            )
             raise
 
     async def get_deleted_products(

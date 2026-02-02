@@ -1,10 +1,10 @@
 """Dependency injection wiring for catalog module."""
 
-import logging
 from typing import Any
 
 from fastapi import FastAPI
 
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.mediator import Mediator
 from app.core.context.application_context import RequestContext
 from app.modules.catalog.application.unit_of_work import ICatalogUnitOfWork
@@ -51,7 +51,7 @@ from app.modules.catalog.module_interface.di.products.products_providers import 
     get_catalog_session_maker,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 def wire_catalog_dependencies(app: FastAPI) -> None:
@@ -78,7 +78,7 @@ def wire_catalog_dependencies(app: FastAPI) -> None:
     # Subscribe domain events to integration events
     _subscribe_domain_events(container)
 
-    logger.info("Wired catalog dependencies to FastAPI app")
+    logger.log_with_context("Wired catalog dependencies to FastAPI app")
 
 
 def _register_core_services(container) -> None:
@@ -93,7 +93,7 @@ def _register_core_services(container) -> None:
     container.register_singleton(IMessageBus, get_catalog_message_bus())
     container.register_singleton(DomainEventDispatcher, get_catalog_dispatcher())
 
-    logger.debug("Registered core services")
+    logger.log_debug_with_context("Registered core services")
 
 
 def _register_repositories(container) -> None:
@@ -109,7 +109,7 @@ def _register_repositories(container) -> None:
         InventoryRepository, lambda: None
     )  # Will be resolved per request
 
-    logger.debug("Registered repository factories")
+    logger.log_debug_with_context("Registered repository factories")
 
 
 def _register_messaging_services(container) -> None:
@@ -122,7 +122,7 @@ def _register_messaging_services(container) -> None:
         IOutboxPublisher, lambda: None
     )  # Will be resolved per request
 
-    logger.debug("Registered messaging services")
+    logger.log_debug_with_context("Registered messaging services")
 
 
 def _register_application_services(container) -> None:
@@ -140,7 +140,7 @@ def _register_application_services(container) -> None:
         RequestContext, lambda: None
     )  # Will be resolved per request
 
-    logger.debug("Registered application services")
+    logger.log_debug_with_context("Registered application services")
 
 
 def _subscribe_domain_events(container) -> None:
@@ -205,7 +205,7 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
         }
     )
 
-    logger.info("Wired catalog dependencies to FastAPI with overrides")
+    logger.log_with_context("Wired catalog dependencies to FastAPI with overrides")
 
 
 def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
@@ -255,7 +255,7 @@ def register_catalog_handlers_with_mediator(mediator: Mediator) -> None:
     """
     # This would register all command and query handlers
     # For now, we'll just log the registration
-    logger.info("Registered catalog handlers with mediator")
+    logger.log_with_context("Registered catalog handlers with mediator")
 
 
 def subscribe_domain_events_to_integration_events(
@@ -284,11 +284,11 @@ def subscribe_domain_events_to_integration_events(
     # Register ProductDeletedDomainEvent handler
     product_deleted_handler = ProductDeletedDomainEventHandler()
     dispatcher.register_handler(ProductDeletedDomainEvent, product_deleted_handler)
-    logger.info("Registered ProductDeletedDomainEventHandler")
+    logger.log_with_context("Registered ProductDeletedDomainEventHandler")
 
     # Register ProductPriceChangedDomainEvent handler
     product_price_changed_handler = ProductPriceChangedDomainEventHandler()
     dispatcher.register_handler(ProductPriceChangedDomainEvent, product_price_changed_handler)
-    logger.info("Registered ProductPriceChangedDomainEventHandler")
+    logger.log_with_context("Registered ProductPriceChangedDomainEventHandler")
 
-    logger.info("Subscribed domain events to integration events")
+    logger.log_with_context("Subscribed domain events to integration events")

@@ -1,6 +1,6 @@
 """SQL-based implementation of ICatalogUnitOfWork."""
 
-import logging
+from app.core.logging.base_logger import BaseLogger
 from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +32,7 @@ from app.modules.catalog.infrastructure.persistence.repositories.products.sql im
 if TYPE_CHECKING:
     from types import TracebackType
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
@@ -107,8 +107,12 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
                     all_domain_events.extend(entity.domain_events)
 
             if all_domain_events:
-                logger.debug(
-                    f"Collected {len(all_domain_events)} domain events from {len(entities_with_events)} entities"
+                logger.log_debug_with_context(
+                    "Collected domain events from entities",
+                    context={
+                        "domain_event_count": len(all_domain_events),
+                        "entity_count": len(entities_with_events)
+                    }
                 )
 
             # Execute before commit hooks (outbox enqueuing happens here)
@@ -127,7 +131,10 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
                 self._session, entities_with_events
             )
 
-            logger.info(f"Successfully committed {len(entities_with_events)} entities")
+            logger.log_with_context(
+                "Successfully committed entities",
+                context={"entity_count": len(entities_with_events)}
+            )
 
         except Exception as e:
             # Execute rollback hooks
@@ -138,13 +145,16 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
             # Rollback the transaction
             await self._session.rollback()
 
-            logger.error(f"Transaction rolled back due to error: {e}")
+            logger.log_error_with_context(
+                "Transaction rolled back due to error",
+                error=e
+            )
             raise
 
     async def rollback(self) -> None:
         """Rollback the current transaction."""
         await self._session.rollback()
-        logger.info("Transaction rolled back")
+        logger.log_with_context("Transaction rolled back")
 
     async def __aenter__(self) -> "SqlCatalogUnitOfWork":
         """Async context manager entry."""

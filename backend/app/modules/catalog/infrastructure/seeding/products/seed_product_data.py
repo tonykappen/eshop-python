@@ -1,13 +1,13 @@
 """Initial seed data for catalog module."""
 
-import logging
 from decimal import Decimal
 from uuid import uuid4
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import Money
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CatalogInitialData:
@@ -179,7 +179,10 @@ class CatalogInitialData:
             ]
         )
 
-        logger.info(f"Generated {len(products)} initial products")
+        logger.log_with_context(
+            "Generated initial products",
+            context={"product_count": len(products)}
+        )
         return products
 
     @staticmethod

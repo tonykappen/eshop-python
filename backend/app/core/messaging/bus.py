@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import logging
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from typing import Any
@@ -13,7 +12,9 @@ try:
 except ImportError:
     aio_pika = None  # type: ignore[assignment]
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class IMessageBus(ABC):
@@ -91,9 +92,16 @@ class InMemoryMessageBus(IMessageBus):
                     else:
                         await handler(message)
                 except Exception as e:
-                    logger.error(f"Error in message handler: {e}")
+                    logger.log_error_with_context(
+                        "Error in message handler",
+                        error=e,
+                        context={"topic": topic}
+                    )
 
-        logger.debug(f"Published message to topic '{topic}': {message}")
+        logger.log_debug_with_context(
+            "Published message to topic",
+            context={"topic": topic, "message": str(message)}
+        )
 
     async def subscribe(self, topic: str, handler: Any) -> None:
         """
@@ -107,7 +115,10 @@ class InMemoryMessageBus(IMessageBus):
             self._subscribers[topic] = []
 
         self._subscribers[topic].append(handler)
-        logger.debug(f"Subscribed handler to topic '{topic}'")
+        logger.log_debug_with_context(
+            "Subscribed handler to topic",
+            context={"topic": topic}
+        )
 
     async def unsubscribe(self, topic: str, handler: Any) -> None:
         """
@@ -119,7 +130,10 @@ class InMemoryMessageBus(IMessageBus):
         """
         if topic in self._subscribers and handler in self._subscribers[topic]:
             self._subscribers[topic].remove(handler)
-            logger.debug(f"Unsubscribed handler from topic '{topic}'")
+            logger.log_debug_with_context(
+                "Unsubscribed handler from topic",
+                context={"topic": topic}
+            )
 
     def get_message_history(self) -> list[dict[str, Any]]:
         """
@@ -163,7 +177,9 @@ class RabbitMQMessageBus(IMessageBus):
         """
         # Only log if module-specific dependencies are provided
         if not outbox_orm_class or not get_session_maker:
-            logger.debug("Outbox logging skipped - module-specific dependencies not provided")
+            logger.log_debug_with_context(
+                "Outbox logging skipped - module-specific dependencies not provided"
+            )
             return
 
         try:
@@ -196,17 +212,22 @@ class RabbitMQMessageBus(IMessageBus):
                     session.add(outbox_record)
                     await session.commit()
 
-                    logger.debug(
-                        f"Logged RabbitMQ connection event to outbox: {status}"
+                    logger.log_debug_with_context(
+                        "Logged RabbitMQ connection event to outbox",
+                        context={"status": status}
                     )
                 except Exception as e:
                     await session.rollback()
-                    logger.warning(
-                        f"Failed to log RabbitMQ connection event to outbox: {e}"
+                    logger.log_warning_with_context(
+                        "Failed to log RabbitMQ connection event to outbox",
+                        context={"error": str(e), "status": status}
                     )
         except Exception as e:
             # Don't fail connection if logging fails
-            logger.debug(f"Could not log connection event to outbox: {e}")
+            logger.log_debug_with_context(
+                "Could not log connection event to outbox",
+                context={"error": str(e)}
+            )
 
     async def connect(self, outbox_orm_class: Any = None, get_session_maker: Any = None) -> None:
         """
@@ -222,14 +243,17 @@ class RabbitMQMessageBus(IMessageBus):
             self._connection = await aio_pika.connect_robust(self.connection_string)
             self._channel = await self._connection.channel()
 
-            logger.info("Connected to RabbitMQ")
+            logger.log_with_context("Connected to RabbitMQ")
             # Log connection event to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
                     self._log_connection_event("connected", None, outbox_orm_class, get_session_maker)
                 )
         except Exception as e:
-            logger.error(f"Failed to connect to RabbitMQ: {e}")
+            logger.log_error_with_context(
+                "Failed to connect to RabbitMQ",
+                error=e
+            )
             # Log connection failure to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
@@ -247,7 +271,7 @@ class RabbitMQMessageBus(IMessageBus):
         """
         if self._connection:
             await self._connection.close()
-            logger.info("Disconnected from RabbitMQ")
+            logger.log_with_context("Disconnected from RabbitMQ")
             # Log disconnection event to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
@@ -291,30 +315,46 @@ class RabbitMQMessageBus(IMessageBus):
                     exchange_obj = await self._channel.declare_exchange(
                         exchange, aio_pika.ExchangeType.DIRECT, passive=True
                     )
-                    logger.debug(f"Using existing exchange '{exchange}'")
+                    logger.log_debug_with_context(
+                        "Using existing exchange",
+                        context={"exchange": exchange}
+                    )
                 except Exception:
                     # Exchange doesn't exist, declare it as DIRECT to match CatalogEventPublisher
                     # DIRECT exchange matches FastStream's default behavior
                     exchange_obj = await self._channel.declare_exchange(
                         exchange, aio_pika.ExchangeType.DIRECT, durable=False
                     )
-                    logger.debug(f"Declared new exchange '{exchange}' as DIRECT")
+                    logger.log_debug_with_context(
+                        "Declared new exchange as DIRECT",
+                        context={"exchange": exchange}
+                    )
                 
                 await exchange_obj.publish(
                     aio_pika.Message(message_json.encode()),
                     routing_key=topic,
                 )
-                logger.debug(f"Published message to RabbitMQ exchange '{exchange}' with routing key '{topic}': {message}")
+                logger.log_debug_with_context(
+                    "Published message to RabbitMQ exchange",
+                    context={"exchange": exchange, "topic": topic, "message": str(message)}
+                )
             else:
                 # Use default exchange
                 await self._channel.default_exchange.publish(
                     aio_pika.Message(message_json.encode()),
                     routing_key=topic,
                 )
-                logger.debug(f"Published message to RabbitMQ topic '{topic}': {message}")
+                logger.log_debug_with_context(
+                    "Published message to RabbitMQ topic",
+                    context={"topic": topic, "message": str(message)}
+                )
 
         except Exception as e:
-            logger.error(f"Error publishing message to RabbitMQ: {e}")
+            logger.log_error_with_context(
+                "Error publishing message to RabbitMQ",
+                error=e,
+                context={"topic": topic, "exchange": exchange}
+            )
             raise
 
     async def subscribe(self, topic: str, handler: Any) -> None:
@@ -343,13 +383,24 @@ class RabbitMQMessageBus(IMessageBus):
                         message_data = json.loads(message.body.decode())
                         await handler(message_data)
                     except Exception as e:
-                        logger.error(f"Error processing message: {e}")
+                        logger.log_error_with_context(
+                            "Error processing message",
+                            error=e,
+                            context={"topic": topic}
+                        )
 
             await queue.consume(message_handler)
-            logger.debug(f"Subscribed to RabbitMQ topic '{topic}'")
+            logger.log_debug_with_context(
+                "Subscribed to RabbitMQ topic",
+                context={"topic": topic}
+            )
 
         except Exception as e:
-            logger.error(f"Error subscribing to RabbitMQ topic: {e}")
+            logger.log_error_with_context(
+                "Error subscribing to RabbitMQ topic",
+                error=e,
+                context={"topic": topic}
+            )
             raise
 
     async def unsubscribe(self, topic: str, handler: Any) -> None:
@@ -362,4 +413,4 @@ class RabbitMQMessageBus(IMessageBus):
         """
         # RabbitMQ doesn't support direct unsubscribe
         # This would need to be implemented with consumer tags
-        logger.warning("RabbitMQ unsubscribe not implemented")
+        logger.log_warning_with_context("RabbitMQ unsubscribe not implemented")

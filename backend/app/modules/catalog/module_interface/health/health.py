@@ -1,17 +1,17 @@
 """Health check endpoints for catalog module."""
 
-import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.module_interface.di.products.products_providers import (
     get_catalog_session,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 # Create router for health endpoints
 health_router = APIRouter()
@@ -55,7 +55,10 @@ async def readiness_check(
         }
 
     except Exception as e:
-        logger.error(f"Readiness check failed: {e}")
+        logger.log_error_with_context(
+            "Readiness check failed",
+            error=e
+        )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service not ready: {str(e)}",
@@ -97,7 +100,10 @@ async def _check_required_tables(session: AsyncSession) -> dict[str, str]:
             await session.execute(text(f"SELECT 1 FROM {table} LIMIT 1"))
             results[table] = "exists"
         except Exception as e:
-            logger.warning(f"Table {table} check failed: {e}")
+            logger.log_warning_with_context(
+                "Table check failed",
+                context={"table": table, "error": str(e)}
+            )
             results[table] = "missing"
 
     return results
@@ -147,7 +153,10 @@ async def detailed_health_check(
         }
 
     except Exception as e:
-        logger.error(f"Detailed health check failed: {e}")
+        logger.log_error_with_context(
+            "Detailed health check failed",
+            error=e
+        )
         return {
             "status": "unhealthy",
             "service": "catalog",
@@ -185,5 +194,8 @@ async def _check_database_health(session: AsyncSession) -> dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"Database health check failed: {e}")
+        logger.log_error_with_context(
+            "Database health check failed",
+            error=e
+        )
         return {"status": "unhealthy", "connectivity": "failed", "error": str(e)}

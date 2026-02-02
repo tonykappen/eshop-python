@@ -1,8 +1,8 @@
 """Redis + JSON decorator for product repo."""
 
-import logging
 from uuid import UUID
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.application.services.catalog_cache_patterns import (
     CatalogCachePatterns,
 )
@@ -14,7 +14,7 @@ from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CachedProductRepository(ProductRepository):
@@ -49,19 +49,60 @@ class CachedProductRepository(ProductRepository):
 
         if cached_data:
             try:
+                logger.log_with_context(
+                    "Cache hit: Product retrieved from cache",
+                    context={
+                        "product_id": str(product_id),
+                        "cache_key": cache_key,
+                        "cache_status": "hit",
+                        "source": "cache"
+                    }
+                )
                 return self._deserialize_product(cached_data)
             except Exception as e:
-                logger.warning(
-                    f"Failed to deserialize cached product {product_id}: {e}"
+                logger.log_warning_with_context(
+                    f"Failed to deserialize cached product {product_id}: {e}",
+                    context={
+                        "product_id": str(product_id),
+                        "cache_key": cache_key,
+                        "cache_status": "deserialization_error"
+                    }
                 )
 
         # Cache miss - get from repository
+        logger.log_with_context(
+            "Cache miss: Product not found in cache, querying database",
+            context={
+                "product_id": str(product_id),
+                "cache_key": cache_key,
+                "cache_status": "miss",
+                "source": "database"
+            }
+        )
         product = await self._repository.get_by_id(product_id)
 
         if product:
             # Cache the result
             await self._cache.set_product(
                 product_id, self._serialize_product(product), self._default_ttl
+            )
+            logger.log_with_context(
+                "Product cached after database retrieval",
+                context={
+                    "product_id": str(product_id),
+                    "cache_key": cache_key,
+                    "cache_status": "stored",
+                    "ttl": self._default_ttl
+                }
+            )
+        else:
+            logger.log_debug_with_context(
+                "Product not found in database, nothing to cache",
+                context={
+                    "product_id": str(product_id),
+                    "cache_key": cache_key,
+                    "cache_status": "not_found"
+                }
             )
 
         return product
@@ -90,13 +131,47 @@ class CachedProductRepository(ProductRepository):
                     self._deserialize_product(p)
                     for p in cached_data.get("products", [])
                 ]
+                total_count = cached_data.get("total_count", len(products))
+                logger.log_with_context(
+                    "Cache hit: Products by category retrieved from cache",
+                    context={
+                        "category": category,
+                        "page": page,
+                        "page_size": page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "hit",
+                        "source": "cache",
+                        "product_count": len(products),
+                        "total_count": total_count
+                    }
+                )
                 if "total_count" in cached_data:
                     return products, cached_data["total_count"]
                 return products
             except Exception as e:
-                logger.warning(f"Failed to deserialize cached product list: {e}")
+                logger.log_warning_with_context(
+                    f"Failed to deserialize cached product list: {e}",
+                    context={
+                        "category": category,
+                        "page": page,
+                        "page_size": page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "deserialization_error"
+                    }
+                )
 
         # Cache miss - get from repository
+        logger.log_with_context(
+            "Cache miss: Products by category not found in cache, querying database",
+            context={
+                "category": category,
+                "page": page,
+                "page_size": page_size,
+                "cache_key": cache_key,
+                "cache_status": "miss",
+                "source": "database"
+            }
+        )
         result = await self._repository.get_by_category(category, page, page_size)
 
         if isinstance(result, tuple):
@@ -112,6 +187,19 @@ class CachedProductRepository(ProductRepository):
                 {"category": category},
                 self._default_ttl,
             )
+            logger.log_with_context(
+                "Products by category cached after database retrieval",
+                context={
+                    "category": category,
+                    "page": page,
+                    "page_size": page_size,
+                    "cache_key": cache_key,
+                    "cache_status": "stored",
+                    "ttl": self._default_ttl,
+                    "product_count": len(products),
+                    "total_count": total_count
+                }
+            )
             return products, total_count
         else:
             # Cache the result
@@ -121,6 +209,18 @@ class CachedProductRepository(ProductRepository):
                 {"products": [self._serialize_product(p) for p in result]},
                 {"category": category},
                 self._default_ttl,
+            )
+            logger.log_with_context(
+                "Products by category cached after database retrieval",
+                context={
+                    "category": category,
+                    "page": page,
+                    "page_size": page_size,
+                    "cache_key": cache_key,
+                    "cache_status": "stored",
+                    "ttl": self._default_ttl,
+                    "product_count": len(result)
+                }
             )
             return result
 
@@ -148,6 +248,7 @@ class CachedProductRepository(ProductRepository):
             actual_page_size = page_size
 
         # Try cache first
+        cache_key = self._cache_patterns.product_list_key(None, actual_page, actual_page_size)
         cached_data = await self._cache.get_products_list(actual_page, actual_page_size, None)
 
         if cached_data:
@@ -157,11 +258,41 @@ class CachedProductRepository(ProductRepository):
                     for p in cached_data.get("products", [])
                 ]
                 total_count = cached_data.get("total_count", len(products))
+                logger.log_with_context(
+                    "Cache hit: Products list retrieved from cache",
+                    context={
+                        "page": actual_page,
+                        "page_size": actual_page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "hit",
+                        "source": "cache",
+                        "product_count": len(products),
+                        "total_count": total_count
+                    }
+                )
                 return products, total_count
             except Exception as e:
-                logger.warning(f"Failed to deserialize cached product list: {e}")
+                logger.log_warning_with_context(
+                    f"Failed to deserialize cached product list: {e}",
+                    context={
+                        "page": actual_page,
+                        "page_size": actual_page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "deserialization_error"
+                    }
+                )
 
         # Cache miss - get from repository
+        logger.log_with_context(
+            "Cache miss: Products list not found in cache, querying database",
+            context={
+                "page": actual_page,
+                "page_size": actual_page_size,
+                "cache_key": cache_key,
+                "cache_status": "miss",
+                "source": "database"
+            }
+        )
         # SqlProductRepository.get_all() takes page/page_size and returns tuple[list[Product], int]
         result = await self._repository.get_all(actual_page, actual_page_size)
         
@@ -180,6 +311,18 @@ class CachedProductRepository(ProductRepository):
             {"products": [self._serialize_product(p) for p in products], "total_count": total_count},
             None,
             self._default_ttl,
+        )
+        logger.log_with_context(
+            "Products list cached after database retrieval",
+            context={
+                "page": actual_page,
+                "page_size": actual_page_size,
+                "cache_key": cache_key,
+                "cache_status": "stored",
+                "ttl": self._default_ttl,
+                "product_count": len(products),
+                "total_count": total_count
+            }
         )
 
         return products, total_count

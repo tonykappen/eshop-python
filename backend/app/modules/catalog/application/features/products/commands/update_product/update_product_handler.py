@@ -1,8 +1,7 @@
 """UpdateProductHandler with 1-1 parity to .NET implementation."""
 
-
-
 from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.entities.product.product import Product
@@ -23,6 +22,8 @@ from app.modules.catalog.infrastructure.persistence.repositories.products.sql im
 )
 
 from .update_product_command import UpdateProductCommand, UpdateProductResult
+
+logger = BaseLogger(__name__)
 
 
 class UpdateProductCommandValidator:
@@ -118,12 +119,26 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 self._update_product_with_new_values(product, command)
                 
                 # Log if price changed and domain event was raised
-                import logging
-                logger = logging.getLogger(__name__)
+                domain_event_count = len(product.domain_events) if hasattr(product, 'domain_events') else 0
                 if old_price != product.price:
-                    logger.info(f"Price changed from {old_price} to {product.price}, domain events: {len(product.domain_events) if hasattr(product, 'domain_events') else 0}")
+                    logger.log_with_context(
+                        "Price changed",
+                        context={
+                            "product_id": str(command.id),
+                            "old_price": str(old_price),
+                            "new_price": str(product.price),
+                            "domain_event_count": domain_event_count
+                        }
+                    )
                 else:
-                    logger.info(f"Price unchanged: {product.price}, domain events: {len(product.domain_events) if hasattr(product, 'domain_events') else 0}")
+                    logger.log_with_context(
+                        "Price unchanged",
+                        context={
+                            "product_id": str(command.id),
+                            "price": str(product.price),
+                            "domain_event_count": domain_event_count
+                        }
+                    )
 
                 # Track entity in UoW for interceptors BEFORE repository.update()
                 # (repository.update() returns a new entity without domain events)
@@ -149,11 +164,24 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                             if hasattr(event_copy, 'product'):
                                 event_copy.product = updated_product
                             updated_product.domain_events.append(event_copy)
-                        logger.info(f"Copied {len(updated_product.domain_events)} domain events to updated entity: {[type(e).__name__ for e in updated_product.domain_events]}")
+                        logger.log_with_context(
+                            "Copied domain events to updated entity",
+                            context={
+                                "product_id": str(command.id),
+                                "event_count": len(updated_product.domain_events),
+                                "event_types": [type(e).__name__ for e in updated_product.domain_events]
+                            }
+                        )
                     # Update the tracked entity - use updated_product with preserved events
                     uow._entities = [updated_product if e is product else e for e in uow._entities]
                 else:
-                    logger.warning(f"No domain events to copy. Original had events: {hasattr(product, 'domain_events') and bool(product.domain_events) if hasattr(product, 'domain_events') else False}")
+                    logger.log_warning_with_context(
+                        "No domain events to copy",
+                        context={
+                            "product_id": str(command.id),
+                            "original_had_events": hasattr(product, 'domain_events') and bool(product.domain_events) if hasattr(product, 'domain_events') else False
+                        }
+                    )
 
                 # Commit via UoW (calls interceptors)
                 await uow.commit()

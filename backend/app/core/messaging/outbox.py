@@ -5,7 +5,6 @@ New code should use app.core.messaging.outbox instead.
 The core outbox provides the same functionality with better separation of concerns.
 """
 
-import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
@@ -14,7 +13,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class OutboxMessageStatus(str, Enum):
@@ -150,7 +151,10 @@ class OutboxWriter(IOutboxWriter):
         try:
             # In a real implementation, this would save to database
             # For now, we'll just log it
-            logger.info(f"Writing outbox message: {message.id}")
+            logger.log_with_context(
+                "Writing outbox message",
+                context={"message_id": str(message.id)}
+            )
 
             # This would be something like:
             # outbox_record = OutboxORM(
@@ -166,7 +170,11 @@ class OutboxWriter(IOutboxWriter):
             # self.session.add(outbox_record)
 
         except Exception as e:
-            logger.error(f"Error writing outbox message: {e}")
+            logger.log_error_with_context(
+                "Error writing outbox message",
+                error=e,
+                context={"message_id": str(message.id)}
+            )
             raise
 
     async def mark_as_processing(self, message_id: UUID) -> None:
@@ -176,7 +184,10 @@ class OutboxWriter(IOutboxWriter):
         Args:
             message_id: Message ID
         """
-        logger.info(f"Marking outbox message as processing: {message_id}")
+        logger.log_with_context(
+            "Marking outbox message as processing",
+            context={"message_id": str(message_id)}
+        )
         # Implementation would update database record
 
     async def mark_as_published(self, message_id: UUID) -> None:
@@ -186,7 +197,10 @@ class OutboxWriter(IOutboxWriter):
         Args:
             message_id: Message ID
         """
-        logger.info(f"Marking outbox message as published: {message_id}")
+        logger.log_with_context(
+            "Marking outbox message as published",
+            context={"message_id": str(message_id)}
+        )
         # Implementation would update database record
 
     async def mark_as_failed(self, message_id: UUID, error_message: str) -> None:
@@ -197,8 +211,9 @@ class OutboxWriter(IOutboxWriter):
             message_id: Message ID
             error_message: Error message
         """
-        logger.error(
-            f"Marking outbox message as failed: {message_id}, error: {error_message}"
+        logger.log_error_with_context(
+            "Marking outbox message as failed",
+            context={"message_id": str(message_id), "error_message": error_message}
         )
         # Implementation would update database record
 
@@ -222,7 +237,7 @@ class OutboxPublisher(IOutboxPublisher):
         try:
             # In a real implementation, this would query the database for pending messages
             # For now, we'll just log it
-            logger.info("Publishing pending outbox messages")
+            logger.log_with_context("Publishing pending outbox messages")
 
             # This would be something like:
             # pending_messages = await self.session.query(OutboxORM).filter(
@@ -243,7 +258,10 @@ class OutboxPublisher(IOutboxPublisher):
             #     await self.publish_message(message)
 
         except Exception as e:
-            logger.error(f"Error publishing pending messages: {e}")
+            logger.log_error_with_context(
+                "Error publishing pending messages",
+                error=e
+            )
             raise
 
     async def publish_message(self, message: OutboxMessage) -> None:
@@ -272,10 +290,17 @@ class OutboxPublisher(IOutboxPublisher):
             # Mark as published
             await self.outbox_writer.mark_as_published(message.id)
 
-            logger.info(f"Successfully published outbox message: {message.id}")
+            logger.log_with_context(
+                "Successfully published outbox message",
+                context={"message_id": str(message.id)}
+            )
 
         except Exception as e:
             # Mark as failed
             await self.outbox_writer.mark_as_failed(message.id, str(e))
-            logger.error(f"Failed to publish outbox message {message.id}: {e}")
+            logger.log_error_with_context(
+                "Failed to publish outbox message",
+                error=e,
+                context={"message_id": str(message.id)}
+            )
             raise

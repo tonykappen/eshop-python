@@ -1,10 +1,9 @@
 """DeleteProductHandler with 1-1 parity to .NET implementation."""
 
-import logging
-
 from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.exceptions.product import (
@@ -130,7 +129,10 @@ class DeleteProductHandler(IRequestHandler[DeleteProductCommand, DeleteProductRe
                 # The entity in uow._entities will be processed by interceptors
                 await uow.commit()
 
-                logger.info(f"Product {command.product_id} soft-deleted successfully.")
+                logger.log_with_context(
+                    "Product soft-deleted successfully",
+                    context={"product_id": str(command.product_id)}
+                )
                 return DeleteProductResult(is_success=True)
             except Exception as e:
                 await uow.rollback()

@@ -1,13 +1,13 @@
 """Generic commit interceptor implementations."""
 
-import logging
 from typing import Any
 
 from app.core.context.application_context import RequestContext
 from app.core.database.session import AsyncSession
+from app.core.logging.base_logger import BaseLogger
 from app.core.transactions.commit_interceptors import ICommitInterceptor
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class AuditStampInterceptor(ICommitInterceptor):
@@ -59,7 +59,10 @@ class AuditStampInterceptor(ICommitInterceptor):
             session: Database session
             entities: List of entities that were committed
         """
-        logger.info(f"Audit stamps applied to {len(entities)} entities")
+        logger.log_with_context(
+            "Audit stamps applied to entities",
+            context={"entity_count": len(entities)}
+        )
 
     async def on_rollback(
         self, session: AsyncSession, entities: list[Any], error: Exception
@@ -72,8 +75,9 @@ class AuditStampInterceptor(ICommitInterceptor):
             entities: List of entities that were rolled back
             error: Exception that caused the rollback
         """
-        logger.warning(
-            f"Rollback occurred, audit stamps not applied to {len(entities)} entities: {error}"
+        logger.log_warning_with_context(
+            "Rollback occurred, audit stamps not applied",
+            context={"entity_count": len(entities), "error": str(error)}
         )
 
 
@@ -118,9 +122,15 @@ class CacheInvalidationInterceptor(ICommitInterceptor):
                     cache_key = f"entity:{type(entity).__name__}:{entity.id}"
                     await self.cache_service.invalidate(cache_key)
 
-            logger.info(f"Cache invalidated for {len(entities)} entities")
+            logger.log_with_context(
+                "Cache invalidated for entities",
+                context={"entity_count": len(entities)}
+            )
         except Exception as e:
-            logger.error(f"Error invalidating cache: {e}")
+            logger.log_error_with_context(
+                "Error invalidating cache",
+                error=e
+            )
 
     async def on_rollback(
         self, session: AsyncSession, entities: list[Any], error: Exception
@@ -133,6 +143,7 @@ class CacheInvalidationInterceptor(ICommitInterceptor):
             entities: List of entities that were rolled back
             error: Exception that caused the rollback
         """
-        logger.info(
-            f"Rollback occurred, cache not invalidated for {len(entities)} entities"
+        logger.log_with_context(
+            "Rollback occurred, cache not invalidated",
+            context={"entity_count": len(entities)}
         )

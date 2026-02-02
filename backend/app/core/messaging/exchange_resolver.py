@@ -5,9 +5,10 @@ Supports configuration via environment variables and provides sensible defaults.
 """
 
 import json
-import logging
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 def get_exchange_for_event_type(event_type: str | None) -> str | None:
@@ -42,23 +43,35 @@ def get_exchange_for_event_type(event_type: str | None) -> str | None:
         # Check exact match first
         if event_type in custom_mappings:
             exchange = custom_mappings[event_type]
-            logger.debug(f"Found custom exchange mapping for {event_type}: {exchange}")
+            logger.log_debug_with_context(
+                "Found custom exchange mapping",
+                context={"event_type": event_type, "exchange": exchange}
+            )
             return exchange
 
         # Check prefix patterns (e.g., "product.*" -> "catalog.events")
         for pattern, exchange in custom_mappings.items():
             if pattern.endswith(".*") and event_type.startswith(pattern[:-2]):
-                logger.debug(f"Found custom pattern mapping {pattern} for {event_type}: {exchange}")
+                logger.log_debug_with_context(
+                    "Found custom pattern mapping",
+                    context={"pattern": pattern, "event_type": event_type, "exchange": exchange}
+                )
                 return exchange
 
     # 2. Check default module-based mappings
     default_exchange = _get_default_exchange_for_event_type(event_type)
     if default_exchange:
-        logger.debug(f"Using default exchange mapping for {event_type}: {default_exchange}")
+        logger.log_debug_with_context(
+            "Using default exchange mapping",
+            context={"event_type": event_type, "exchange": default_exchange}
+        )
         return default_exchange
 
     # 3. No mapping found, use default exchange
-    logger.debug(f"No exchange mapping found for {event_type}, using default exchange")
+    logger.log_debug_with_context(
+        "No exchange mapping found, using default exchange",
+        context={"event_type": event_type}
+    )
     return None
 
 
@@ -82,13 +95,19 @@ def _get_custom_exchange_mappings() -> dict[str, str]:
             if isinstance(mappings, dict):
                 return mappings
             else:
-                logger.warning(
+                logger.log_warning_with_context(
                     "EVENT_EXCHANGE_MAPPINGS must be a JSON object, ignoring invalid value"
                 )
     except json.JSONDecodeError as e:
-        logger.warning(f"Failed to parse EVENT_EXCHANGE_MAPPINGS: {e}")
+        logger.log_warning_with_context(
+            "Failed to parse EVENT_EXCHANGE_MAPPINGS",
+            context={"error": str(e)}
+        )
     except Exception as e:
-        logger.debug(f"Could not load custom exchange mappings: {e}")
+        logger.log_debug_with_context(
+            "Could not load custom exchange mappings",
+            context={"error": str(e)}
+        )
 
     return {}
 

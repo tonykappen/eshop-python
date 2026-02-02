@@ -1,11 +1,11 @@
 """In-memory domain event dispatcher."""
 
-import logging
 from collections.abc import Callable
 
 from app.core.domain.events import DomainEvent
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class DomainEventDispatcher:
@@ -29,7 +29,10 @@ class DomainEventDispatcher:
             self._handlers[event_type] = []
 
         self._handlers[event_type].append(handler)
-        logger.debug(f"Registered handler for event type: {event_type.__name__}")
+        logger.log_debug_with_context(
+            "Registered handler for event type",
+            context={"event_type": event_type.__name__}
+        )
 
     def unregister_handler(
         self, event_type: type[DomainEvent], handler: Callable
@@ -43,7 +46,10 @@ class DomainEventDispatcher:
         """
         if event_type in self._handlers and handler in self._handlers[event_type]:
             self._handlers[event_type].remove(handler)
-            logger.debug(f"Unregistered handler for event type: {event_type.__name__}")
+            logger.log_debug_with_context(
+                "Unregistered handler for event type",
+                context={"event_type": event_type.__name__}
+            )
 
     async def dispatch(self, event: DomainEvent) -> None:
         """
@@ -55,14 +61,16 @@ class DomainEventDispatcher:
         event_type = type(event)
 
         if event_type not in self._handlers:
-            logger.debug(
-                f"No handlers registered for event type: {event_type.__name__}"
+            logger.log_debug_with_context(
+                "No handlers registered for event type",
+                context={"event_type": event_type.__name__}
             )
             return
 
         handlers = self._handlers[event_type]
-        logger.debug(
-            f"Dispatching event {event_type.__name__} to {len(handlers)} handlers"
+        logger.log_debug_with_context(
+            "Dispatching event to handlers",
+            context={"event_type": event_type.__name__, "handler_count": len(handlers)}
         )
 
         for handler in handlers:
@@ -72,7 +80,11 @@ class DomainEventDispatcher:
                 else:
                     await handler(event)
             except Exception as e:
-                logger.error(f"Error in domain event handler: {e}")
+                logger.log_error_with_context(
+                    "Error in domain event handler",
+                    error=e,
+                    context={"event_type": event_type.__name__}
+                )
                 # Continue with other handlers even if one fails
 
     async def dispatch_all(self, events: list[DomainEvent]) -> None:
@@ -109,7 +121,7 @@ class DomainEventDispatcher:
     def clear_handlers(self) -> None:
         """Clear all registered handlers."""
         self._handlers.clear()
-        logger.info("Cleared all domain event handlers")
+        logger.log_with_context("Cleared all domain event handlers")
 
 
 # Global dispatcher instance

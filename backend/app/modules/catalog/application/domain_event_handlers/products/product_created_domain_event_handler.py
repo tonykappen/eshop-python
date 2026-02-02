@@ -1,13 +1,12 @@
 """Internal handler for ProductCreatedDomainEvent (metrics, cache warm-up)."""
 
-import logging
-
 from app.core.domain.events import DomainEventHandler
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.domain_events.products.product_created_domain_event import (
     ProductCreatedDomainEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductCreatedDomainEventHandler(DomainEventHandler[ProductCreatedDomainEvent]):
@@ -20,8 +19,9 @@ class ProductCreatedDomainEventHandler(DomainEventHandler[ProductCreatedDomainEv
         Args:
             event: The product created domain event
         """
-        logger.info(
-            f"Processing internal reactions for product created: {event.product_id}"
+        logger.log_with_context(
+            "Processing internal reactions for product created",
+            context={"product_id": str(event.product_id)}
         )
 
         # Internal reactions (no integration event):
@@ -36,9 +36,16 @@ class ProductCreatedDomainEventHandler(DomainEventHandler[ProductCreatedDomainEv
             # Warm up cache
             # await self._warm_up_cache(event)
 
-            logger.info(f"Internal reactions completed for product {event.product_id}")
+            logger.log_with_context(
+                "Internal reactions completed for product",
+                context={"product_id": str(event.product_id)}
+            )
         except Exception as e:
-            logger.error(f"Error in internal reactions for product created: {e}")
+            logger.log_error_with_context(
+                "Error in internal reactions for product created",
+                error=e,
+                context={"product_id": str(event.product_id)}
+            )
 
     async def _update_metrics(self, event: ProductCreatedDomainEvent) -> None:
         """Update metrics for product creation."""

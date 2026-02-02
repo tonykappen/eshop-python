@@ -1,8 +1,8 @@
 """Outbox enqueuer for ProductDeleted integration event (reliable delivery)."""
 
-import logging
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox.outbox_service import IOutboxService
 from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import (
     ProductDeletedIntegrationEvent,
@@ -11,7 +11,7 @@ from app.modules.catalog.domain.domain_events.products.product_deleted_domain_ev
     ProductDeletedDomainEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductDeletedOutboxEnqueuer:
@@ -35,8 +35,9 @@ class ProductDeletedOutboxEnqueuer:
         Args:
             domain_event: Product deleted domain event
         """
-        logger.info(
-            f"Enqueuing product deleted integration event to outbox for product {domain_event.product_id}"
+        logger.log_with_context(
+            "Enqueuing product deleted integration event to outbox",
+            context={"product_id": str(domain_event.product_id)}
         )
 
         try:
@@ -57,14 +58,15 @@ class ProductDeletedOutboxEnqueuer:
             # Write to outbox (inside transaction)
             await self.outbox_service.write_integration_event(integration_event)
 
-            logger.info(
-                f"Successfully enqueued product deleted integration event to outbox: {integration_event.event_id}"
+            logger.log_with_context(
+                "Successfully enqueued product deleted integration event to outbox",
+                context={"event_id": str(integration_event.event_id)}
             )
 
         except Exception as e:
-            logger.error(
-                f"Error enqueuing product deleted integration event to outbox: {e}",
-                exc_info=True,
+            logger.log_exception_detailed(
+                "Error enqueuing product deleted integration event to outbox",
+                exception=e
             )
             # Re-raise to ensure transaction rollback on failure
             raise

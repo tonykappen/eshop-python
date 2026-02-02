@@ -5,9 +5,9 @@ It's kept in core/messaging for organizational purposes but contains
 module-specific logic that may need to be refactored in the future.
 """
 
-import logging
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.application.domain_event_handlers.category.category_created_domain_event_handler import (
     CategoryCreatedDomainEventHandler,
 )
@@ -29,7 +29,7 @@ from app.core.messaging.domain_dispatcher import (
     domain_event_dispatcher,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class DomainEventSubscriptions:
@@ -47,7 +47,7 @@ class DomainEventSubscriptions:
 
     def _setup_subscriptions(self) -> None:
         """Set up domain event subscriptions."""
-        logger.info("Setting up domain event subscriptions")
+        logger.log_with_context("Setting up domain event subscriptions")
 
         # Product domain events
         self._setup_product_subscriptions()
@@ -58,7 +58,7 @@ class DomainEventSubscriptions:
         # Inventory domain events
         self._setup_inventory_subscriptions()
 
-        logger.info("Domain event subscriptions set up successfully")
+        logger.log_with_context("Domain event subscriptions set up successfully")
 
     def _setup_product_subscriptions(self) -> None:
         """Set up product domain event subscriptions."""
@@ -94,7 +94,7 @@ class DomainEventSubscriptions:
                 ProductPriceChangedDomainEvent, product_price_changed_bus_handler.handle
             )
 
-        logger.debug("Product domain event subscriptions set up")
+        logger.log_debug_with_context("Product domain event subscriptions set up")
 
     def _setup_category_subscriptions(self) -> None:
         """Set up category domain event subscriptions."""
@@ -108,7 +108,7 @@ class DomainEventSubscriptions:
             CategoryCreatedDomainEvent, category_created_handler
         )
 
-        logger.debug("Category domain event subscriptions set up")
+        logger.log_debug_with_context("Category domain event subscriptions set up")
 
     def _setup_inventory_subscriptions(self) -> None:
         """Set up inventory domain event subscriptions."""
@@ -131,7 +131,7 @@ class DomainEventSubscriptions:
                 StockAdjustedDomainEvent, stock_adjusted_integration_handler.handle
             )
 
-        logger.debug("Inventory domain event subscriptions set up")
+        logger.log_debug_with_context("Inventory domain event subscriptions set up")
 
     def get_subscription_summary(self) -> dict:
         """
@@ -160,4 +160,4 @@ class DomainEventSubscriptions:
     def clear_subscriptions(self) -> None:
         """Clear all subscriptions."""
         domain_event_dispatcher.clear_handlers()
-        logger.info("All domain event subscriptions cleared")
+        logger.log_with_context("All domain event subscriptions cleared")

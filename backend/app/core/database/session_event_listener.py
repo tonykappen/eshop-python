@@ -1,14 +1,14 @@
 """SQLAlchemy event listeners for session commits."""
 
-import logging
 from typing import Any
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.core.transactions.commit_interceptors import commit_interceptor_registry
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 def register_session_event_listeners() -> None:
@@ -41,7 +41,10 @@ def register_session_event_listeners() -> None:
             session.info["entities"].extend(entities)
             
         except Exception as e:
-            logger.warning(f"Error in before_flush listener: {e}")
+            logger.log_warning_with_context(
+                "Error in before_flush listener",
+                context={"error": str(e)}
+            )
 
     @event.listens_for(AsyncSession, "before_commit")
     async def before_commit_listener(session: AsyncSession) -> None:
@@ -56,7 +59,10 @@ def register_session_event_listeners() -> None:
             entities = session.info.get("entities", [])
             await commit_interceptor_registry.execute_before_commit(session, entities)
         except Exception as e:
-            logger.error(f"Error in before_commit listener: {e}")
+            logger.log_error_with_context(
+                "Error in before_commit listener",
+                error=e
+            )
 
     @event.listens_for(AsyncSession, "after_commit")
     async def after_commit_listener(session: AsyncSession) -> None:
@@ -71,7 +77,10 @@ def register_session_event_listeners() -> None:
             entities = session.info.get("entities", [])
             await commit_interceptor_registry.execute_after_commit(session, entities)
         except Exception as e:
-            logger.error(f"Error in after_commit listener: {e}")
+            logger.log_error_with_context(
+                "Error in after_commit listener",
+                error=e
+            )
 
     @event.listens_for(AsyncSession, "after_rollback")
     async def after_rollback_listener(session: AsyncSession) -> None:
@@ -88,6 +97,9 @@ def register_session_event_listeners() -> None:
             error = Exception("Transaction rolled back")
             await commit_interceptor_registry.execute_on_rollback(session, entities, error)
         except Exception as e:
-            logger.error(f"Error in after_rollback listener: {e}")
+            logger.log_error_with_context(
+                "Error in after_rollback listener",
+                error=e
+            )
 
-    logger.info("Registered SQLAlchemy session event listeners")
+    logger.log_with_context("Registered SQLAlchemy session event listeners")

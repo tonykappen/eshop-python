@@ -1,13 +1,12 @@
 """Internal handler for ProductDeletedDomainEvent (cache invalidation, metrics)."""
 
-import logging
-
 from app.core.domain.events import DomainEventHandler
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
     ProductDeletedDomainEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductDeletedDomainEventHandler(DomainEventHandler[ProductDeletedDomainEvent]):
@@ -23,8 +22,9 @@ class ProductDeletedDomainEventHandler(DomainEventHandler[ProductDeletedDomainEv
         Args:
             event: The product deleted domain event
         """
-        logger.info(
-            f"Processing internal reactions for product deleted: {event.product_id}"
+        logger.log_with_context(
+            "Processing internal reactions for product deleted",
+            context={"product_id": str(event.product_id)}
         )
 
         # Internal reactions (no integration event):
@@ -39,9 +39,16 @@ class ProductDeletedDomainEventHandler(DomainEventHandler[ProductDeletedDomainEv
             # Update metrics
             # await self._update_metrics(event)
 
-            logger.info(f"Internal reactions completed for product {event.product_id}")
+            logger.log_with_context(
+                "Internal reactions completed for product",
+                context={"product_id": str(event.product_id)}
+            )
         except Exception as e:
-            logger.error(f"Error in internal reactions for product deleted: {e}")
+            logger.log_error_with_context(
+                "Error in internal reactions for product deleted",
+                error=e,
+                context={"product_id": str(event.product_id)}
+            )
 
     async def _invalidate_cache(self, event: ProductDeletedDomainEvent) -> None:
         """Invalidate cache for deleted product."""

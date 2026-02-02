@@ -1,11 +1,11 @@
 """Registry for outbox publisher workers from all modules."""
 
-import logging
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox import OutboxPublisherWorker
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class OutboxWorkerRegistry:
@@ -14,7 +14,7 @@ class OutboxWorkerRegistry:
     def __init__(self) -> None:
         """Initialize the registry."""
         self._workers: dict[str, OutboxPublisherWorker] = {}
-        logger.debug("Outbox worker registry initialized")
+        logger.log_debug_with_context("Outbox worker registry initialized")
 
     def register(self, module_name: str, worker: OutboxPublisherWorker) -> None:
         """
@@ -25,11 +25,15 @@ class OutboxWorkerRegistry:
             worker: Outbox publisher worker instance
         """
         if module_name in self._workers:
-            logger.warning(
-                f"Worker for module '{module_name}' already registered, overwriting"
+            logger.log_warning_with_context(
+                "Worker for module already registered, overwriting",
+                context={"module_name": module_name}
             )
         self._workers[module_name] = worker
-        logger.info(f"Registered outbox worker for module: {module_name}")
+        logger.log_with_context(
+            "Registered outbox worker for module",
+            context={"module_name": module_name}
+        )
 
     def unregister(self, module_name: str) -> None:
         """
@@ -40,9 +44,15 @@ class OutboxWorkerRegistry:
         """
         if module_name in self._workers:
             del self._workers[module_name]
-            logger.info(f"Unregistered outbox worker for module: {module_name}")
+            logger.log_with_context(
+                "Unregistered outbox worker for module",
+                context={"module_name": module_name}
+            )
         else:
-            logger.warning(f"No worker registered for module: {module_name}")
+            logger.log_warning_with_context(
+                "No worker registered for module",
+                context={"module_name": module_name}
+            )
 
     def get(self, module_name: str) -> OutboxPublisherWorker | None:
         """
@@ -67,27 +77,42 @@ class OutboxWorkerRegistry:
 
     async def start_all(self) -> None:
         """Start all registered outbox publisher workers."""
-        logger.info(f"Starting {len(self._workers)} outbox publisher worker(s)")
+        logger.log_with_context(
+            "Starting outbox publisher workers",
+            context={"count": len(self._workers)}
+        )
         for module_name, worker in self._workers.items():
             try:
                 await worker.start()
-                logger.info(f"Started outbox worker for module: {module_name}")
+                logger.log_with_context(
+                    "Started outbox worker for module",
+                    context={"module_name": module_name}
+                )
             except Exception as e:
-                logger.error(
-                    f"Failed to start outbox worker for module '{module_name}': {e}"
+                logger.log_error_with_context(
+                    "Failed to start outbox worker for module",
+                    error=e,
+                    context={"module_name": module_name}
                 )
                 raise
 
     async def stop_all(self) -> None:
         """Stop all registered outbox publisher workers."""
-        logger.info(f"Stopping {len(self._workers)} outbox publisher worker(s)")
+        logger.log_with_context(
+            "Stopping outbox publisher workers",
+            context={"count": len(self._workers)}
+        )
         for module_name, worker in self._workers.items():
             try:
                 await worker.stop()
-                logger.info(f"Stopped outbox worker for module: {module_name}")
+                logger.log_with_context(
+                    "Stopped outbox worker for module",
+                    context={"module_name": module_name}
+                )
             except Exception as e:
-                logger.warning(
-                    f"Failed to stop outbox worker for module '{module_name}': {e}"
+                logger.log_warning_with_context(
+                    "Failed to stop outbox worker for module",
+                    context={"module_name": module_name, "error": str(e)}
                 )
 
     def is_registered(self, module_name: str) -> bool:

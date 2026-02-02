@@ -1,7 +1,6 @@
 """Health check service for all infrastructure components."""
 
 import asyncio
-import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -11,8 +10,9 @@ from faststream.rabbit import RabbitBroker
 
 from app.config.settings import settings
 from app.core.auth.keycloak import keycloak_service
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class HealthService:
@@ -53,7 +53,15 @@ class HealthService:
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
-            logger.error(f"Database health check failed: {e}")
+            logger.log_error_with_context(
+                "Database health check failed",
+                error=e,
+                context={
+                    "service": "database",
+                    "host": settings.db_host,
+                    "port": settings.db_port
+                }
+            )
             return {
                 "status": "unhealthy",
                 "service": "database",
@@ -86,7 +94,15 @@ class HealthService:
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
-            logger.error(f"Redis health check failed: {e}")
+            logger.log_error_with_context(
+                "Redis health check failed",
+                error=e,
+                context={
+                    "service": "redis",
+                    "host": settings.redis_host,
+                    "port": settings.redis_port
+                }
+            )
             return {
                 "status": "unhealthy",
                 "service": "redis",
@@ -114,7 +130,15 @@ class HealthService:
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
-            logger.error(f"RabbitMQ health check failed: {e}")
+            logger.log_error_with_context(
+                "RabbitMQ health check failed",
+                error=e,
+                context={
+                    "service": "rabbitmq",
+                    "host": settings.rabbitmq_host,
+                    "port": settings.rabbitmq_port
+                }
+            )
             return {
                 "status": "unhealthy",
                 "service": "rabbitmq",
@@ -145,7 +169,11 @@ class HealthService:
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         except Exception as e:
-            logger.error(f"Seq health check failed: {e}")
+            logger.log_error_with_context(
+                "Seq health check failed",
+                error=e,
+                context={"service": "seq", "url": settings.seq_url}
+            )
             return {
                 "status": "unhealthy",
                 "service": "seq",
@@ -199,7 +227,10 @@ class HealthService:
                 "services": services,
             }
         except Exception as e:
-            logger.error(f"Health check failed: {e}")
+            logger.log_error_with_context(
+                "Health check failed",
+                error=e
+            )
             return {
                 "status": "unhealthy",
                 "error": str(e),

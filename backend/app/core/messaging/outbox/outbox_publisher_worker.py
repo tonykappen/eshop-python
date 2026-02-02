@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import logging
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, AsyncContextManager, TypeVar
@@ -11,9 +10,10 @@ from uuid import UUID
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox import OutboxMessage, OutboxMessageStatus
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 # Type variable for the ORM model
 T = TypeVar("T")
@@ -54,17 +54,17 @@ class OutboxPublisherWorker:
     async def start(self) -> None:
         """Start the outbox publisher worker."""
         if self.is_running:
-            logger.warning("Outbox publisher worker is already running")
+            logger.log_warning_with_context("Outbox publisher worker is already running")
             return
 
         self.is_running = True
         self._task = asyncio.create_task(self._run_loop())
-        logger.info("Outbox publisher worker started")
+        logger.log_with_context("Outbox publisher worker started")
 
     async def stop(self) -> None:
         """Stop the outbox publisher worker."""
         if not self.is_running:
-            logger.warning("Outbox publisher worker is not running")
+            logger.log_warning_with_context("Outbox publisher worker is not running")
             return
 
         self.is_running = False
@@ -76,24 +76,27 @@ class OutboxPublisherWorker:
             except asyncio.CancelledError:
                 pass
 
-        logger.info("Outbox publisher worker stopped")
+        logger.log_with_context("Outbox publisher worker stopped")
 
     async def _run_loop(self) -> None:
         """Main worker loop."""
-        logger.info("Outbox publisher worker loop started")
+        logger.log_with_context("Outbox publisher worker loop started")
 
         while self.is_running:
             try:
                 await self._process_pending_messages()
                 await asyncio.sleep(self.poll_interval)
             except asyncio.CancelledError:
-                logger.info("Outbox publisher worker loop cancelled")
+                logger.log_with_context("Outbox publisher worker loop cancelled")
                 break
             except Exception as e:
-                logger.error(f"Error in outbox publisher worker loop: {e}")
+                logger.log_error_with_context(
+                    "Error in outbox publisher worker loop",
+                    error=e
+                )
                 await asyncio.sleep(self.poll_interval)
 
-        logger.info("Outbox publisher worker loop ended")
+        logger.log_with_context("Outbox publisher worker loop ended")
 
     async def _process_pending_messages(self) -> None:
         """Process pending messages from outbox."""
@@ -105,7 +108,10 @@ class OutboxPublisherWorker:
                 if not pending_messages:
                     return
 
-                logger.debug(f"Processing {len(pending_messages)} pending messages")
+                logger.log_debug_with_context(
+                    "Processing pending messages",
+                    context={"count": len(pending_messages)}
+                )
 
                 # Process each message
                 for message_orm in pending_messages:
@@ -115,7 +121,10 @@ class OutboxPublisherWorker:
                 await session.commit()
 
         except Exception as e:
-            logger.error(f"Error processing pending messages: {e}")
+            logger.log_error_with_context(
+                "Error processing pending messages",
+                error=e
+            )
 
     async def _get_pending_messages(self, session: AsyncSession) -> list[Any]:
         """
@@ -159,8 +168,9 @@ class OutboxPublisherWorker:
                 try:
                     event_data = json.loads(event_data)
                 except json.JSONDecodeError:
-                    logger.warning(
-                        f"Failed to parse event_data as JSON for message {message_orm.id}, using as-is"
+                    logger.log_warning_with_context(
+                        "Failed to parse event_data as JSON, using as-is",
+                        context={"message_id": str(message_orm.id)}
                     )
 
             # Create outbox message
@@ -183,8 +193,9 @@ class OutboxPublisherWorker:
                 try:
                     await self.message_bus.connect()
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to connect message bus before publishing: {e}"
+                    logger.log_warning_with_context(
+                        "Failed to connect message bus before publishing",
+                        context={"error": str(e)}
                     )
 
             # Determine exchange based on event type using configurable resolver
@@ -202,12 +213,19 @@ class OutboxPublisherWorker:
             # Mark as published
             await self._mark_as_published(session, message_orm.id)
 
-            logger.debug(f"Successfully published outbox message: {message_orm.id}")
+            logger.log_debug_with_context(
+                "Successfully published outbox message",
+                context={"message_id": str(message_orm.id)}
+            )
 
         except Exception as e:
             # Mark as failed
             await self._mark_as_failed(session, message_orm.id, str(e))
-            logger.error(f"Failed to publish outbox message {message_orm.id}: {e}")
+            logger.log_error_with_context(
+                "Failed to publish outbox message",
+                error=e,
+                context={"message_id": str(message_orm.id)}
+            )
 
     async def _mark_as_processing(self, session: AsyncSession, message_id: UUID) -> None:
         """
@@ -317,7 +335,10 @@ class OutboxPublisherWorker:
                     + failed_count,
                 }
         except Exception as e:
-            logger.error(f"Error getting outbox stats: {e}")
+            logger.log_error_with_context(
+                "Error getting outbox stats",
+                error=e
+            )
             return {}
 
     async def _get_message_count(

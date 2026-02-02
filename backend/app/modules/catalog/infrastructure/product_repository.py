@@ -1,17 +1,17 @@
 """Product repository implementation for database operations."""
 
-import logging
 from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import SKU, Money
 from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductRepository:
@@ -101,12 +101,16 @@ class ProductRepository:
 
             return product
         except Exception as e:
-            logger.error(f"Failed to convert ProductORM to Product: {e}", exc_info=True)
-            logger.error(
-                f"ProductORM data: id={product_orm.id}, name={product_orm.name}, "
-                f"categories={getattr(product_orm, 'categories', None)}, "
-                f"price_amount={getattr(product_orm, 'price_amount', None)}, "
-                f"price_currency={getattr(product_orm, 'price_currency', None)}"
+            logger.log_exception_detailed(
+                "Failed to convert ProductORM to Product",
+                exception=e,
+                context={
+                    "product_id": str(product_orm.id),
+                    "product_name": product_orm.name,
+                    "categories": getattr(product_orm, 'categories', None),
+                    "price_amount": getattr(product_orm, 'price_amount', None),
+                    "price_currency": getattr(product_orm, 'price_currency', None)
+                }
             )
             raise ValueError(f"Failed to convert ProductORM to Product: {e}") from e
 

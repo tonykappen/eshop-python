@@ -1,9 +1,9 @@
 """Catalog module outbox publisher worker - uses core factory and registry."""
 
-import logging
 from contextlib import asynccontextmanager
 
 from app.config.settings import settings
+from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox import create_outbox_worker
 from app.core.messaging.bus import RabbitMQMessageBus
 from app.modules.catalog.infrastructure.persistence.db_context import (
@@ -11,7 +11,7 @@ from app.modules.catalog.infrastructure.persistence.db_context import (
 )
 from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import OutboxORM
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 @asynccontextmanager
@@ -23,7 +23,10 @@ async def get_session_context():
             yield session
         except Exception as e:
             await session.rollback()
-            logger.error(f"Database session error: {e}")
+            logger.log_error_with_context(
+                "Database session error",
+                error=e
+            )
             raise
         finally:
             await session.close()

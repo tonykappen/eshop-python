@@ -1,8 +1,7 @@
 """GetProductsHandler for listing products with pagination and filtering."""
 
-import logging
-
 from app.core.database.session import AsyncSessionLocal
+from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
@@ -23,7 +22,7 @@ from app.modules.catalog.infrastructure.persistence.repositories.products.sql im
 
 from .get_products_query import GetProductsQuery, GetProductsResult
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
@@ -55,37 +54,56 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
             cache_service = CatalogCacheService(RedisCacheService())
             repository = CachedProductRepository(sql_repo, cache_service)
 
-            logger.info(
-                f"GetProductsHandler: page={query.page}, page_size={query.page_size}, search_term={query.search_term}, category_id={query.category_id}"
+            logger.log_with_context(
+                "GetProductsHandler",
+                context={
+                    "page": query.page,
+                    "page_size": query.page_size,
+                    "search_term": query.search_term,
+                    "category_id": str(query.category_id) if query.category_id else None
+                }
             )
 
             # Get products based on filters
             if query.search_term:
-                logger.info(f"Using search with term: {query.search_term}")
+                logger.log_with_context(
+                    "Using search",
+                    context={"search_term": query.search_term}
+                )
                 products, total_count = await repository.search(
                     query.search_term, query.page, query.page_size
                 )
             elif query.category_id:
-                logger.info(f"Using category filter: {query.category_id}")
+                logger.log_with_context(
+                    "Using category filter",
+                    context={"category_id": str(query.category_id)}
+                )
                 # For now, we'll use category name instead of ID
                 # In a real implementation, you'd have a category lookup
                 products, total_count = await repository.get_by_category(
                     str(query.category_id), query.page, query.page_size
                 )
             else:
-                logger.info("Using get_all (no filters)")
+                logger.log_with_context("Using get_all (no filters)")
                 products, total_count = await repository.get_all(
                     query.page, query.page_size
                 )
 
-            logger.info(
-                f"Repository returned {len(products)} products, total_count={total_count}"
+            logger.log_with_context(
+                "Repository returned products",
+                context={
+                    "product_count": len(products),
+                    "total_count": total_count
+                }
             )
 
             # Convert to DTOs
             product_dtos = [self._map_to_dto(product) for product in products]
 
-            logger.info(f"Converted to {len(product_dtos)} DTOs")
+            logger.log_with_context(
+                "Converted to DTOs",
+                context={"dto_count": len(product_dtos)}
+            )
 
             total_pages = (total_count + query.page_size - 1) // query.page_size
             return GetProductsResult(

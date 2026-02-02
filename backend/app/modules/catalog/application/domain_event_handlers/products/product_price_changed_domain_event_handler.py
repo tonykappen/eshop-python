@@ -1,13 +1,12 @@
 """Internal handler for ProductPriceChangedDomainEvent (cache refresh, metrics)."""
 
-import logging
-
 from app.core.domain.events import DomainEventHandler
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
     ProductPriceChangedDomainEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class ProductPriceChangedDomainEventHandler(
@@ -25,8 +24,9 @@ class ProductPriceChangedDomainEventHandler(
         Args:
             event: The product price changed domain event
         """
-        logger.info(
-            f"Processing internal reactions for product price changed: {event.product_id}"
+        logger.log_with_context(
+            "Processing internal reactions for product price changed",
+            context={"product_id": str(event.product_id)}
         )
 
         # Internal reactions (no integration event):
@@ -41,10 +41,15 @@ class ProductPriceChangedDomainEventHandler(
             # Update metrics
             # await self._update_metrics(event)
 
-            logger.info(f"Internal reactions completed for product {event.product_id}")
+            logger.log_with_context(
+                "Internal reactions completed for product",
+                context={"product_id": str(event.product_id)}
+            )
         except Exception as e:
-            logger.error(
-                f"Error in internal reactions for product price changed: {e}"
+            logger.log_error_with_context(
+                "Error in internal reactions for product price changed",
+                error=e,
+                context={"product_id": str(event.product_id)}
             )
 
     async def _refresh_cache(self, event: ProductPriceChangedDomainEvent) -> None:

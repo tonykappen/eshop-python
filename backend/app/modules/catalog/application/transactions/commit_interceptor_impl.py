@@ -125,15 +125,15 @@ class DomainEventPublisherInterceptor(ICommitInterceptor):
     Phase 2 (after_commit): Internal reactions + direct publishers
     """
 
-    def __init__(self, event_publisher: Any = None, domain_event_dispatcher: Any = None):
+    def __init__(self, message_bus: Any = None, domain_event_dispatcher: Any = None):
         """
         Initialize the interceptor.
 
         Args:
-            event_publisher: Event publisher service (for direct publishers)
+            message_bus: Message bus service (for direct publishers)
             domain_event_dispatcher: Domain event dispatcher (for internal handlers)
         """
-        self.event_publisher = event_publisher
+        self.message_bus = message_bus
         self.domain_event_dispatcher = domain_event_dispatcher
 
     async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
@@ -186,7 +186,7 @@ class DomainEventPublisherInterceptor(ICommitInterceptor):
                     await self.domain_event_dispatcher.dispatch(event)
 
             # Handle direct publishing for best-effort events (after commit)
-            if self.event_publisher:
+            if self.message_bus:
                 from app.modules.catalog.application.outbound_direct_publishers.products.product_price_changed_direct_publisher import (
                     ProductPriceChangedDirectPublisher,
                 )
@@ -197,7 +197,7 @@ class DomainEventPublisherInterceptor(ICommitInterceptor):
                 for event in domain_events:
                     if isinstance(event, ProductPriceChangedDomainEvent):
                         try:
-                            publisher = ProductPriceChangedDirectPublisher(self.event_publisher)
+                            publisher = ProductPriceChangedDirectPublisher(self.message_bus)
                             await publisher.publish(event)
                             logger.log_debug_with_context(
                                 "Directly published ProductPriceChanged event",

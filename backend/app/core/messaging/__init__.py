@@ -9,10 +9,6 @@ from app.core.messaging.domain_dispatcher import (
     DomainEventDispatcher,
     domain_event_dispatcher,
 )
-from app.core.messaging.event_publisher import (
-    CatalogEventPublisher,
-    CatalogEventPublisherFactory,
-)
 from app.core.messaging.outbox import (
     IOutboxPublisher,
     IOutboxWriter,
@@ -30,9 +26,6 @@ __all__ = [
     # Domain dispatcher
     "DomainEventDispatcher",
     "domain_event_dispatcher",
-    # Event publisher
-    "CatalogEventPublisher",
-    "CatalogEventPublisherFactory",
     # Outbox (backward compatibility)
     "IOutboxPublisher",
     "IOutboxWriter",

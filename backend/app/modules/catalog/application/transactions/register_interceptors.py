@@ -18,8 +18,8 @@ from app.modules.catalog.application.transactions.commit_interceptor_impl import
 )
 from app.modules.catalog.module_interface.di.products.products_providers import (
     get_catalog_dispatcher,
+    get_catalog_message_bus,
 )
-from app.core.messaging.event_publisher import CatalogEventPublisher
 
 logger = BaseLogger(__name__)
 
@@ -54,20 +54,20 @@ def register_catalog_commit_interceptors() -> None:
         # Register DomainEventPublisherInterceptor (runs after commit)
         # Get dependencies
         try:
-            # Create event publisher (will be initialized lazily)
-            event_publisher = CatalogEventPublisher()
+            # Get message bus (will be initialized lazily)
+            message_bus = get_catalog_message_bus()
             domain_event_dispatcher = get_catalog_dispatcher()
         except Exception as e:
             logger.log_warning_with_context(
-                "Could not get event publisher/dispatcher for DomainEventPublisherInterceptor. "
+                "Could not get message bus/dispatcher for DomainEventPublisherInterceptor. "
                 "Interceptor will be registered but may not function properly.",
                 context={"error": str(e)},
             )
-            event_publisher = None
+            message_bus = None
             domain_event_dispatcher = None
 
         domain_event_interceptor = DomainEventPublisherInterceptor(
-            event_publisher=event_publisher,
+            message_bus=message_bus,
             domain_event_dispatcher=domain_event_dispatcher,
         )
         commit_interceptor_registry.register(domain_event_interceptor)

@@ -1,8 +1,7 @@
 """Direct publisher for ProductPriceChanged integration event (best-effort delivery)."""
 
-from typing import Any
-
 from app.core.logging.base_logger import BaseLogger
+from app.core.messaging.bus import IMessageBus
 from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
     ProductPriceChangedIntegrationEventV1,
 )
@@ -16,14 +15,14 @@ logger = BaseLogger(__name__)
 class ProductPriceChangedDirectPublisher:
     """Publishes ProductPriceChanged integration event directly to message broker (best-effort)."""
 
-    def __init__(self, event_publisher: Any):
+    def __init__(self, message_bus: IMessageBus):
         """
         Initialize the direct publisher.
 
         Args:
-            event_publisher: Event publisher service for direct publishing
+            message_bus: Message bus for direct publishing
         """
-        self.event_publisher = event_publisher
+        self.message_bus = message_bus
 
     async def publish(self, domain_event: ProductPriceChangedDomainEvent) -> None:
         """
@@ -55,45 +54,28 @@ class ProductPriceChangedDirectPublisher:
                     context={"product_id": str(domain_event.product_id)}
                 )
 
+            # Create integration event
+            integration_event = ProductPriceChangedIntegrationEventV1.create(
+                product_id=domain_event.product_id,
+                product_name=domain_event.product_name,
+                product_sku=domain_event.product_sku,
+                old_price_amount=old_price_amount,
+                new_price_amount=new_price_amount,
+                price_currency=product.price.currency,
+                metadata={
+                    "domain_event_id": str(domain_event.event_id),
+                    "domain_event_type": domain_event.event_type,
+                    "domain_event_version": str(getattr(domain_event, 'version', '1.0')),
+                },
+            )
+
             # Publish directly to message broker (best-effort)
-            # CatalogEventPublisher has specific methods, so use publish_product_price_changed
-            integration_event_id = None
-            if hasattr(self.event_publisher, 'publish_product_price_changed'):
-                await self.event_publisher.publish_product_price_changed(
-                    product_id=domain_event.product_id,
-                    old_price=old_price_amount,
-                    new_price=new_price_amount,
-                    product_name=domain_event.product_name,
-                    product_sku=domain_event.product_sku,
-                    price_currency=product.price.currency,
-                    domain_event_id=str(domain_event.event_id),
-                    domain_event_type=domain_event.event_type,
-                    domain_event_version=str(getattr(domain_event, 'version', '1.0')),
-                )
-                # Get the event ID from the created event (publish_product_price_changed creates it internally)
-                # We'll use the domain event ID as a reference
-                integration_event_id = str(domain_event.event_id)
-            elif hasattr(self.event_publisher, 'publish'):
-                # Fallback: try generic publish method
-                integration_event = ProductPriceChangedIntegrationEventV1.create(
-                    product_id=domain_event.product_id,
-                    product_name=domain_event.product_name,
-                    product_sku=domain_event.product_sku,
-                    old_price_amount=old_price_amount,
-                    new_price_amount=new_price_amount,
-                    price_currency=product.price.currency,
-                    metadata={
-                        "domain_event_id": str(domain_event.event_id),
-                        "domain_event_type": domain_event.event_type,
-                        "domain_event_version": str(getattr(domain_event, 'version', '1.0')),
-                    },
-                )
-                await self.event_publisher.publish(integration_event)
-                integration_event_id = str(integration_event.event_id)
-            else:
-                raise AttributeError(
-                    f"Event publisher {type(self.event_publisher).__name__} doesn't have publish or publish_product_price_changed method"
-                )
+            await self.message_bus.publish(
+                integration_event.to_dict(),
+                topic="product.price_changed",
+                exchange="catalog.events"
+            )
+            integration_event_id = str(integration_event.event_id)
 
             logger.log_with_context(
                 "Successfully published product price changed integration event",

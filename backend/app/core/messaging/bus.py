@@ -176,6 +176,16 @@ class InMemoryMessageBus(IMessageBus):
         self._message_history.clear()
 
 
+# Exchanges used by the app (must exist with direct, non-durable for passive declare to succeed)
+KNOWN_EXCHANGES = (
+    "catalog.events",
+    "ordering.events",
+    "basket.events",
+    "payment.events",
+    "inventory.events",
+)
+
+
 class RabbitMQMessageBus(IMessageBus):
     """RabbitMQ message bus implementation."""
 
@@ -256,6 +266,28 @@ class RabbitMQMessageBus(IMessageBus):
                 context={"error": str(e)}
             )
 
+    async def _ensure_exchanges(self) -> None:
+        """Create known exchanges with our parameters (direct, non-durable) if they don't exist."""
+        if aio_pika is None:
+            return
+        for exchange_name in KNOWN_EXCHANGES:
+            init_channel = None
+            try:
+                init_channel = await self._connection.channel()
+                await init_channel.declare_exchange(
+                    exchange_name,
+                    aio_pika.ExchangeType.DIRECT,
+                    durable=False,
+                )
+            except Exception:
+                pass  # Exchange may already exist with different params; publish will use passive
+            finally:
+                if init_channel and hasattr(init_channel, "close"):
+                    try:
+                        await init_channel.close()
+                    except Exception:
+                        pass
+
     async def connect(self, outbox_orm_class: Any = None, get_session_maker: Any = None) -> None:
         """
         Connect to RabbitMQ.
@@ -273,6 +305,8 @@ class RabbitMQMessageBus(IMessageBus):
             self._channel = await self._connection.channel()
 
             logger.log_with_context("Connected to RabbitMQ")
+            # Create known exchanges so they exist with our params (avoids PRECONDITION_FAILED on publish)
+            await self._ensure_exchanges()
             # Log connection event to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
@@ -410,32 +444,41 @@ class RabbitMQMessageBus(IMessageBus):
                 )
 
         except RuntimeError as e:
-            # Handle connection closed errors - robust connection should restore automatically
             if "closed" in str(e).lower():
-                logger.log_warning_with_context(
-                    "Connection closed during publish, waiting for restoration",
-                    context={"topic": topic, "exchange": exchange, "error": str(e)}
-                )
-                # Wait a bit for robust connection to restore
+                self._channel = None
                 await asyncio.sleep(0.5)
-                # Retry once after waiting
                 try:
-                    # Re-ensure connection
-                    if not self._connection or (hasattr(self._connection, 'is_closed') and self._connection.is_closed):
+                    if not self._connection or (
+                        hasattr(self._connection, "is_closed") and self._connection.is_closed
+                    ):
                         await self.connect()
                     if not self._channel:
-                        self._channel = await self._connection.robust_channel()
-                    # Retry the publish operation (simplified - just log for now)
-                    # In production, you might want to queue the message for retry
-                    logger.log_warning_with_context(
-                        "Retry after connection restoration not implemented, message may be lost",
-                        context={"topic": topic, "exchange": exchange}
-                    )
+                        self._channel = await self._connection.channel()
+                    message_data = _message_to_json_serializable(message)
+                    message_json = json.dumps(message_data)
+                    if exchange:
+                        try:
+                            exchange_obj = await self._channel.declare_exchange(
+                                exchange, aio_pika.ExchangeType.DIRECT, passive=True
+                            )
+                        except Exception:
+                            exchange_obj = await self._channel.declare_exchange(
+                                exchange, aio_pika.ExchangeType.DIRECT, durable=False
+                            )
+                        await exchange_obj.publish(
+                            aio_pika.Message(message_json.encode()),
+                            routing_key=topic,
+                        )
+                    else:
+                        await self._channel.default_exchange.publish(
+                            aio_pika.Message(message_json.encode()),
+                            routing_key=topic,
+                        )
                 except Exception as retry_error:
                     logger.log_error_with_context(
-                        "Failed to restore connection for retry",
+                        "Error publishing message to RabbitMQ",
                         error=retry_error,
-                        context={"topic": topic, "exchange": exchange}
+                        context={"topic": topic, "exchange": exchange},
                     )
                     raise
             else:

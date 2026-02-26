@@ -70,9 +70,10 @@ class ProductPriceChangedDirectPublisher:
             )
 
             # Publish directly to message broker (best-effort)
+            # Routing key matches contract event_type (product.price_changed.v1) for bindings/observability
             await self.message_bus.publish(
                 integration_event.to_dict(),
-                topic="product.price_changed",
+                topic=integration_event.event_type,
                 exchange="catalog.events"
             )
             integration_event_id = str(integration_event.event_id)

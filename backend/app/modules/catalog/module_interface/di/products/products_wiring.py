@@ -19,12 +19,6 @@ from app.core.messaging.bus import (
 from app.core.messaging.domain_dispatcher import (
     DomainEventDispatcher,
 )
-from app.core.messaging.outbox import (  # Backward compatibility
-    IOutboxPublisher,
-    IOutboxWriter,
-    OutboxPublisher,
-    OutboxWriter,
-)
 from app.modules.catalog.application.services.catalog_cache_service import (
     CatalogCacheService,
     RedisCacheService,
@@ -114,14 +108,6 @@ def _register_repositories(container) -> None:
 
 def _register_messaging_services(container) -> None:
     """Register messaging services in the container."""
-    # Register outbox services
-    container.register_factory(
-        IOutboxWriter, lambda: None
-    )  # Will be resolved per request
-    container.register_factory(
-        IOutboxPublisher, lambda: None
-    )  # Will be resolved per request
-
     logger.log_debug_with_context("Registered messaging services")
 
 
@@ -192,10 +178,6 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
             # Messaging dependencies
             IMessageBus: lambda: catalog_container.get(IMessageBus),
             DomainEventDispatcher: lambda: catalog_container.get(DomainEventDispatcher),
-            IOutboxWriter: lambda session: OutboxWriter(session),
-            IOutboxPublisher: lambda outbox_writer, message_bus: OutboxPublisher(
-                outbox_writer, message_bus
-            ),
             # Mediator dependency - use main container if available
             Mediator: lambda: (
                 main_container.get(Mediator)
@@ -237,10 +219,6 @@ def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
         # Messaging dependencies
         IMessageBus: lambda: container.get(IMessageBus),
         DomainEventDispatcher: lambda: container.get(DomainEventDispatcher),
-        IOutboxWriter: lambda session: OutboxWriter(session),
-        IOutboxPublisher: lambda outbox_writer, message_bus: OutboxPublisher(
-            outbox_writer, message_bus
-        ),
         # Mediator dependency
         Mediator: lambda: container.get(Mediator),
     }

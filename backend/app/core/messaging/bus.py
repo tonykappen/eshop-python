@@ -7,6 +7,33 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+
+def _message_to_json_serializable(message: Any) -> Any:
+    """
+    Convert a message payload to a JSON-serializable structure.
+
+    Handles dict, list, Pydantic models (to_dict or model_dump), and str explicitly
+    to avoid double serialization (e.g. str(dict) then json.dumps).
+    Only falls back to str(message) as a last resort.
+
+    Returns:
+        A value that json.dumps() can serialize (dict, list, str, number, bool, None).
+    """
+    if message is None or isinstance(message, (bool, int, float)):
+        return message
+    if isinstance(message, dict):
+        return message
+    if isinstance(message, list):
+        return message
+    if hasattr(message, "to_dict") and callable(getattr(message, "to_dict")):
+        return message.to_dict()
+    if hasattr(message, "model_dump") and callable(getattr(message, "model_dump")):
+        return message.model_dump(mode="json")
+    if isinstance(message, str):
+        return message
+    # Last resort: string representation (e.g. custom objects without to_dict)
+    return str(message)
+
 try:
     import aio_pika
 except ImportError:
@@ -333,14 +360,8 @@ class RabbitMQMessageBus(IMessageBus):
         topic = topic or "default"
 
         try:
-            import json
-
-            # Convert message to JSON
-            if hasattr(message, "to_dict"):
-                message_data = message.to_dict()
-            else:
-                message_data = str(message)
-
+            # Convert message to JSON-serializable form (avoids double serialization for dicts)
+            message_data = _message_to_json_serializable(message)
             message_json = json.dumps(message_data)
 
             # Publish to exchange

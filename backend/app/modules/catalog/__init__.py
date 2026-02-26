@@ -13,12 +13,6 @@ except ImportError:
     # Skip seeding if dependencies are not available
     pass
 
-# Import outbox publisher worker to ensure it registers itself with the global registry
-# This ensures the worker is available for lifecycle management
-try:
-    from app.modules.catalog.workers.outbox_publisher_worker import (  # noqa: F401
-        outbox_publisher_worker,
-    )
-except ImportError:
-    # Skip if worker dependencies are not available
-    pass
+# Outbox worker registration is done explicitly at application startup via
+# register_outbox_workers() in main.py, which calls register_outbox_worker() from
+# app.modules.catalog.outbox_registration. Do not rely on import side effects here.

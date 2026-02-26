@@ -28,10 +28,6 @@ from app.core.messaging.bus import (
 from app.core.messaging.domain_dispatcher import (
     DomainEventDispatcher,
 )
-from app.core.messaging.outbox import (  # Keep for backward compatibility
-    OutboxPublisher,
-    OutboxWriter,
-)
 from app.modules.catalog.infrastructure.persistence.db_context import (
     get_engine,
     get_session_maker,
@@ -231,38 +227,6 @@ async def get_catalog_outbox_service(
     return OutboxService(session, outbox_orm_class=OutboxORM)
 
 
-async def get_catalog_outbox_writer(
-    session: AsyncSession = Depends(get_catalog_session),
-) -> OutboxWriter:
-    """
-    Get catalog outbox writer (backward compatibility).
-
-    Args:
-        session: Database session
-
-    Returns:
-        OutboxWriter: Outbox writer instance
-    """
-    return OutboxWriter(session)
-
-
-async def get_catalog_outbox_publisher(
-    outbox_writer: OutboxWriter = Depends(get_catalog_outbox_writer),
-    message_bus: IMessageBus = Depends(get_catalog_message_bus),
-) -> OutboxPublisher:
-    """
-    Get catalog outbox publisher (backward compatibility).
-
-    Args:
-        outbox_writer: Outbox writer
-        message_bus: Message bus
-
-    Returns:
-        OutboxPublisher: Outbox publisher instance
-    """
-    return OutboxPublisher(outbox_writer, message_bus)
-
-
 # Mediator provider
 async def get_catalog_mediator() -> Mediator:
     """
@@ -304,7 +268,5 @@ CatalogUoW = Depends(get_unit_of_work)
 CatalogRequestContext = Depends(get_request_context)
 CatalogMessageBus = Depends(get_catalog_message_bus)
 CatalogDispatcher = Depends(get_catalog_dispatcher)
-CatalogOutboxWriter = Depends(get_catalog_outbox_writer)
-CatalogOutboxPublisher = Depends(get_catalog_outbox_publisher)
 CatalogMediator = Depends(get_catalog_mediator)
 CatalogContainer = Depends(get_catalog_container_provider)

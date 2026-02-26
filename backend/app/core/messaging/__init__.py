@@ -10,12 +10,16 @@ from app.core.messaging.domain_dispatcher import (
     domain_event_dispatcher,
 )
 from app.core.messaging.outbox import (
-    IOutboxPublisher,
-    IOutboxWriter,
     OutboxMessage,
     OutboxMessageStatus,
-    OutboxPublisher,
-    OutboxWriter,
+    OutboxService,
+    IOutboxService,
+    OutboxDispatcher,
+    IOutboxDispatcher,
+    OutboxPublisherWorker,
+    OutboxWorkerRegistry,
+    outbox_worker_registry,
+    create_outbox_worker,
 )
 
 __all__ = [
@@ -26,11 +30,15 @@ __all__ = [
     # Domain dispatcher
     "DomainEventDispatcher",
     "domain_event_dispatcher",
-    # Outbox (backward compatibility)
-    "IOutboxPublisher",
-    "IOutboxWriter",
+    # Outbox
     "OutboxMessage",
     "OutboxMessageStatus",
-    "OutboxPublisher",
-    "OutboxWriter",
+    "OutboxService",
+    "IOutboxService",
+    "OutboxDispatcher",
+    "IOutboxDispatcher",
+    "OutboxPublisherWorker",
+    "OutboxWorkerRegistry",
+    "outbox_worker_registry",
+    "create_outbox_worker",
 ]

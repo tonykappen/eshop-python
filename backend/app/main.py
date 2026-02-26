@@ -85,6 +85,17 @@ async def register_catalog_router():
         raise
 
 
+async def register_outbox_workers():
+    """Register all module outbox workers explicitly (composition root). Runs after DB startup."""
+    try:
+        from app.modules.catalog.outbox_registration import register_outbox_worker as register_catalog_outbox
+
+        register_catalog_outbox()
+    except Exception as e:
+        print(f"Error: Could not register outbox workers: {e}")
+        raise
+
+
 # Register lifecycle callbacks for graceful startup and shutdown
 register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)
@@ -93,6 +104,7 @@ register_startup_callback(
     register_catalog_router
 )  # Register catalog router after mediator is initialized
 register_startup_callback(database_handler.startup)
+register_startup_callback(register_outbox_workers)  # Before messaging so workers exist for start_all()
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)
 register_startup_callback(auth_handler.startup)

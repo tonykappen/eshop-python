@@ -38,6 +38,11 @@ class ICatalogUnitOfWork(ABC):
         ...
 
     @abstractmethod
+    def track(self, entity: object) -> None:
+        """Explicitly track an aggregate for domain event collection."""
+        ...
+
+    @abstractmethod
     async def commit(self) -> None:
         """Commit the current transaction."""
         ...

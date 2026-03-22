@@ -105,8 +105,11 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             uow = SqlCatalogUnitOfWork(session)
             repository = uow.products
 
-            # Find the product
-            product = await repository.get_by_id(command.id)
+            # Read directly from DB (bypass cache) to get the latest version
+            # for optimistic locking. Using cached data here causes
+            # OptimisticLockException when the cached version is stale.
+            sql_repo = SqlProductRepository(session)
+            product = await sql_repo.get_by_id(command.id)
             if product is None:
                 raise ProductNotFoundError(command.id)
 
@@ -140,51 +143,27 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                         }
                     )
 
-                # Track entity in UoW for interceptors BEFORE repository.update()
-                # (repository.update() returns a new entity without domain events)
-                uow._entities.append(product)
+                uow.track(product)
 
-                # Save to database (this returns a new entity, but we keep the original in _entities)
                 updated_product = await repository.update(product)
-                
-                # Replace the entity in _entities with the updated one, but preserve domain events
-                # by copying them from the original entity
-                # IMPORTANT: We need to update the product reference in domain events to point to updated_product
+
                 if updated_product and hasattr(product, "domain_events") and product.domain_events:
-                    # Copy domain events from original to updated entity
                     if hasattr(updated_product, "domain_events"):
-                        # Deep copy the domain events list
+                        from copy import deepcopy
                         updated_product.domain_events = []
                         for event in product.domain_events:
-                            # Create a copy of the event with updated product reference
-                            # This ensures the event has the latest product data
-                            from copy import deepcopy
                             event_copy = deepcopy(event)
-                            # Update the product reference in the event to point to updated_product
-                            if hasattr(event_copy, 'product'):
+                            if hasattr(event_copy, "product"):
                                 event_copy.product = updated_product
                             updated_product.domain_events.append(event_copy)
-                        logger.log_with_context(
-                            "Copied domain events to updated entity",
-                            context={
-                                "product_id": str(command.id),
-                                "event_count": len(updated_product.domain_events),
-                                "event_types": [type(e).__name__ for e in updated_product.domain_events]
-                            }
-                        )
-                    # Update the tracked entity - use updated_product with preserved events
-                    uow._entities = [updated_product if e is product else e for e in uow._entities]
-                else:
-                    logger.log_warning_with_context(
-                        "No domain events to copy",
-                        context={
-                            "product_id": str(command.id),
-                            "original_had_events": hasattr(product, 'domain_events') and bool(product.domain_events) if hasattr(product, 'domain_events') else False
-                        }
-                    )
+                    uow.track(updated_product)
 
                 # Commit via UoW (calls interceptors)
                 await uow.commit()
+
+                # Invalidate caches so list/detail APIs return fresh data
+                cache_service = CatalogCacheService(RedisCacheService())
+                await cache_service.invalidate_product(command.id)
 
                 return UpdateProductResult(is_success=True)
             except Exception as e:

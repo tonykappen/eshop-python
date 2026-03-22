@@ -2,10 +2,13 @@
 
 from uuid import UUID
 
-from app.core.exceptions.common_exceptions import NotFoundError, ValidationError
+from app.core.exceptions.bad_request_exception import BadRequestException
+from app.core.exceptions.common_exceptions import BaseError
+from app.core.exceptions.internal_server_exception import InternalServerException
+from app.core.exceptions.not_found_exception import NotFoundException
 
 
-class ProductNotFoundError(NotFoundError):
+class ProductNotFoundError(NotFoundException):
     """Exception raised when a product is not found - matches .NET ProductNotFoundException."""
 
     def __init__(self, product_id: UUID) -> None:
@@ -14,52 +17,48 @@ class ProductNotFoundError(NotFoundError):
         super().__init__(name="Product", key=product_id)
 
 
-class ProductValidationError(ValidationError):
+class ProductValidationError(BadRequestException):
     """Exception for product validation errors - returns 400 Bad Request."""
 
     def __init__(self, message: str, field: str | None = None) -> None:
         """Initialize product validation error."""
         self.field = field
-        # Create validation errors dict if field is provided
-        errors = {field: [message]} if field else {}
-        super().__init__(message=message, errors=errors)
+        super().__init__(message=message)
 
 
-class ProductCreationError(Exception):
+class ProductCreationError(InternalServerException):
     """Exception for product creation errors."""
 
     def __init__(self, message: str, details: str | None = None) -> None:
         """Initialize product creation error."""
-        self.message = message
-        self.details = details
-        super().__init__(self.message)
+        super().__init__(message=message, details=details)
 
 
-class ProductUpdateError(Exception):
+class ProductUpdateError(InternalServerException):
     """Exception for product update errors."""
 
     def __init__(self, message: str, details: str | None = None) -> None:
         """Initialize product update error."""
-        self.message = message
-        self.details = details
-        super().__init__(self.message)
+        super().__init__(message=message, details=details)
 
 
-class ProductDeletionError(Exception):
+class ProductDeletionError(InternalServerException):
     """Exception for product deletion errors."""
 
     def __init__(self, message: str, details: str | None = None) -> None:
         """Initialize product deletion error."""
-        self.message = message
-        self.details = details
-        super().__init__(self.message)
+        super().__init__(message=message, details=details)
 
 
-class ProductDeleteError(Exception):
+class ProductDeleteError(InternalServerException):
     """Exception for product delete errors - matches .NET naming."""
 
     def __init__(self, message: str, details: str | None = None) -> None:
-        """Initialize product delete error."""
-        self.message = message
-        self.details = details
-        super().__init__(self.message)
+        super().__init__(message=message, details=details)
+
+
+class OptimisticLockException(BaseError):
+    """Raised when a concurrent modification is detected via version mismatch."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message=message)

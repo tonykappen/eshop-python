@@ -101,6 +101,8 @@ def upgrade() -> None:
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("processed_at", sa.DateTime(), nullable=True),
+        sa.Column("claimed_by", sa.String(length=255), nullable=True),
+        sa.Column("claimed_at", sa.DateTime(), nullable=True),
         sa.Column("correlation_id", sa.String(length=255), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         schema="catalog",

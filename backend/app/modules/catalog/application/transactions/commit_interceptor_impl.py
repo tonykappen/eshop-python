@@ -4,19 +4,17 @@ from typing import Any
 
 from app.core.database.session import AsyncSession
 from app.core.logging.base_logger import BaseLogger
-from app.core.transactions.commit_interceptors import (
-    ICommitInterceptor,
-)
+from app.core.transactions.commit_interceptors import CommitInterceptor
 
 logger = BaseLogger(__name__)
 
 
-class OutboxEnqueuerInterceptor(ICommitInterceptor):
-    """Interceptor for enqueuing outbox messages before commit (inside transaction)."""
+class OutboxEnqueuerInterceptor(CommitInterceptor):
+    """Interceptor for enqueuing outbox messages before commit (inside transaction).
+    Marked critical — failure aborts the transaction.
+    """
 
-    def __init__(self):
-        """Initialize the outbox enqueuer interceptor."""
-        pass
+    is_critical = True
 
     async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
         """
@@ -117,22 +115,18 @@ class OutboxEnqueuerInterceptor(ICommitInterceptor):
         )
 
 
-class DomainEventPublisherInterceptor(ICommitInterceptor):
+class DomainEventPublisherInterceptor(CommitInterceptor):
     """
     Interceptor for dispatching domain events after commit (two-phase processing).
+    Non-critical — failures in after_commit dispatch should not break anything.
 
     Phase 1 (before_commit): Outbox enqueuing handled by OutboxEnqueuerInterceptor
     Phase 2 (after_commit): Internal reactions + direct publishers
     """
 
-    def __init__(self, message_bus: Any = None, domain_event_dispatcher: Any = None):
-        """
-        Initialize the interceptor.
+    is_critical = False
 
-        Args:
-            message_bus: Message bus service (for direct publishers)
-            domain_event_dispatcher: Domain event dispatcher (for internal handlers)
-        """
+    def __init__(self, message_bus: Any = None, domain_event_dispatcher: Any = None):
         self.message_bus = message_bus
         self.domain_event_dispatcher = domain_event_dispatcher
 

@@ -1,22 +1,20 @@
 """SQL-based implementation of ICatalogUnitOfWork."""
 
-from app.core.logging.base_logger import BaseLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.transactions.commit_interceptors import (
-    commit_interceptor_registry,
+from app.core.logging.base_logger import BaseLogger
+from app.core.transactions.commit_interceptors import commit_interceptor_registry
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService,
+    RedisCacheService,
 )
 from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import (
     ICatalogUnitOfWork,
 )
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-    RedisCacheService,
-)
 from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
 )
@@ -39,17 +37,11 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
     """SQL-based implementation of ICatalogUnitOfWork for catalog module."""
 
     def __init__(self, session: AsyncSession) -> None:
-        """
-        Initialize the SQL catalog unit of work.
-
-        Args:
-            session: Database session
-        """
         self._session = session
         self._products_repo: ProductRepository | None = None
         self._categories_repo: CategoryRepository | None = None
         self._inventory_repo: InventoryRepository | None = None
-        self._entities: list[object] = []
+        self._tracked: list[object] = []
 
     @property
     def products(self) -> ProductRepository:
@@ -62,102 +54,87 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
 
     @property
     def categories(self) -> CategoryRepository:
-        """Get category repository."""
         if self._categories_repo is None:
             self._categories_repo = SqlCategoryRepository(self._session)
         return self._categories_repo
 
     @property
     def inventory(self) -> InventoryRepository:
-        """Get inventory repository."""
         if self._inventory_repo is None:
             self._inventory_repo = SqlInventoryRepository(self._session)
         return self._inventory_repo
 
+    def track(self, entity: object) -> None:
+        """Explicitly track an aggregate so its domain events are visible to interceptors."""
+        if entity not in self._tracked:
+            self._tracked.append(entity)
+
+    def collect_domain_events(self) -> list[Any]:
+        """Collect domain events from all tracked entities and session-managed objects."""
+        events: list[Any] = []
+        seen: set[int] = set()
+
+        for entity in self._gather_all_entities():
+            eid = id(entity)
+            if eid in seen:
+                continue
+            seen.add(eid)
+            if hasattr(entity, "domain_events") and entity.domain_events:
+                events.extend(entity.domain_events)
+
+        return events
+
+    def _gather_all_entities(self) -> list[object]:
+        """Merge explicitly tracked entities with SQLAlchemy session state.
+
+        Only includes tracked entities and objects that SQLAlchemy considers
+        pending/dirty/deleted — NOT the full identity map, which contains
+        read-only objects whose modification by interceptors would trigger
+        unwanted secondary UPDATEs.
+        """
+        entities: list[object] = list(self._tracked)
+        for obj in list(self._session.new) + list(self._session.dirty) + list(self._session.deleted):
+            if obj not in entities:
+                entities.append(obj)
+        return entities
+
     async def commit(self) -> None:
         """
         Commit the current transaction with interceptors.
-
-        Collects domain events from entities before commit to ensure
-        outbox enqueuing happens inside the transaction.
-
-        Raises:
-            Exception: If commit fails
+        Domain events are collected deterministically from session state + tracked entities.
         """
         try:
-            # Collect all entities with domain events before commit
-            # This ensures domain events are available to interceptors
-            entities_with_events = []
-            
-            # Collect from tracked entities list
-            entities_with_events.extend(self._entities)
-            
-            # Also collect from SQLAlchemy session's change tracker
-            # (in case entities are tracked by SQLAlchemy but not in _entities)
-            # Note: This is a fallback - ideally entities should be in _entities
-            for obj in self._session.identity_map.values():
-                if obj not in entities_with_events:
-                    entities_with_events.append(obj)
-            
-            # Collect domain events from all entities before commit
-            # This ensures they're available to the OutboxEnqueuerInterceptor
-            all_domain_events = []
-            for entity in entities_with_events:
-                if hasattr(entity, "domain_events") and entity.domain_events:
-                    all_domain_events.extend(entity.domain_events)
+            all_entities = self._gather_all_entities()
 
-            if all_domain_events:
-                logger.log_debug_with_context(
-                    "Collected domain events from entities",
-                    context={
-                        "domain_event_count": len(all_domain_events),
-                        "entity_count": len(entities_with_events)
-                    }
-                )
-
-            # Execute before commit hooks (outbox enqueuing happens here)
             await commit_interceptor_registry.execute_before_commit(
-                self._session, entities_with_events
+                self._session, all_entities
             )
 
-            # Flush changes to database (includes outbox rows)
             await self._session.flush()
-
-            # Commit the transaction (product + outbox row atomically)
             await self._session.commit()
 
-            # Execute after commit hooks (domain event dispatching happens here)
             await commit_interceptor_registry.execute_after_commit(
-                self._session, entities_with_events
+                self._session, all_entities
             )
 
             logger.log_with_context(
-                "Successfully committed entities",
-                context={"entity_count": len(entities_with_events)}
+                "Successfully committed",
+                context={"entity_count": len(all_entities)},
             )
 
         except Exception as e:
-            # Execute rollback hooks
             await commit_interceptor_registry.execute_on_rollback(
-                self._session, self._entities, e
+                self._session, self._gather_all_entities(), e
             )
-
-            # Rollback the transaction
             await self._session.rollback()
-
-            logger.log_error_with_context(
-                "Transaction rolled back due to error",
-                error=e
-            )
+            logger.log_error_with_context("Transaction rolled back", error=e)
             raise
 
     async def rollback(self) -> None:
-        """Rollback the current transaction."""
         await self._session.rollback()
         logger.log_with_context("Transaction rolled back")
 
     async def __aenter__(self) -> "SqlCatalogUnitOfWork":
-        """Async context manager entry."""
         return self
 
     async def __aexit__(
@@ -166,7 +143,6 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
         exc_val: BaseException | None,
         exc_tb: "TracebackType | None",
     ) -> None:
-        """Async context manager exit."""
         if exc_type is not None:
             await self.rollback()
         else:

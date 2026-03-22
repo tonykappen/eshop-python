@@ -136,9 +136,6 @@ class Product(Aggregate):
         self.image_file = image_file
         self.price = price
 
-        # Increment version for any update
-        self.increment_version()
-
         # If price changed, add domain event
         if old_price != price:
             from app.modules.catalog.domain.events import ProductPriceChangedEvent
@@ -160,7 +157,6 @@ class Product(Aggregate):
 
         old_price = self.price
         self.price = new_price
-        self.increment_version()
 
         # Add domain event for price change
         if old_price != new_price:
@@ -184,7 +180,6 @@ class Product(Aggregate):
         cleaned_category = category.strip()
         if cleaned_category not in self.category:
             self.category.append(cleaned_category)
-            self.increment_version()
 
     def remove_category(self, category: str) -> None:
         """
@@ -204,7 +199,6 @@ class Product(Aggregate):
             if len(self.category) <= 1:
                 raise ValueError("Product must have at least one category")
             self.category.remove(cleaned_category)
-            self.increment_version()
 
     def update_categories(self, categories: list[str]) -> None:
         """
@@ -225,4 +219,3 @@ class Product(Aggregate):
             raise ValueError("Product must have at least one valid category")
 
         self.category = cleaned_categories
-        self.increment_version()

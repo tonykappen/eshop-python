@@ -114,6 +114,9 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 saved_product = await repository.add(product)
                 await session.commit()
 
+                # Invalidate product list cache so the new product appears
+                await cache_service.invalidate_products_list()
+
                 return CreateProductResult(id=saved_product.id)
             except Exception as e:
                 await session.rollback()

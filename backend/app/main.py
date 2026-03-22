@@ -50,10 +50,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Set shutdown timeout for production deployment
     lifecycle_manager.set_shutdown_timeout(60.0)  # 60 seconds for graceful shutdown
 
-    # Store container reference in app state for access in routes
+    # Store container and mediator on app.state (Phase 1.7)
     container = get_app_container()
     if container:
         app.state.container = container
+
+    from app.core.mediator.fastapi_integration import store_mediator_on_app
+    store_mediator_on_app(app)
 
     # Update auth handler with app instance before startup
     set_app_instance(app)
@@ -188,9 +191,6 @@ add_pagination(app)
 # Add custom exception handlers
 add_exception_handlers(app)
 
-# from app.modules.basket.api.router import router as basket_router
-# from app.modules.ordering/api.router import router as ordering_router
-
 # Include root router from global module_interface (includes health)
 root_router = create_root_router()
 app.include_router(root_router)
@@ -198,9 +198,6 @@ app.include_router(root_router)
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
 # Health router is now included via root_router, but keeping for backward compatibility
 app.include_router(health_router)
-
-# app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
-# app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])
 
 
 @app.get("/")

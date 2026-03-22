@@ -440,18 +440,22 @@ class SqlProductRepository(ProductRepository):
 
     async def update(self, product: Product) -> Product:
         """
-        Update an existing product and return it.
-
-        Args:
-            product: Product to update
-
-        Returns:
-            The updated product
+        Update an existing product with optimistic locking.
+        The WHERE clause includes the expected version; if no rows are affected
+        another transaction has already modified this aggregate.
         """
+        from app.modules.catalog.domain.exceptions.product import (
+            OptimisticLockException,
+        )
+
         try:
+            current_version = product.version
             stmt = (
                 update(ProductORM)
-                .where(ProductORM.id == product.id)
+                .where(
+                    ProductORM.id == product.id,
+                    ProductORM.version == current_version,
+                )
                 .values(
                     name=product.name,
                     sku=str(product.sku),
@@ -460,15 +464,22 @@ class SqlProductRepository(ProductRepository):
                     price_amount=str(product.price.amount),
                     price_currency=product.price.currency,
                     categories=product.category,
-                    version=product.version,
+                    version=current_version + 1,
                 )
             )
-            await self.session.execute(stmt)
+            result = await self.session.execute(stmt)
             await self.session.flush()
 
-            # Fetch and return the updated product
+            if result.rowcount == 0:
+                raise OptimisticLockException(
+                    f"Product {product.id} was modified by another transaction "
+                    f"(expected version {current_version})"
+                )
+
             return await self.get_by_id(product.id)
 
+        except OptimisticLockException:
+            raise
         except Exception as e:
             logger.error(f"Error updating product: {e}")
             raise

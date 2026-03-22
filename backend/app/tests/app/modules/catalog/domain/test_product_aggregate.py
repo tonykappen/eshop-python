@@ -178,7 +178,7 @@ class TestProductUpdate:
         assert product.description == "Updated description"
         assert product.image_file == "updated.jpg"
         assert product.price == new_price
-        assert product.version > old_version
+        assert product.version == old_version  # Version is managed by the repository, not the domain
 
         # Check price change domain event was added
         domain_events = product.domain_events_copy
@@ -288,11 +288,9 @@ class TestProductCategories:
             price=price,
         )
 
-        old_version = product.version
         product.add_category("Sale")
 
         assert "Sale" in product.category
-        assert product.version > old_version
 
     def test_add_category_duplicate(self):
         """Test adding duplicate category doesn't add it again."""
@@ -326,12 +324,10 @@ class TestProductCategories:
             price=price,
         )
 
-        old_version = product.version
         product.remove_category("Sale")
 
         assert "Sale" not in product.category
         assert "Electronics" in product.category
-        assert product.version > old_version
 
     def test_remove_category_last_category(self):
         """Test removing last category fails."""
@@ -364,11 +360,9 @@ class TestProductCategories:
             price=price,
         )
 
-        old_version = product.version
         product.update_categories(["Electronics", "Computers", "Sale"])
 
         assert product.category == ["Electronics", "Computers", "Sale"]
-        assert product.version > old_version
 
 
 class TestProductDeactivation:

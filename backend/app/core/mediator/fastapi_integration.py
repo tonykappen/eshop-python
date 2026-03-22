@@ -13,61 +13,55 @@ from app.core.mediator.cancellation import (
 from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
 
-# Global services container (simplified version of .NET IServiceCollection)
 _services: dict[str, Any] = {}
 
 
 def configure_mediator() -> None:
-    """Configure mediator for FastAPI - matches .NET Program.cs configuration."""
-    # Create handler registry
+    """Configure mediator for FastAPI."""
     handler_registry = HandlerRegistry()
-
-    # Register module handlers
     _register_module_handlers(handler_registry)
-
-    # Create mediator
     mediator = Mediator(handler_registry)
 
-    # Register in services
     _services["mediator"] = mediator
     _services["handler_registry"] = handler_registry
 
 
+def store_mediator_on_app(app) -> None:
+    """Move mediator/registry to app.state so they are app-scoped, not module-global."""
+    mediator = _services.get("mediator")
+    handler_registry = _services.get("handler_registry")
+    if mediator:
+        app.state.mediator = mediator
+    if handler_registry:
+        app.state.handler_registry = handler_registry
+
+
 def _register_module_handlers(handler_registry: HandlerRegistry) -> None:
-    """Register all module handlers."""
-    # Register catalog module handlers
     from app.modules.catalog.module_interface.catalog_handler_registration import (
         register_catalog_handlers,
     )
-
     register_catalog_handlers(handler_registry)
 
-    # TODO: Register other module handlers as they are implemented
-    # from app.modules.basket.application.handlers.basket_handler_registration import register_basket_handlers
-    # from app.modules.ordering.application.handlers.ordering_handler_registration import register_ordering_handlers
-    # register_basket_handlers(handler_registry)
-    # register_ordering_handlers(handler_registry)
 
-
-def get_mediator() -> Mediator:
-    """Get mediator dependency - matches .NET ISender dependency injection."""
+def get_mediator(app=None) -> Mediator:
+    """Get mediator — prefers app.state, falls back to module dict."""
+    if app is not None and hasattr(app, "state") and hasattr(app.state, "mediator"):
+        return app.state.mediator
     mediator = _services.get("mediator")
     if not mediator:
         raise RuntimeError("Mediator not configured. Call configure_mediator() first.")
-    return mediator  # type: ignore
+    return mediator
 
 
-def get_handler_registry() -> HandlerRegistry:
-    """Get handler registry dependency."""
+def get_handler_registry(app=None) -> HandlerRegistry:
+    if app is not None and hasattr(app, "state") and hasattr(app.state, "handler_registry"):
+        return app.state.handler_registry
     registry = _services.get("handler_registry")
     if not registry:
-        raise RuntimeError(
-            "Handler registry not configured. Call configure_mediator() first."
-        )
-    return registry  # type: ignore
+        raise RuntimeError("Handler registry not configured. Call configure_mediator() first.")
+    return registry
 
 
-# FastAPI dependency functions
 def get_mediator_dependency() -> Mediator:
     """FastAPI dependency for mediator."""
     return get_mediator()
@@ -79,12 +73,12 @@ def get_handler_registry_dependency() -> HandlerRegistry:
 
 
 def get_cancellation_token_dependency(request: Request) -> CancellationToken:
-    """FastAPI dependency for cancellation token - matches .NET CancellationToken injection."""
+    """FastAPI dependency for cancellation token."""
     return get_cancellation_token(request)
 
 
 def get_cancellation_token_with_session_dependency(
     request: Request, session: AsyncSession
 ) -> CancellationToken:
-    """FastAPI dependency for cancellation token with database session for automatic rollback."""
+    """FastAPI dependency for cancellation token with database session."""
     return get_cancellation_token_with_session(request, session)

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import uuid as uuid_mod
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, AsyncContextManager, TypeVar
@@ -15,12 +16,11 @@ from app.core.messaging.outbox import OutboxMessage, OutboxMessageStatus
 
 logger = BaseLogger(__name__)
 
-# Type variable for the ORM model
 T = TypeVar("T")
 
 
 class OutboxPublisherWorker:
-    """Background worker for publishing outbox messages - generic implementation."""
+    """Background worker for publishing outbox messages with atomic claim."""
 
     def __init__(
         self,
@@ -31,17 +31,6 @@ class OutboxPublisherWorker:
         poll_interval: float = 5.0,
         max_retries: int = 3,
     ):
-        """
-        Initialize the outbox publisher worker.
-
-        Args:
-            session_factory: Factory function that returns an async context manager for database sessions
-            message_bus: Message bus for publishing (must have async publish method)
-            outbox_orm_class: The ORM model class for outbox messages
-            batch_size: Number of messages to process in each batch
-            poll_interval: Interval between polls in seconds
-            max_retries: Maximum number of retries for failed messages
-        """
         self.session_factory = session_factory
         self.message_bus = message_bus
         self.outbox_orm_class = outbox_orm_class
@@ -50,6 +39,7 @@ class OutboxPublisherWorker:
         self.max_retries = max_retries
         self.is_running = False
         self._task: asyncio.Task | None = None
+        self._worker_id = str(uuid_mod.uuid4())[:8]
 
     async def start(self) -> None:
         """Start the outbox publisher worker."""
@@ -59,7 +49,10 @@ class OutboxPublisherWorker:
 
         self.is_running = True
         self._task = asyncio.create_task(self._run_loop())
-        logger.log_with_context("Outbox publisher worker started")
+        logger.log_with_context(
+            "Outbox publisher worker started",
+            context={"worker_id": self._worker_id},
+        )
 
     async def stop(self) -> None:
         """Stop the outbox publisher worker."""
@@ -80,282 +73,202 @@ class OutboxPublisherWorker:
 
     async def _run_loop(self) -> None:
         """Main worker loop."""
-        logger.log_with_context("Outbox publisher worker loop started")
-
         while self.is_running:
             try:
                 await self._process_pending_messages()
                 await asyncio.sleep(self.poll_interval)
             except asyncio.CancelledError:
-                logger.log_with_context("Outbox publisher worker loop cancelled")
                 break
             except Exception as e:
                 logger.log_error_with_context(
-                    "Error in outbox publisher worker loop",
-                    error=e
+                    "Error in outbox publisher worker loop", error=e
                 )
                 await asyncio.sleep(self.poll_interval)
 
-        logger.log_with_context("Outbox publisher worker loop ended")
-
     async def _process_pending_messages(self) -> None:
-        """Process pending messages from outbox."""
+        """Claim and process pending messages atomically."""
         try:
             async with self.session_factory() as session:
-                # Get pending messages
-                pending_messages = await self._get_pending_messages(session)
-
-                if not pending_messages:
+                claimed_ids = await self._claim_batch(session)
+                if not claimed_ids:
                     return
 
-                logger.log_debug_with_context(
-                    "Processing pending messages",
-                    context={"count": len(pending_messages)}
-                )
-
-                # Process each message
-                for message_orm in pending_messages:
-                    await self._process_message(session, message_orm)
-
-                # Commit changes
                 await session.commit()
+
+            for message_id in claimed_ids:
+                await self._publish_single(message_id)
 
         except Exception as e:
             logger.log_error_with_context(
-                "Error processing pending messages",
-                error=e
+                "Error processing pending messages", error=e
             )
 
-    async def _get_pending_messages(self, session: AsyncSession) -> list[Any]:
+    async def _claim_batch(self, session: AsyncSession) -> list[UUID]:
         """
-        Get pending messages from outbox.
-
-        Args:
-            session: Database session
-
-        Returns:
-            List of pending outbox messages
+        Atomically claim a batch of pending messages using SELECT FOR UPDATE SKIP LOCKED.
+        Returns the list of claimed message IDs. Caller must commit.
         """
-        stmt = (
-            select(self.outbox_orm_class)
+        orm = self.outbox_orm_class
+
+        select_stmt = (
+            select(orm.id)
             .where(
-                self.outbox_orm_class.status == OutboxMessageStatus.PENDING,
-                self.outbox_orm_class.retry_count < self.max_retries,
+                orm.status == OutboxMessageStatus.PENDING,
+                orm.retry_count < self.max_retries,
             )
+            .order_by(orm.created_at)
             .limit(self.batch_size)
+            .with_for_update(skip_locked=True)
         )
+        result = await session.execute(select_stmt)
+        ids = [row[0] for row in result.all()]
 
-        result = await session.execute(stmt)
-        return result.scalars().all()
+        if not ids:
+            return []
 
-    async def _process_message(
-        self, session: AsyncSession, message_orm: Any
-    ) -> None:
-        """
-        Process a single outbox message.
-
-        Args:
-            session: Database session
-            message_orm: Outbox message ORM
-        """
-        try:
-            # Mark as processing
-            await self._mark_as_processing(session, message_orm.id)
-
-            # Parse event_data if it's a JSON string
-            event_data = message_orm.event_data
-            if isinstance(event_data, str):
-                try:
-                    event_data = json.loads(event_data)
-                except json.JSONDecodeError:
-                    logger.log_warning_with_context(
-                        "Failed to parse event_data as JSON, using as-is",
-                        context={"message_id": str(message_orm.id)}
-                    )
-
-            # Create outbox message
-            outbox_message = OutboxMessage(
-                id=message_orm.id,
-                event_type=message_orm.event_type,
-                event_data=event_data,
+        update_stmt = (
+            update(orm)
+            .where(orm.id.in_(ids))
+            .values(
                 status=OutboxMessageStatus.PROCESSING,
-                created_at=message_orm.created_at,
-                retry_count=message_orm.retry_count,
-                max_retries=message_orm.max_retries,
-                correlation_id=message_orm.correlation_id,
+                claimed_by=self._worker_id,
+                claimed_at=datetime.utcnow(),
             )
+        )
+        await session.execute(update_stmt)
 
-            # Ensure message bus is connected (for RabbitMQ)
-            if hasattr(self.message_bus, "connect") and (
-                not hasattr(self.message_bus, "_connection")
-                or self.message_bus._connection is None
-            ):
-                try:
-                    await self.message_bus.connect()
-                except Exception as e:
-                    logger.log_warning_with_context(
-                        "Failed to connect message bus before publishing",
-                        context={"error": str(e)}
+        logger.log_debug_with_context(
+            "Claimed outbox batch",
+            context={"count": len(ids), "worker_id": self._worker_id},
+        )
+        return ids
+
+    async def _publish_single(self, message_id: UUID) -> None:
+        """Publish a single claimed message; mark published or failed."""
+        try:
+            async with self.session_factory() as session:
+                orm = self.outbox_orm_class
+                result = await session.execute(
+                    select(orm).where(orm.id == message_id)
+                )
+                message_orm = result.scalar_one_or_none()
+                if message_orm is None:
+                    return
+
+                event_data = message_orm.event_data
+                if isinstance(event_data, str):
+                    try:
+                        event_data = json.loads(event_data)
+                    except json.JSONDecodeError:
+                        pass
+
+                outbox_message = OutboxMessage(
+                    id=message_orm.id,
+                    event_type=message_orm.event_type,
+                    event_data=event_data,
+                    status=OutboxMessageStatus.PROCESSING,
+                    created_at=message_orm.created_at,
+                    retry_count=message_orm.retry_count,
+                    max_retries=message_orm.max_retries,
+                    correlation_id=message_orm.correlation_id,
+                )
+
+                if hasattr(self.message_bus, "connect") and (
+                    not hasattr(self.message_bus, "_connection")
+                    or self.message_bus._connection is None
+                ):
+                    try:
+                        await self.message_bus.connect()
+                    except Exception as e:
+                        logger.log_warning_with_context(
+                            "Failed to connect message bus", context={"error": str(e)}
+                        )
+
+                from app.core.messaging.exchange_resolver import (
+                    get_exchange_for_event_type,
+                )
+
+                exchange = get_exchange_for_event_type(outbox_message.event_type)
+
+                await self.message_bus.publish(
+                    outbox_message.event_data,
+                    outbox_message.event_type,
+                    exchange=exchange,
+                )
+
+                await session.execute(
+                    update(orm)
+                    .where(orm.id == message_id)
+                    .values(
+                        status=OutboxMessageStatus.PUBLISHED,
+                        processed_at=datetime.utcnow(),
                     )
+                )
+                await session.commit()
 
-            # Determine exchange based on event type using configurable resolver
-            from app.core.messaging.exchange_resolver import get_exchange_for_event_type
-
-            exchange = get_exchange_for_event_type(outbox_message.event_type)
-
-            # Publish message
-            await self.message_bus.publish(
-                outbox_message.event_data, 
-                outbox_message.event_type,
-                exchange=exchange
-            )
-
-            # Mark as published
-            await self._mark_as_published(session, message_orm.id)
-
-            logger.log_debug_with_context(
-                "Successfully published outbox message",
-                context={"message_id": str(message_orm.id)}
-            )
+                logger.log_debug_with_context(
+                    "Published outbox message",
+                    context={"message_id": str(message_id)},
+                )
 
         except Exception as e:
-            # Mark as failed
-            await self._mark_as_failed(session, message_orm.id, str(e))
             logger.log_error_with_context(
                 "Failed to publish outbox message",
                 error=e,
-                context={"message_id": str(message_orm.id)}
+                context={"message_id": str(message_id)},
             )
-
-    async def _mark_as_processing(self, session: AsyncSession, message_id: UUID) -> None:
-        """
-        Mark message as processing.
-
-        Args:
-            session: Database session
-            message_id: Message ID
-        """
-        # datetime.utcnow() already returns timezone-naive datetime
-        stmt = (
-            update(self.outbox_orm_class)
-            .where(self.outbox_orm_class.id == message_id)
-            .values(
-                status=OutboxMessageStatus.PROCESSING, processed_at=datetime.utcnow()
-            )
-        )
-        await session.execute(stmt)
-
-    async def _mark_as_published(self, session: AsyncSession, message_id: UUID) -> None:
-        """
-        Mark message as published.
-
-        Args:
-            session: Database session
-            message_id: Message ID
-        """
-        # datetime.utcnow() already returns timezone-naive datetime
-        stmt = (
-            update(self.outbox_orm_class)
-            .where(self.outbox_orm_class.id == message_id)
-            .values(
-                status=OutboxMessageStatus.PUBLISHED, processed_at=datetime.utcnow()
-            )
-        )
-        await session.execute(stmt)
-
-    async def _mark_as_failed(
-        self, session: AsyncSession, message_id: UUID, error_message: str
-    ) -> None:
-        """
-        Mark message as failed.
-
-        Args:
-            session: Database session
-            message_id: Message ID
-            error_message: Error message
-        """
-        # datetime.utcnow() already returns timezone-naive datetime
-        stmt = (
-            update(self.outbox_orm_class)
-            .where(self.outbox_orm_class.id == message_id)
-            .values(
-                status=OutboxMessageStatus.FAILED,
-                retry_count=self.outbox_orm_class.retry_count + 1,
-                error_message=error_message,
-                processed_at=datetime.utcnow(),
-            )
-        )
-        await session.execute(stmt)
+            try:
+                async with self.session_factory() as session:
+                    await session.execute(
+                        update(self.outbox_orm_class)
+                        .where(self.outbox_orm_class.id == message_id)
+                        .values(
+                            status=OutboxMessageStatus.FAILED,
+                            retry_count=self.outbox_orm_class.retry_count + 1,
+                            error_message=str(e),
+                            processed_at=datetime.utcnow(),
+                        )
+                    )
+                    await session.commit()
+            except Exception as mark_err:
+                logger.log_error_with_context(
+                    "Failed to mark outbox message as failed", error=mark_err
+                )
 
     async def get_worker_status(self) -> dict:
-        """
-        Get worker status information.
-
-        Returns:
-            Dictionary with worker status
-        """
+        """Get worker status information."""
         return {
             "is_running": self.is_running,
+            "worker_id": self._worker_id,
             "batch_size": self.batch_size,
             "poll_interval": self.poll_interval,
             "max_retries": self.max_retries,
         }
 
     async def get_outbox_stats(self) -> dict:
-        """
-        Get outbox statistics.
-
-        Returns:
-            Dictionary with outbox statistics
-        """
+        """Get outbox statistics."""
         try:
             async with self.session_factory() as session:
-                # Get counts by status
-                pending_count = await self._get_message_count(
-                    session, OutboxMessageStatus.PENDING
-                )
-                processing_count = await self._get_message_count(
-                    session, OutboxMessageStatus.PROCESSING
-                )
-                published_count = await self._get_message_count(
-                    session, OutboxMessageStatus.PUBLISHED
-                )
-                failed_count = await self._get_message_count(
-                    session, OutboxMessageStatus.FAILED
-                )
+                pending = await self._count_by_status(session, OutboxMessageStatus.PENDING)
+                processing = await self._count_by_status(session, OutboxMessageStatus.PROCESSING)
+                published = await self._count_by_status(session, OutboxMessageStatus.PUBLISHED)
+                failed = await self._count_by_status(session, OutboxMessageStatus.FAILED)
 
                 return {
-                    "pending": pending_count,
-                    "processing": processing_count,
-                    "published": published_count,
-                    "failed": failed_count,
-                    "total": pending_count
-                    + processing_count
-                    + published_count
-                    + failed_count,
+                    "pending": pending,
+                    "processing": processing,
+                    "published": published,
+                    "failed": failed,
+                    "total": pending + processing + published + failed,
                 }
         except Exception as e:
-            logger.log_error_with_context(
-                "Error getting outbox stats",
-                error=e
-            )
+            logger.log_error_with_context("Error getting outbox stats", error=e)
             return {}
 
-    async def _get_message_count(
-        self, session: AsyncSession, status: OutboxMessageStatus
-    ) -> int:
-        """
-        Get message count by status.
-
-        Args:
-            session: Database session
-            status: Message status
-
-        Returns:
-            Message count
-        """
-        stmt = select(func.count(self.outbox_orm_class.id)).where(
-            self.outbox_orm_class.status == status
+    async def _count_by_status(self, session: AsyncSession, status: OutboxMessageStatus) -> int:
+        result = await session.execute(
+            select(func.count(self.outbox_orm_class.id)).where(
+                self.outbox_orm_class.status == status
+            )
         )
-        result = await session.execute(stmt)
         return result.scalar() or 0

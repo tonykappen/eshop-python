@@ -344,19 +344,12 @@ class CachedProductRepository(ProductRepository):
         return await self._repository.exists(product_id)
 
     async def add(self, product: Product) -> Product:
-        """Add a new product and invalidate cache."""
-        result = await self._repository.add(product)
-        # Invalidate product lists cache
-        await self._cache.invalidate_products_list()
-        return result
+        """Add a new product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.add(product)
 
     async def update(self, product: Product) -> Product:
-        """Update a product and invalidate cache."""
-        result = await self._repository.update(product)
-        # Invalidate this product and product lists
-        await self._cache.invalidate_product(product.id)
-        await self._cache.invalidate_products_list()
-        return result
+        """Update a product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.update(product)
 
     async def delete(
         self,
@@ -364,13 +357,8 @@ class CachedProductRepository(ProductRepository):
         deleted_by: UUID | None = None,
         deletion_reason: str | None = None,
     ) -> bool:
-        """Delete a product and invalidate cache."""
-        result = await self._repository.delete(product_id, deleted_by, deletion_reason)
-        if result:
-            # Invalidate this product and product lists
-            await self._cache.invalidate_product(product_id)
-            await self._cache.invalidate_products_list()
-        return result
+        """Delete a product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.delete(product_id, deleted_by, deletion_reason)
 
     async def get_deleted_by_id(self, product_id: UUID) -> Product | None:
         """Get deleted product by ID (not cached)."""
@@ -391,13 +379,8 @@ class CachedProductRepository(ProductRepository):
     async def restore_product(
         self, product_id: UUID, restored_by: UUID | None = None
     ) -> bool:
-        """Restore a deleted product and invalidate cache."""
-        result = await self._repository.restore_product(product_id, restored_by)
-        if result:
-            # Invalidate this product and product lists
-            await self._cache.invalidate_product(product_id)
-            await self._cache.invalidate_products_list()
-        return result
+        """Restore a deleted product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.restore_product(product_id, restored_by)
 
     def _serialize_product(self, product: Product) -> dict:
         """Serialize product to dictionary for caching."""

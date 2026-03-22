@@ -11,73 +11,46 @@ logger = BaseLogger(__name__)
 class ICommitInterceptor(Protocol):
     """Protocol for commit interceptors."""
 
-    async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        """
-        Called before commit.
+    is_critical: bool
 
-        Args:
-            session: Database session
-            entities: List of entities being committed
-        """
-        ...
+    async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None: ...
+    async def after_commit(self, session: AsyncSession, entities: list[Any]) -> None: ...
+    async def on_rollback(
+        self, session: AsyncSession, entities: list[Any], error: Exception
+    ) -> None: ...
+
+
+class CommitInterceptor:
+    """Base class for commit interceptors with critical/non-critical distinction."""
+
+    is_critical: bool = False
+
+    async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
+        pass
 
     async def after_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        """
-        Called after successful commit.
-
-        Args:
-            session: Database session
-            entities: List of entities that were committed
-        """
-        ...
+        pass
 
     async def on_rollback(
         self, session: AsyncSession, entities: list[Any], error: Exception
     ) -> None:
-        """
-        Called on rollback.
-
-        Args:
-            session: Database session
-            entities: List of entities that were rolled back
-            error: Exception that caused the rollback
-        """
-        ...
+        pass
 
 
 class CommitInterceptorRegistry:
     """Registry for commit interceptors."""
 
     def __init__(self):
-        """Initialize the registry."""
         self._interceptors: list[ICommitInterceptor] = []
 
     def register(self, interceptor: ICommitInterceptor) -> None:
-        """
-        Register a commit interceptor.
-
-        Args:
-            interceptor: Interceptor to register
-        """
         self._interceptors.append(interceptor)
 
     def unregister(self, interceptor: ICommitInterceptor) -> None:
-        """
-        Unregister a commit interceptor.
-
-        Args:
-            interceptor: Interceptor to unregister
-        """
         if interceptor in self._interceptors:
             self._interceptors.remove(interceptor)
 
     def get_interceptors(self) -> list[ICommitInterceptor]:
-        """
-        Get all registered interceptors.
-
-        Returns:
-            List of registered interceptors
-        """
         return self._interceptors.copy()
 
     async def execute_before_commit(
@@ -85,62 +58,53 @@ class CommitInterceptorRegistry:
     ) -> None:
         """
         Execute all before_commit hooks.
-
-        Args:
-            session: Database session
-            entities: List of entities being committed
+        Critical interceptors that fail will re-raise, causing transaction rollback.
+        Non-critical interceptors log errors and continue.
         """
         for interceptor in self._interceptors:
             try:
                 await interceptor.before_commit(session, entities)
             except Exception as e:
-                # Log error but don't fail the commit
+                if getattr(interceptor, "is_critical", False):
+                    logger.log_error_with_context(
+                        "Critical before_commit interceptor failed — aborting transaction",
+                        error=e,
+                        context={"interceptor": type(interceptor).__name__},
+                    )
+                    raise
                 logger.log_error_with_context(
-                    "Error in before_commit interceptor",
-                    error=e
+                    "Non-critical before_commit interceptor failed — continuing",
+                    error=e,
+                    context={"interceptor": type(interceptor).__name__},
                 )
 
     async def execute_after_commit(
         self, session: AsyncSession, entities: list[Any]
     ) -> None:
-        """
-        Execute all after_commit hooks.
-
-        Args:
-            session: Database session
-            entities: List of entities that were committed
-        """
+        """Execute all after_commit hooks. Failures are logged but never re-raised."""
         for interceptor in self._interceptors:
             try:
                 await interceptor.after_commit(session, entities)
             except Exception as e:
-                # Log error but don't fail the operation
                 logger.log_error_with_context(
                     "Error in after_commit interceptor",
-                    error=e
+                    error=e,
+                    context={"interceptor": type(interceptor).__name__},
                 )
 
     async def execute_on_rollback(
         self, session: AsyncSession, entities: list[Any], error: Exception
     ) -> None:
-        """
-        Execute all on_rollback hooks.
-
-        Args:
-            session: Database session
-            entities: List of entities that were rolled back
-            error: Exception that caused the rollback
-        """
+        """Execute all on_rollback hooks. Failures are logged but never re-raised."""
         for interceptor in self._interceptors:
             try:
                 await interceptor.on_rollback(session, entities, error)
             except Exception as e:
-                # Log error but don't fail the rollback
                 logger.log_error_with_context(
                     "Error in on_rollback interceptor",
-                    error=e
+                    error=e,
+                    context={"interceptor": type(interceptor).__name__},
                 )
 
 
-# Global registry instance
 commit_interceptor_registry = CommitInterceptorRegistry()

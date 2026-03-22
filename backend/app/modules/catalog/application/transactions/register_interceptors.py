@@ -39,10 +39,16 @@ def register_catalog_commit_interceptors() -> None:
         commit_interceptor_registry.register(audit_interceptor)
         logger.log_with_context("Registered AuditStampInterceptor", "info")
 
-        # Register core CacheInvalidationInterceptor
-        # Cache service will be resolved per-request if needed
-        # For now, register without cache service - it can be set per-request if needed
-        cache_interceptor = CacheInvalidationInterceptor(cache_service=None)
+        # Register CacheInvalidationInterceptor (runs after_commit only)
+        try:
+            from app.modules.catalog.application.services.catalog_cache_service import (
+                CatalogCacheService,
+                RedisCacheService,
+            )
+            cache_service = CatalogCacheService(RedisCacheService())
+        except Exception:
+            cache_service = None
+        cache_interceptor = CacheInvalidationInterceptor(cache_service=cache_service)
         commit_interceptor_registry.register(cache_interceptor)
         logger.log_with_context("Registered CacheInvalidationInterceptor", "info")
 

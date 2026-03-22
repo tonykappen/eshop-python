@@ -36,8 +36,13 @@ logger = BaseLogger(__name__)
 class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
     """SQL-based implementation of ICatalogUnitOfWork for catalog module."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        cache_service: CatalogCacheService | None = None,
+    ) -> None:
         self._session = session
+        self._cache_service = cache_service
         self._products_repo: ProductRepository | None = None
         self._categories_repo: CategoryRepository | None = None
         self._inventory_repo: InventoryRepository | None = None
@@ -48,8 +53,14 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
         """Get product repository with Redis caching."""
         if self._products_repo is None:
             sql_repo = SqlProductRepository(self._session)
-            cache_service = CatalogCacheService(RedisCacheService())
-            self._products_repo = CachedProductRepository(sql_repo, cache_service)
+            if self._cache_service is not None:
+                self._products_repo = CachedProductRepository(sql_repo, self._cache_service)
+            else:
+                try:
+                    cache_svc = CatalogCacheService(RedisCacheService())
+                    self._products_repo = CachedProductRepository(sql_repo, cache_svc)
+                except Exception:
+                    self._products_repo = sql_repo
         return self._products_repo
 
     @property

@@ -42,6 +42,28 @@ class IOutboxService(ABC):
         pass
 
 
+_registered_outbox_orm_class: type[Any] | None = None
+
+
+def register_outbox_orm(orm_class: type[Any]) -> None:
+    """Register the outbox ORM class for the current module.
+
+    Called by module bootstrap during startup so OutboxService never needs to
+    auto-detect module-specific ORM classes.
+    """
+    global _registered_outbox_orm_class
+    _registered_outbox_orm_class = orm_class
+    logger.log_with_context(
+        "Outbox ORM class registered",
+        context={"orm_class": orm_class.__name__},
+    )
+
+
+def get_registered_outbox_orm() -> type[Any] | None:
+    """Return the ORM class registered via register_outbox_orm."""
+    return _registered_outbox_orm_class
+
+
 class OutboxService(IOutboxService):
     """Outbox service implementation - writes events to outbox table."""
 
@@ -51,11 +73,15 @@ class OutboxService(IOutboxService):
 
         Args:
             session: Database session (must be part of the same transaction)
-            outbox_orm_class: Optional ORM class for outbox messages. If not provided,
-                            will try to auto-detect from common module locations.
+            outbox_orm_class: ORM class for outbox messages. If not provided,
+                            uses the class registered via register_outbox_orm().
         """
         self.session = session
-        self.outbox_orm_class = outbox_orm_class or self._get_outbox_orm_class()
+        self.outbox_orm_class = (
+            outbox_orm_class
+            or _registered_outbox_orm_class
+            or self._get_outbox_orm_class()
+        )
 
     async def write_integration_event(
         self, event: IntegrationEvent | dict[str, Any]

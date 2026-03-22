@@ -13,7 +13,12 @@ from app.core.messaging.outbox.outbox_message_orm import (
     OutboxMessageStatus,
 )
 from app.core.messaging.outbox.outbox_publisher_worker import OutboxPublisherWorker
-from app.core.messaging.outbox.outbox_service import IOutboxService, OutboxService
+from app.core.messaging.outbox.outbox_service import (
+    IOutboxService,
+    OutboxService,
+    register_outbox_orm,
+    get_registered_outbox_orm,
+)
 from app.core.messaging.outbox.worker_factory import create_outbox_worker
 from app.core.messaging.outbox.worker_registry import (
     OutboxWorkerRegistry,
@@ -31,4 +36,6 @@ __all__ = [
     "OutboxWorkerRegistry",
     "outbox_worker_registry",
     "create_outbox_worker",
+    "register_outbox_orm",
+    "get_registered_outbox_orm",
 ]

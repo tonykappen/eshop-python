@@ -99,6 +99,24 @@ async def register_outbox_workers():
         raise
 
 
+def _wire_module_lifecycle_hooks() -> None:
+    """Wire module-specific messaging hooks into the lifecycle handler."""
+    from app.modules.catalog.module_interface.catalog_bootstrap import CatalogModuleBootstrap
+
+    catalog = CatalogModuleBootstrap()
+    messaging_handler.add_startup_hook(catalog._startup_messaging)
+    messaging_handler.add_shutdown_hook(catalog._shutdown_messaging)
+
+    from app.core.messaging.outbox import register_outbox_orm
+
+    outbox_orm = catalog.get_outbox_orm_class()
+    if outbox_orm:
+        register_outbox_orm(outbox_orm)
+
+
+_wire_module_lifecycle_hooks()
+
+
 # Register lifecycle callbacks for graceful startup and shutdown
 register_startup_callback(initialize_logging)
 register_startup_callback(initialize_dependency_injection)

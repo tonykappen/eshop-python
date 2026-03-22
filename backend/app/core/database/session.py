@@ -1,5 +1,6 @@
 """Database session management with async support."""
 
+import os
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -12,21 +13,23 @@ from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 
-# Create async engine with optimized connection pool
+_pool_size = int(os.environ.get("DB_POOL_SIZE", "10"))
+_max_overflow = int(os.environ.get("DB_MAX_OVERFLOW", "20"))
+_pool_recycle = int(os.environ.get("DB_POOL_RECYCLE", "300"))
+_pool_timeout = int(os.environ.get("DB_POOL_TIMEOUT", "30"))
+_echo = os.environ.get("DB_ECHO", str(settings.debug)).lower() in ("true", "1", "yes")
+
 engine = create_async_engine(
     settings.database_connection_string,
-    echo=settings.debug,
-    # Connection pool configuration
-    pool_size=10,  # Number of connections to maintain
-    max_overflow=20,  # Additional connections when pool is full
-    pool_pre_ping=True,  # Validate connections before use
-    pool_recycle=300,  # Recycle connections every 5 minutes
-    pool_timeout=30,  # Timeout for getting connection from pool
-    pool_reset_on_return="commit",  # Reset connection state on return
-    # Performance optimizations
-    future=True,  # Use SQLAlchemy 2.0 style
-    use_insertmanyvalues=True,  # Optimize bulk inserts
-    # Connection settings
+    echo=_echo,
+    pool_size=_pool_size,
+    max_overflow=_max_overflow,
+    pool_pre_ping=True,
+    pool_recycle=_pool_recycle,
+    pool_timeout=_pool_timeout,
+    pool_reset_on_return="commit",
+    future=True,
+    use_insertmanyvalues=True,
     connect_args=(
         {
             "server_settings": {

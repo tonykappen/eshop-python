@@ -122,15 +122,20 @@ class CLEFLogDispatcher:
         queue_max_size: int = 10000,
         batch_size: int = 50,
         flush_interval: float = 1.0,
+        drop_warn_interval: int = 100,
     ):
-        """Initialize the dispatcher."""
+        """Initialize the dispatcher.
+
+        Args:
+            drop_warn_interval: Emit a warning every N dropped messages.
+        """
         self.seq_url = seq_url.rstrip("/") if seq_url else None
         self.seq_api_key = seq_api_key
-        # Resolve log directory relative to backend directory
         self.log_directory = _resolve_log_directory(log_directory)
         self.queue: Queue[dict[str, Any]] = Queue(maxsize=queue_max_size)
         self.batch_size = batch_size
         self.flush_interval = flush_interval
+        self._drop_warn_interval = max(drop_warn_interval, 1)
         self._running = False
         self._task: asyncio.Task | None = None
         self._client: httpx.AsyncClient | None = None
@@ -189,17 +194,25 @@ class CLEFLogDispatcher:
     async def enqueue(self, event: dict[str, Any]) -> None:
         """Enqueue a CLEF event for async processing."""
         try:
-            # Non-blocking put with immediate drop if queue is full
             self.queue.put_nowait(event)
             self.stats["enqueued"] += 1
         except asyncio.QueueFull:
-            # Drop oldest or sample
             self.stats["dropped"] += 1
-            # Try to mark as sampled
+            self._check_drop_threshold()
             event["sampled"] = True
-            # Try one more time
             with contextlib.suppress(asyncio.QueueFull):
                 self.queue.put_nowait(event)
+
+    def _check_drop_threshold(self) -> None:
+        """Emit a warning when dropped messages cross a threshold."""
+        dropped = self.stats["dropped"]
+        if dropped == 1 or (dropped % self._drop_warn_interval == 0):
+            print(
+                f"[LOG_DISPATCHER_WARNING] Dropped log messages: {dropped} "
+                f"(queue_max_size={self.queue.maxsize}, "
+                f"enqueued={self.stats['enqueued']})",
+                flush=True,
+            )
 
     async def _process_queue(self) -> None:
         """Background task that processes queued log events."""

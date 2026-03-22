@@ -31,8 +31,42 @@ def _message_to_json_serializable(message: Any) -> Any:
         return message.model_dump(mode="json")
     if isinstance(message, str):
         return message
-    # Last resort: string representation (e.g. custom objects without to_dict)
     return str(message)
+
+
+def build_message_envelope(
+    message: Any,
+    topic: str | None = None,
+    exchange: str | None = None,
+) -> dict[str, Any]:
+    """Wrap a message payload in a structured envelope.
+
+    Envelope schema::
+
+        {
+            "message_id": "<uuid4>",
+            "message_type": "<class name or event_type>",
+            "occurred_at": "<ISO-8601 UTC>",
+            "routing_key": "<topic>",
+            "exchange": "<exchange or null>",
+            "payload": <serialized message>
+        }
+    """
+    payload = _message_to_json_serializable(message)
+
+    message_type = (
+        getattr(message, "event_type", None)
+        or getattr(message, "__class__", type(message)).__name__
+    )
+
+    return {
+        "message_id": str(uuid4()),
+        "message_type": message_type,
+        "occurred_at": datetime.now(UTC).isoformat(),
+        "routing_key": topic or "default",
+        "exchange": exchange,
+        "payload": payload,
+    }
 
 try:
     import aio_pika

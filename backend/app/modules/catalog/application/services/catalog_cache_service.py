@@ -80,13 +80,32 @@ class RedisCacheService(ICacheService):
             logger.error(f"Failed to check cache key {key}: {e}")
             return False
 
-    async def invalidate_pattern(self, pattern: str) -> None:
-        """Invalidate all keys matching pattern."""
+    async def invalidate_pattern(self, pattern: str, batch_cap: int = 500) -> None:
+        """Invalidate all keys matching pattern using SCAN (never KEYS).
+
+        Args:
+            pattern: Redis glob pattern to match.
+            batch_cap: Maximum keys to delete per SCAN cycle to limit latency.
+        """
         try:
-            keys = await self.redis_client.keys(pattern)
-            if keys:
-                await self.redis_client.delete(*keys)
-                logger.debug(f"Invalidated {len(keys)} keys matching pattern {pattern}")
+            deleted = 0
+            cursor: int | bytes = 0
+            while True:
+                cursor, keys = await self.redis_client.scan(
+                    cursor=cursor, match=pattern, count=100
+                )
+                if keys:
+                    batch = keys[:batch_cap - deleted] if (deleted + len(keys)) > batch_cap else keys
+                    if batch:
+                        pipe = self.redis_client.pipeline()
+                        for key in batch:
+                            pipe.delete(key)
+                        await pipe.execute()
+                        deleted += len(batch)
+                if cursor == 0 or deleted >= batch_cap:
+                    break
+            if deleted:
+                logger.debug(f"Invalidated {deleted} keys matching pattern {pattern}")
         except Exception as e:
             logger.error(f"Failed to invalidate pattern {pattern}: {e}")
 

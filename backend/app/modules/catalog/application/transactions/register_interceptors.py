@@ -9,9 +9,6 @@ from app.core.transactions.interceptor_implementations import (
     AuditStampInterceptor,
     CacheInvalidationInterceptor,
 )
-from app.core.messaging.domain_dispatcher import (
-    DomainEventDispatcher,
-)
 from app.modules.catalog.application.transactions.commit_interceptor_impl import (
     DomainEventPublisherInterceptor,
     OutboxEnqueuerInterceptor,
@@ -23,68 +20,89 @@ from app.modules.catalog.module_interface.di.products.products_providers import 
 
 logger = BaseLogger(__name__)
 
+_interceptors_registered = False
+
+
+class InterceptorDependencyError(RuntimeError):
+    """Raised when a required interceptor dependency is missing at registration time."""
+    pass
+
 
 def register_catalog_commit_interceptors() -> None:
-    """
-    Register commit interceptors for catalog module.
+    """Register commit interceptors for catalog module.
 
     This should be called during module initialization.
+    Idempotent — duplicate calls are no-ops.
+
+    Raises:
+        InterceptorDependencyError: If a required dependency (e.g. outbox) is unavailable.
     """
+    global _interceptors_registered
+    if _interceptors_registered:
+        logger.log_with_context("Catalog commit interceptors already registered — skipping", "info")
+        return
+
+    errors: list[str] = []
+
+    # 1. AuditStampInterceptor
+    default_request_context = RequestContext()
+    audit_interceptor = AuditStampInterceptor(default_request_context)
+    commit_interceptor_registry.register(audit_interceptor)
+    logger.log_with_context("Registered AuditStampInterceptor", "info")
+
+    # 2. CacheInvalidationInterceptor (after_commit only — best-effort)
+    cache_service = None
     try:
-        # Register core AuditStampInterceptor
-        # RequestContext will be resolved per-request from DI container
-        # For now, create a default one - it will be replaced per-request
-        default_request_context = RequestContext()
-        audit_interceptor = AuditStampInterceptor(default_request_context)
-        commit_interceptor_registry.register(audit_interceptor)
-        logger.log_with_context("Registered AuditStampInterceptor", "info")
-
-        # Register CacheInvalidationInterceptor (runs after_commit only)
-        try:
-            from app.modules.catalog.application.services.catalog_cache_service import (
-                CatalogCacheService,
-                RedisCacheService,
-            )
-            cache_service = CatalogCacheService(RedisCacheService())
-        except Exception:
-            cache_service = None
-        cache_interceptor = CacheInvalidationInterceptor(cache_service=cache_service)
-        commit_interceptor_registry.register(cache_interceptor)
-        logger.log_with_context("Registered CacheInvalidationInterceptor", "info")
-
-        # Register OutboxEnqueuerInterceptor (runs before commit)
-        outbox_interceptor = OutboxEnqueuerInterceptor()
-        commit_interceptor_registry.register(outbox_interceptor)
-        logger.log_with_context("Registered OutboxEnqueuerInterceptor", "info")
-
-        # Register DomainEventPublisherInterceptor (runs after commit)
-        # Get dependencies
-        try:
-            # Get message bus (will be initialized lazily)
-            message_bus = get_catalog_message_bus()
-            domain_event_dispatcher = get_catalog_dispatcher()
-        except Exception as e:
-            logger.log_warning_with_context(
-                "Could not get message bus/dispatcher for DomainEventPublisherInterceptor. "
-                "Interceptor will be registered but may not function properly.",
-                context={"error": str(e)},
-            )
-            message_bus = None
-            domain_event_dispatcher = None
-
-        domain_event_interceptor = DomainEventPublisherInterceptor(
-            message_bus=message_bus,
-            domain_event_dispatcher=domain_event_dispatcher,
+        from app.modules.catalog.application.services.catalog_cache_service import (
+            CatalogCacheService,
+            RedisCacheService,
         )
-        commit_interceptor_registry.register(domain_event_interceptor)
-        logger.log_with_context("Registered DomainEventPublisherInterceptor", "info")
-
-        logger.log_with_context(
-            f"Registered {len(commit_interceptor_registry.get_interceptors())} commit interceptors",
-            "info",
-            context={"interceptor_count": len(commit_interceptor_registry.get_interceptors())},
-        )
-
+        cache_service = CatalogCacheService(RedisCacheService())
     except Exception as e:
-        logger.log_exception_detailed("Error registering commit interceptors", exception=e)
-        raise
+        logger.log_warning_with_context(
+            "Cache service unavailable — CacheInvalidationInterceptor will be a no-op",
+            context={"error": str(e)},
+        )
+    cache_interceptor = CacheInvalidationInterceptor(cache_service=cache_service)
+    commit_interceptor_registry.register(cache_interceptor)
+    logger.log_with_context("Registered CacheInvalidationInterceptor", "info")
+
+    # 3. OutboxEnqueuerInterceptor (critical — must be present)
+    outbox_interceptor = OutboxEnqueuerInterceptor()
+    commit_interceptor_registry.register(outbox_interceptor)
+    logger.log_with_context("Registered OutboxEnqueuerInterceptor", "info")
+
+    # 4. DomainEventPublisherInterceptor (after commit — validate deps)
+    message_bus = None
+    domain_event_dispatcher = None
+    try:
+        message_bus = get_catalog_message_bus()
+        domain_event_dispatcher = get_catalog_dispatcher()
+    except Exception as e:
+        msg = (
+            f"Message bus or dispatcher unavailable for DomainEventPublisherInterceptor: {e}"
+        )
+        logger.log_warning_with_context(msg)
+        errors.append(msg)
+
+    domain_event_interceptor = DomainEventPublisherInterceptor(
+        message_bus=message_bus,
+        domain_event_dispatcher=domain_event_dispatcher,
+    )
+    commit_interceptor_registry.register(domain_event_interceptor)
+    logger.log_with_context("Registered DomainEventPublisherInterceptor", "info")
+
+    _interceptors_registered = True
+
+    count = len(commit_interceptor_registry.get_interceptors())
+    logger.log_with_context(
+        f"Registered {count} commit interceptors",
+        "info",
+        context={"interceptor_count": count},
+    )
+
+    if errors:
+        logger.log_warning_with_context(
+            "Some interceptor dependencies were unavailable at startup",
+            context={"issues": errors},
+        )

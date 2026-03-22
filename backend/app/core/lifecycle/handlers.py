@@ -141,43 +141,36 @@ class CacheLifecycleHandler:
 
 
 class MessagingLifecycleHandler:
-    """Handles message broker (RabbitMQ) connection lifecycle."""
+    """Handles message broker (RabbitMQ) connection lifecycle.
+
+    Module-specific startup/shutdown hooks are registered via
+    LifecycleHookRegistry (see core.module_bootstrap). This handler only
+    manages the core outbox worker registry and delegates to registered hooks.
+    """
 
     def __init__(self) -> None:
         """Initialize messaging lifecycle handler."""
         self.connection: Any | None = None
         self.channel: Any | None = None
         self.is_connected: bool = False
+        self._startup_hooks: list[Any] = []
+        self._shutdown_hooks: list[Any] = []
+
+    def add_startup_hook(self, hook: Any) -> None:
+        self._startup_hooks.append(hook)
+
+    def add_shutdown_hook(self, hook: Any) -> None:
+        self._shutdown_hooks.append(hook)
 
     async def startup(self) -> None:
-        """Initialize messaging connections."""
+        """Initialize messaging connections via registered hooks."""
         logger.log_with_context(
             "[MESSAGING] Initializing messaging connections...", "info"
         )
         try:
-            # Connect RabbitMQ message bus
-            from app.modules.catalog.module_interface.di.products.products_providers import (
-                get_catalog_message_bus,
-            )
-            from app.modules.catalog.infrastructure.persistence.db_context import (
-                get_session_maker,
-            )
-            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-                OutboxORM,
-            )
+            for hook in self._startup_hooks:
+                await hook()
 
-            message_bus = get_catalog_message_bus()
-            if hasattr(message_bus, "connect"):
-                await message_bus.connect(
-                    outbox_orm_class=OutboxORM,
-                    get_session_maker=get_session_maker,
-                )
-                self.is_connected = True
-                logger.log_with_context(
-                    "[OK] RabbitMQ message bus connected", "info"
-                )
-
-            # Start all registered outbox publisher workers
             from app.core.messaging.outbox import outbox_worker_registry
 
             await outbox_worker_registry.start_all()
@@ -185,7 +178,6 @@ class MessagingLifecycleHandler:
                 "[OK] Outbox publisher workers started", "info"
             )
 
-            # Verify messaging connectivity
             await self._verify_messaging_connectivity()
             self.is_connected = True
             logger.log_with_context(
@@ -201,7 +193,6 @@ class MessagingLifecycleHandler:
         """Close messaging connections gracefully."""
         logger.log_with_context("[MESSAGING] Closing messaging connections...", "info")
         try:
-            # Stop all registered outbox publisher workers
             try:
                 from app.core.messaging.outbox import outbox_worker_registry
 
@@ -214,30 +205,13 @@ class MessagingLifecycleHandler:
                     "Failed to stop outbox publisher workers", context={"error": str(e)}
                 )
 
-            # Disconnect RabbitMQ message bus
-            try:
-                from app.modules.catalog.module_interface.di.products.products_providers import (
-                    get_catalog_message_bus,
-                )
-
-                message_bus = get_catalog_message_bus()
-                if hasattr(message_bus, "disconnect"):
-                    await message_bus.disconnect()
-                    logger.log_with_context(
-                        "[OK] RabbitMQ message bus disconnected", "info"
+            for hook in self._shutdown_hooks:
+                try:
+                    await hook()
+                except Exception as e:
+                    logger.log_warning_with_context(
+                        "Module shutdown hook failed", context={"error": str(e)}
                     )
-            except Exception as e:
-                logger.log_warning_with_context(
-                    "Failed to disconnect message bus", context={"error": str(e)}
-                )
-
-            if self.channel:
-                # await self.channel.close()
-                logger.log_with_context("Message channel closed", "info")
-
-            if self.connection:
-                # await self.connection.close()
-                logger.log_with_context("Message broker connection closed", "info")
 
             self.is_connected = False
             logger.log_with_context(
@@ -251,7 +225,7 @@ class MessagingLifecycleHandler:
     async def _verify_messaging_connectivity(self) -> None:
         """Verify messaging connectivity during startup."""
         logger.log_debug_with_context("Verifying messaging connectivity...")
-        await asyncio.sleep(0.1)  # Simulate connectivity check
+        await asyncio.sleep(0.1)
         logger.log_debug_with_context("Messaging connectivity verified")
 
 

@@ -132,13 +132,49 @@ def scan_assemblies(container: Container, packages: list) -> None:
 
 
 def wire_container(container: Container, packages: list) -> None:
-    """Wire the container with packages for dependency injection."""
+    """Wire the container with packages for dependency injection.
+
+    Raises on wiring errors so the application fails fast at startup
+    rather than producing opaque NoneType errors at request time.
+    """
     try:
         container.wire(packages=packages)
         logger.info(f"Wired container with packages: {packages}")
     except Exception as e:
-        logger.warning(f"Container wiring failed: {e}")
-        # Don't re-raise - let the application continue without wiring
+        logger.error(f"Container wiring FAILED — startup cannot proceed: {e}")
+        raise RuntimeError(
+            f"DI container wiring failed for packages {packages}: {e}"
+        ) from e
+
+
+def validate_container(container: Container) -> None:
+    """Validate that the container has all required configuration sections.
+
+    Raises:
+        RuntimeError: If any required configuration is missing or empty.
+    """
+    required_sections = ["database", "redis", "rabbitmq"]
+    missing: list[str] = []
+
+    for section in required_sections:
+        try:
+            section_config = getattr(container.config, section)()
+            if not section_config:
+                missing.append(section)
+            elif isinstance(section_config, dict):
+                conn = section_config.get("connection_string", "")
+                if not conn:
+                    missing.append(f"{section}.connection_string")
+        except Exception:
+            missing.append(section)
+
+    if missing:
+        raise RuntimeError(
+            f"DI container validation failed — missing or empty config: {missing}. "
+            f"Ensure environment variables are set before startup."
+        )
+
+    logger.info("DI container validation passed")
 
 
 # Convenience functions

@@ -16,10 +16,22 @@ from app.core.mediator.mediator import Mediator
 _services: dict[str, Any] = {}
 
 
-def configure_mediator() -> None:
-    """Configure mediator for FastAPI."""
+def configure_mediator(module_bootstraps: list[Any] | None = None) -> None:
+    """Configure mediator for FastAPI.
+
+    Args:
+        module_bootstraps: Optional list of IModuleBootstrap instances.
+            If provided, handler registration is delegated to each module.
+            If not provided, falls back to direct catalog import for backward compat.
+    """
     handler_registry = HandlerRegistry()
-    _register_module_handlers(handler_registry)
+
+    if module_bootstraps:
+        for bootstrap in module_bootstraps:
+            bootstrap.register_handlers(handler_registry)
+    else:
+        _register_module_handlers(handler_registry)
+
     mediator = Mediator(handler_registry)
 
     _services["mediator"] = mediator

@@ -12,6 +12,7 @@ class MetricsRegistry:
 
     _meter_provider: Any = None
     _meter: Any = None
+    _initialized: bool = False
 
     @classmethod
     def initialize(cls, meter_provider: Any = None) -> None:
@@ -23,9 +24,23 @@ class MetricsRegistry:
         """
         if meter_provider:
             cls._meter_provider = meter_provider
-            logger.log_with_context("Meter provider initialized")
+            cls._initialized = True
+            logger.log_with_context(
+                "[OK] Metrics provider initialized",
+                "info",
+            )
         else:
-            logger.log_warning_with_context("No meter provider provided, using default")
+            cls._meter_provider = None
+            cls._initialized = False
+            logger.log_with_context(
+                "[NOOP] Metrics initialized as no-op — no provider configured",
+                "info",
+            )
+
+    @classmethod
+    def is_active(cls) -> bool:
+        """True when a real meter provider was configured via initialize()."""
+        return cls._initialized
 
     @classmethod
     def get_meter(cls, name: str) -> Any:
@@ -49,3 +64,6 @@ class MetricsRegistry:
         if cls._meter_provider:
             # Shutdown logic would go here
             logger.log_with_context("Meter provider shut down")
+        cls._meter_provider = None
+        cls._meter = None
+        cls._initialized = False

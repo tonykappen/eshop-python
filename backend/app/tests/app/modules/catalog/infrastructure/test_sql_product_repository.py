@@ -244,20 +244,27 @@ class TestProductRepositoryGetAll:
         mock_orm1 = MagicMock(spec=ProductORM)
         mock_orm2 = MagicMock(spec=ProductORM)
 
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [mock_orm1, mock_orm2]
-        mock_session.execute.return_value = mock_result
+        mock_count_result = MagicMock()
+        mock_count_result.scalar.return_value = 2
+
+        mock_products_result = MagicMock()
+        mock_products_result.scalars.return_value.all.return_value = [
+            mock_orm1,
+            mock_orm2,
+        ]
+        mock_session.execute.side_effect = [mock_count_result, mock_products_result]
 
         with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product1 = MagicMock(spec=Product)
             mock_product2 = MagicMock(spec=Product)
             mock_mapper.side_effect = [mock_product1, mock_product2]
 
-            result = await repo.get_all(skip=0, limit=10)
+            products, total = await repo.get_all(page=1, page_size=10)
 
-            assert len(result) == 2
-            assert result[0] == mock_product1
-            assert result[1] == mock_product2
+            assert len(products) == 2
+            assert products[0] == mock_product1
+            assert products[1] == mock_product2
+            assert total == 2
             assert mock_mapper.call_count == 2
 
 
@@ -274,20 +281,24 @@ class TestProductRepositoryGetByCategory:
         mock_orm1 = MagicMock(spec=ProductORM)
         mock_orm2 = MagicMock(spec=ProductORM)
 
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [mock_orm1, mock_orm2]
-        mock_session.execute.return_value = mock_result
+        mock_count_result = MagicMock()
+        mock_count_result.scalar.return_value = 2
+
+        mock_products_result = MagicMock()
+        mock_products_result.scalars.return_value.all.return_value = [mock_orm1, mock_orm2]
+        mock_session.execute.side_effect = [mock_count_result, mock_products_result]
 
         with patch.object(repo, "_orm_to_domain") as mock_mapper:
             mock_product1 = MagicMock(spec=Product)
             mock_product2 = MagicMock(spec=Product)
             mock_mapper.side_effect = [mock_product1, mock_product2]
 
-            result = await repo.get_by_category(category)
+            products, total_count = await repo.get_by_category(category)
 
-            assert len(result) == 2
-            assert result[0] == mock_product1
-            assert result[1] == mock_product2
+            assert len(products) == 2
+            assert products[0] == mock_product1
+            assert products[1] == mock_product2
+            assert total_count == 2
 
     @pytest.mark.asyncio
     async def test_get_by_category_with_pagination(self):

@@ -164,19 +164,21 @@ class SqlProductRepository(ProductRepository):
 
     async def get_by_category(
         self, category: str, page: int = 1, page_size: int = 10
-    ) -> list[Product] | tuple[list[Product], int]:
+    ) -> tuple[list[Product], int]:
         """
-        Get products by category with optional pagination.
+        Get products by category with pagination.
 
         Args:
             category: Category name
-            page: Optional page number (1-indexed). If provided, returns tuple with count
-            page_size: Optional items per page. If provided, returns tuple with count
+            page: Page number (1-indexed)
+            page_size: Items per page
 
         Returns:
-            List of products, or tuple of (products, total_count) if pagination params provided
+            Tuple of (products, total_count)
         """
         try:
+            from sqlalchemy import func
+
             logger.log_with_context(
                 "Querying database for products by category",
                 context={
@@ -187,70 +189,44 @@ class SqlProductRepository(ProductRepository):
                     "operation": "get_by_category"
                 }
             )
-            # If pagination params provided, use paginated version
-            if page != 1 or page_size != 10:
-                from sqlalchemy import func
-
-                # Get total count
-                count_stmt = select(func.count(ProductORM.id)).where(
-                    ProductORM.categories.contains([category]),
-                    ProductORM.is_deleted == False,
-                )
-                count_result = await self.session.execute(count_stmt)
-                total_count = count_result.scalar() or 0
-
-                # Get paginated results
-                offset = (page - 1) * page_size
-                stmt = (
-                    select(ProductORM)
-                    .where(
-                        ProductORM.categories.contains([category]),
-                        ProductORM.is_deleted == False,
-                    )
-                    .offset(offset)
-                    .limit(page_size)
-                    .order_by(ProductORM.created_at.desc())
-                )
-
-                result = await self.session.execute(stmt)
-                products_orm = result.scalars().all()
-
-                products = [
-                    self._orm_to_domain(product_orm) for product_orm in products_orm
-                ]
-                logger.log_with_context(
-                    "Products by category retrieved from database",
-                    context={
-                        "category": category,
-                        "page": page,
-                        "page_size": page_size,
-                        "source": "database",
-                        "operation": "get_by_category",
-                        "product_count": len(products),
-                        "total_count": total_count
-                    }
-                )
-                return products, total_count
-
-            # Non-paginated version (matches abstract interface)
-            stmt = select(ProductORM).where(
+            count_stmt = select(func.count(ProductORM.id)).where(
                 ProductORM.categories.contains([category]),
                 ProductORM.is_deleted == False,
             )
+            count_result = await self.session.execute(count_stmt)
+            total_count = count_result.scalar() or 0
+
+            offset = (page - 1) * page_size
+            stmt = (
+                select(ProductORM)
+                .where(
+                    ProductORM.categories.contains([category]),
+                    ProductORM.is_deleted == False,
+                )
+                .offset(offset)
+                .limit(page_size)
+                .order_by(ProductORM.created_at.desc())
+            )
+
             result = await self.session.execute(stmt)
             products_orm = result.scalars().all()
 
-            products = [self._orm_to_domain(product_orm) for product_orm in products_orm]
+            products = [
+                self._orm_to_domain(product_orm) for product_orm in products_orm
+            ]
             logger.log_with_context(
                 "Products by category retrieved from database",
                 context={
                     "category": category,
+                    "page": page,
+                    "page_size": page_size,
                     "source": "database",
                     "operation": "get_by_category",
-                    "product_count": len(products)
+                    "product_count": len(products),
+                    "total_count": total_count
                 }
             )
-            return products
+            return products, total_count
 
         except Exception as e:
             logger.log_error_with_context(
@@ -288,33 +264,6 @@ class SqlProductRepository(ProductRepository):
 
         except Exception as e:
             logger.error(f"Error searching products by name {search_term}: {e}")
-            raise
-
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[Product]:
-        """
-        Get all products with pagination.
-
-        Args:
-            skip: Number of products to skip
-            limit: Maximum number of products to return
-
-        Returns:
-            List of products
-        """
-        try:
-            stmt = (
-                select(ProductORM)
-                .where(ProductORM.is_deleted == False)
-                .offset(skip)
-                .limit(limit)
-            )
-            result = await self.session.execute(stmt)
-            products_orm = result.scalars().all()
-
-            return [self._orm_to_domain(product_orm) for product_orm in products_orm]
-
-        except Exception as e:
-            logger.error(f"Error getting all products: {e}")
             raise
 
     async def count(self) -> int:

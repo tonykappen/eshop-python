@@ -4,8 +4,18 @@ from app.core.mediator.handler_registry import HandlerRegistry
 
 
 def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
-    """Register catalog module handlers with the mediator."""
-    # Import commands from application layer
+    """Register catalog module handlers with the mediator.
+
+    All handlers receive a UoW factory so they depend only on abstractions —
+    no direct AsyncSessionLocal, SqlProductRepository, or CatalogCacheService
+    construction.
+    """
+    from app.modules.catalog.module_interface.di.products.products_providers import (
+        create_catalog_uow_factory,
+    )
+
+    uow_factory = create_catalog_uow_factory()
+
     from app.modules.catalog.application.features.products.commands.create_product.create_product_command import (
         CreateProductCommand,
     )
@@ -43,12 +53,11 @@ def register_catalog_handlers(handler_registry: HandlerRegistry) -> None:
         GetProductsByCategoryQuery,
     )
 
-    # Register handlers with their corresponding query/command types
-    handler_registry.register_handler(GetProductByIdQuery, GetProductByIdHandler())
-    handler_registry.register_handler(GetProductsQuery, GetProductsHandler())
+    handler_registry.register_handler(GetProductByIdQuery, GetProductByIdHandler(uow_factory))
+    handler_registry.register_handler(GetProductsQuery, GetProductsHandler(uow_factory))
     handler_registry.register_handler(
-        GetProductsByCategoryQuery, GetProductsByCategoryHandler()
+        GetProductsByCategoryQuery, GetProductsByCategoryHandler(uow_factory)
     )
-    handler_registry.register_handler(CreateProductCommand, CreateProductHandler())
-    handler_registry.register_handler(UpdateProductCommand, UpdateProductHandler())
-    handler_registry.register_handler(DeleteProductCommand, DeleteProductHandler())
+    handler_registry.register_handler(CreateProductCommand, CreateProductHandler(uow_factory))
+    handler_registry.register_handler(UpdateProductCommand, UpdateProductHandler(uow_factory))
+    handler_registry.register_handler(DeleteProductCommand, DeleteProductHandler(uow_factory))

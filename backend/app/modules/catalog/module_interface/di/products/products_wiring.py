@@ -60,8 +60,9 @@ def wire_catalog_dependencies(app: FastAPI) -> None:
     # Register core services
     _register_core_services(container)
 
-    # Register repositories
-    _register_repositories(container)
+    # Repositories are not registered on the container: they need an AsyncSession and
+    # are resolved per-request via FastAPI dependency_overrides (see
+    # wire_catalog_dependencies_to_fastapi / get_catalog_dependency_overrides).
 
     # Register messaging services
     _register_messaging_services(container)
@@ -90,22 +91,6 @@ def _register_core_services(container) -> None:
     logger.log_debug_with_context("Registered core services")
 
 
-def _register_repositories(container) -> None:
-    """Register repository factories in the container."""
-    # Register repository factories
-    container.register_factory(
-        ProductRepository, lambda: None
-    )  # Will be resolved per request
-    container.register_factory(
-        CategoryRepository, lambda: None
-    )  # Will be resolved per request
-    container.register_factory(
-        InventoryRepository, lambda: None
-    )  # Will be resolved per request
-
-    logger.log_debug_with_context("Registered repository factories")
-
-
 def _register_messaging_services(container) -> None:
     """Register messaging services in the container."""
     logger.log_debug_with_context("Registered messaging services")
@@ -116,15 +101,9 @@ def _register_application_services(container) -> None:
     # Register mediator
     container.register_factory(Mediator, get_catalog_mediator)
 
-    # Register unit of work factory
-    container.register_factory(
-        ICatalogUnitOfWork, lambda: None
-    )  # Will be resolved per request
-
-    # Register request context factory
-    container.register_factory(
-        RequestContext, lambda: None
-    )  # Will be resolved per request
+    # ICatalogUnitOfWork is not registered here: it requires a session and is supplied
+    # per-request via FastAPI DI (dependency_overrides).
+    container.register_factory(RequestContext, lambda: RequestContext())
 
     logger.log_debug_with_context("Registered application services")
 
@@ -150,7 +129,6 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
 
     # Register core services in catalog container
     _register_core_services(catalog_container)
-    _register_repositories(catalog_container)
     _register_messaging_services(catalog_container)
     _register_application_services(catalog_container)
 

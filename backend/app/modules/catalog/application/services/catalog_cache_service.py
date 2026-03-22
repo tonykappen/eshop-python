@@ -12,6 +12,10 @@ from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 
+# Unfiltered product list keys invalidated without SCAN (pages × common page sizes).
+_PRODUCTS_LIST_INVALIDATE_MAX_PAGE = 10
+_PRODUCTS_LIST_INVALIDATE_PAGE_SIZES = (10, 20, 50, 100)
+
 
 class RedisCacheService(ICacheService):
     """Redis implementation of cache service."""
@@ -167,8 +171,15 @@ class CatalogCacheService:
             await self.cache.invalidate_pattern(pattern)
 
     async def invalidate_products_list(self) -> None:
-        """Invalidate all products list cache."""
-        await self.cache.invalidate_pattern("catalog:products:list:*")
+        """Invalidate unfiltered products list cache for early pages (no wildcard SCAN).
+
+        Category- or filter-specific list keys are not enumerated here; callers that
+        need full coverage may still use invalidate_product / invalidate_all_catalog.
+        """
+        for page in range(1, _PRODUCTS_LIST_INVALIDATE_MAX_PAGE + 1):
+            for size in _PRODUCTS_LIST_INVALIDATE_PAGE_SIZES:
+                key = self.cache_patterns.products_list_key(page, size, None)
+                await self.cache.delete(key)
 
     async def invalidate_all_catalog(self) -> None:
         """Invalidate all catalog cache."""

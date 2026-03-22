@@ -1,6 +1,6 @@
 """Test Redis caching integration for catalog module."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -88,18 +88,24 @@ class TestRedisCacheService:
 
     @pytest.mark.asyncio
     async def test_invalidate_pattern(self, redis_cache_service):
-        """Test invalidating cache pattern."""
+        """Test invalidating cache pattern via SCAN + pipeline delete."""
         # Arrange
         pattern = "test:*"
         keys = ["test:key1", "test:key2"]
-        redis_cache_service.redis_client.keys.return_value = keys
+        mock_pipe = MagicMock()
+        mock_pipe.execute = AsyncMock()
+        redis_cache_service.redis_client.pipeline = MagicMock(return_value=mock_pipe)
+        redis_cache_service.redis_client.scan = AsyncMock(return_value=(0, keys))
 
         # Act
         await redis_cache_service.invalidate_pattern(pattern)
 
         # Assert
-        redis_cache_service.redis_client.keys.assert_called_once_with(pattern)
-        redis_cache_service.redis_client.delete.assert_called_once_with(*keys)
+        redis_cache_service.redis_client.scan.assert_called()
+        mock_pipe.delete.assert_any_call("test:key1")
+        mock_pipe.delete.assert_any_call("test:key2")
+        mock_pipe.execute.assert_awaited_once()
+        redis_cache_service.redis_client.pipeline.assert_called_once()
 
 
 class TestCatalogCacheService:
@@ -205,10 +211,18 @@ class TestCatalogCacheService:
         # Act
         await catalog_cache_service.invalidate_products_list()
 
-        # Assert
-        catalog_cache_service.cache.invalidate_pattern.assert_called_once_with(
-            "catalog:products:list:*"
+        # Assert: targeted deletes for pages 1..10 × page sizes (no SCAN)
+        assert catalog_cache_service.cache.delete.await_count == 40
+        deleted_keys = [
+            call.args[0] for call in catalog_cache_service.cache.delete.await_args_list
+        ]
+        assert (
+            CatalogCachePatterns.products_list_key(1, 10, None) in deleted_keys
         )
+        assert (
+            CatalogCachePatterns.products_list_key(10, 100, None) in deleted_keys
+        )
+        catalog_cache_service.cache.invalidate_pattern.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_invalidate_all_catalog(self, catalog_cache_service):

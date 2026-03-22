@@ -1,21 +1,12 @@
 """GetProductByIdHandler with 1-1 parity to .NET implementation."""
 
+from collections.abc import Callable
+from typing import Any
 
-from app.core.database.session import AsyncSessionLocal
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
-from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-    RedisCacheService,
-)
 from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
-from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
-    CachedProductRepository,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository,
-)
 
 from .get_product_by_id_query import GetProductByIdQuery, GetProductByIdResult
 
@@ -23,61 +14,38 @@ from .get_product_by_id_query import GetProductByIdQuery, GetProductByIdResult
 class GetProductByIdHandler(IRequestHandler[GetProductByIdQuery, GetProductByIdResult]):
     """Handler for GetProductByIdQuery - matches .NET GetProductByIdHandler."""
 
-    def __init__(self) -> None:
-        """Initialize handler."""
-        pass
+    def __init__(self, uow_factory: Callable[[], Any] | None = None) -> None:
+        self._uow_factory = uow_factory
 
     async def handle(
         self, query: GetProductByIdQuery, cancellation_token: CancellationToken
     ) -> GetProductByIdResult:
-        """
-        Handle the query - matches .NET Handle(GetProductByIdQuery query, CancellationToken cancellationToken).
-
-        Args:
-            query: The query to handle
-
-        Returns:
-            GetProductByIdResult containing the product
-
-        Raises:
-            ProductNotFoundException: If product is not found
-        """
-        # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Use cached repository with Redis
-        async with AsyncSessionLocal() as session:
-            sql_repo = SqlProductRepository(session)
-            cache_service = CatalogCacheService(RedisCacheService())
-            repository = CachedProductRepository(sql_repo, cache_service)
-            product = await repository.get_by_id(query.id)
+        if self._uow_factory is None:
+            raise RuntimeError("Handler not properly configured: missing UoW factory")
+
+        async with self._uow_factory() as uow:
+            product = await uow.products.get_by_id(query.id)
 
             if product is None:
                 raise ProductNotFoundError(query.id)
 
-            # Convert SKU value object to string
             sku_str = str(product.sku) if product.sku else ""
-
-            # Convert Money value object to float and get currency
             price_float = float(product.price.amount) if product.price else 0.0
             currency_str = product.price.currency if product.price else "USD"
-
-            # Convert datetime fields to ISO format strings
             created_at_str = (
                 product.created_at.isoformat() if product.created_at else ""
             )
             updated_at_str = (
                 product.last_modified.isoformat() if product.last_modified else ""
             )
-
-            # Handle image_file: convert empty strings to None
             image_file = (
                 product.image_file.strip()
                 if product.image_file and product.image_file.strip()
                 else None
             )
 
-            # Mapping product entity to ProductDto
             product_dto = ProductDto(
                 id=product.id,
                 name=product.name,

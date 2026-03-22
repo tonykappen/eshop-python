@@ -1,10 +1,12 @@
 """Database session management with async support."""
 
+import asyncio
 import os
+import threading
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config.settings import settings
@@ -42,6 +44,50 @@ engine = create_async_engine(
     ),
 )
 
+_pool_event_lock = threading.Lock()
+_pool_checkout_event_count = 0
+_pool_checkin_event_count = 0
+
+
+def _sync_pool_metrics(pool: Any) -> tuple[int, int, int] | None:
+    """Return (pool_size, checked_out, overflow) or None if the pool has no sizing API."""
+    try:
+        pool_size = pool.size()
+        checked_out = pool.checkedout()
+        overflow = pool.overflow()
+    except AttributeError:
+        return None
+    return pool_size, checked_out, overflow
+
+
+def _on_pool_checkout(dbapi_conn: Any, connection_record: Any, connection_proxy: Any) -> None:
+    global _pool_checkout_event_count
+    with _pool_event_lock:
+        _pool_checkout_event_count += 1
+        metrics = _sync_pool_metrics(engine.sync_engine.pool)
+        if metrics is None:
+            return
+        pool_size, checked_out, overflow = metrics
+        if checked_out >= pool_size:
+            logger.warning(
+                "Connection pool exhaustion risk: checked_out=%s >= pool_size=%s, "
+                "overflow=%s, total_checkout_events=%s",
+                checked_out,
+                pool_size,
+                overflow,
+                _pool_checkout_event_count,
+            )
+
+
+def _on_pool_checkin(dbapi_conn: Any, connection_record: Any) -> None:
+    global _pool_checkin_event_count
+    with _pool_event_lock:
+        _pool_checkin_event_count += 1
+
+
+event.listen(engine.sync_engine.pool, "checkout", _on_pool_checkout)
+event.listen(engine.sync_engine.pool, "checkin", _on_pool_checkin)
+
 # Create async session factory with optimized settings
 AsyncSessionLocal = async_sessionmaker(
     engine,
@@ -65,10 +111,37 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+async def log_pool_health() -> None:
+    """Log a warning when the pool is near exhaustion (80% utilization or overflow)."""
+    try:
+
+        def _evaluate() -> tuple[int, int, int] | None:
+            return _sync_pool_metrics(engine.sync_engine.pool)
+
+        metrics = await asyncio.to_thread(_evaluate)
+        if metrics is None:
+            return
+        pool_size, checked_out, overflow = metrics
+        near_exhaustion = checked_out > pool_size * 0.8 or overflow > 0
+        if near_exhaustion:
+            logger.warning(
+                "Database pool near exhaustion: checked_out=%s, pool_size=%s, "
+                "threshold_80pct=%.1f, overflow=%s, checkout_events=%s, checkin_events=%s",
+                checked_out,
+                pool_size,
+                pool_size * 0.8,
+                overflow,
+                _pool_checkout_event_count,
+                _pool_checkin_event_count,
+            )
+    except Exception as e:
+        logger.error("Failed to log pool health: %s", e)
+
+
 async def get_pool_status() -> dict[str, Any]:
     """Get connection pool status for monitoring."""
     try:
-        pool = engine.pool
+        pool = engine.sync_engine.pool
         status = {
             "pool_size": pool.size(),
             "checked_in": pool.checkedin(),

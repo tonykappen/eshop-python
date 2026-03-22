@@ -1,24 +1,13 @@
 """GetProductsHandler for listing products with pagination and filtering."""
 
-from app.core.database.session import AsyncSessionLocal
+from collections.abc import Callable
+from typing import Any
+
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.application.public_interface.dto.product import ProductDto
-from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-    RedisCacheService,
-)
 from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
-    CachedProductRepository,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository,
-)
 
 from .get_products_query import GetProductsQuery, GetProductsResult
 
@@ -28,31 +17,19 @@ logger = BaseLogger(__name__)
 class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
     """Handler for GetProductsQuery - provides paginated product listing."""
 
-    def __init__(self) -> None:
-        """Initialize handler."""
-        pass
+    def __init__(self, uow_factory: Callable[[], Any] | None = None) -> None:
+        self._uow_factory = uow_factory
 
     async def handle(
         self, query: GetProductsQuery, cancellation_token: CancellationToken
     ) -> GetProductsResult:
-        """
-        Handle the query to get products with pagination and filtering.
-
-        Args:
-            query: The query containing pagination and filter parameters
-            cancellation_token: Cancellation token for async operations
-
-        Returns:
-            PaginatedResult containing paginated products
-        """
-        # Check for cancellation before database operation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Use cached repository with Redis
-        async with AsyncSessionLocal() as session:
-            sql_repo = SqlProductRepository(session)
-            cache_service = CatalogCacheService(RedisCacheService())
-            repository = CachedProductRepository(sql_repo, cache_service)
+        if self._uow_factory is None:
+            raise RuntimeError("Handler not properly configured: missing UoW factory")
+
+        async with self._uow_factory() as uow:
+            repository = uow.products
 
             logger.log_with_context(
                 "GetProductsHandler",
@@ -60,15 +37,13 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
                     "page": query.page,
                     "page_size": query.page_size,
                     "search_term": query.search_term,
-                    "category_id": str(query.category_id) if query.category_id else None
-                }
+                    "category_id": str(query.category_id) if query.category_id else None,
+                },
             )
 
-            # Get products based on filters
             if query.search_term:
                 logger.log_with_context(
-                    "Using search",
-                    context={"search_term": query.search_term}
+                    "Using search", context={"search_term": query.search_term}
                 )
                 products, total_count = await repository.search(
                     query.search_term, query.page, query.page_size
@@ -76,10 +51,8 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
             elif query.category_id:
                 logger.log_with_context(
                     "Using category filter",
-                    context={"category_id": str(query.category_id)}
+                    context={"category_id": str(query.category_id)},
                 )
-                # For now, we'll use category name instead of ID
-                # In a real implementation, you'd have a category lookup
                 products, total_count = await repository.get_by_category(
                     str(query.category_id), query.page, query.page_size
                 )
@@ -91,18 +64,13 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
 
             logger.log_with_context(
                 "Repository returned products",
-                context={
-                    "product_count": len(products),
-                    "total_count": total_count
-                }
+                context={"product_count": len(products), "total_count": total_count},
             )
 
-            # Convert to DTOs
             product_dtos = [self._map_to_dto(product) for product in products]
 
             logger.log_with_context(
-                "Converted to DTOs",
-                context={"dto_count": len(product_dtos)}
+                "Converted to DTOs", context={"dto_count": len(product_dtos)}
             )
 
             total_pages = (total_count + query.page_size - 1) // query.page_size
@@ -115,21 +83,13 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
             )
 
     def _map_to_dto(self, product: Product) -> ProductDto:
-        """Map product entity to DTO."""
-        # Convert SKU value object to string
         sku_str = str(product.sku) if product.sku else ""
-
-        # Convert Money value object to float and get currency
         price_float = float(product.price.amount) if product.price else 0.0
         currency_str = product.price.currency if product.price else "USD"
-
-        # Convert datetime fields to ISO format strings
         created_at_str = product.created_at.isoformat() if product.created_at else ""
         updated_at_str = (
             product.last_modified.isoformat() if product.last_modified else ""
         )
-
-        # Handle image_file: convert empty strings to None
         image_file = (
             product.image_file.strip()
             if product.image_file and product.image_file.strip()

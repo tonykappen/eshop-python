@@ -128,6 +128,8 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
                 self._session, all_entities
             )
 
+            await self._invalidate_product_caches(all_entities)
+
             logger.log_with_context(
                 "Successfully committed",
                 context={"entity_count": len(all_entities)},
@@ -140,6 +142,35 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
             await self._session.rollback()
             logger.log_error_with_context("Transaction rolled back", error=e)
             raise
+
+    async def _invalidate_product_caches(self, entities: list[object]) -> None:
+        """Invalidate catalog-specific caches for committed product entities."""
+        if self._cache_service is None:
+            return
+        try:
+            from app.modules.catalog.domain.entities.product.product import Product as ProductEntity
+            from app.modules.catalog.infrastructure.persistence.orm.product_orm import (
+                ProductORM,
+            )
+
+            has_product_changes = False
+            for entity in entities:
+                product_id = getattr(entity, "id", None)
+                if product_id is None:
+                    continue
+                if isinstance(entity, (ProductEntity, ProductORM)) or (
+                    hasattr(entity, "name") and hasattr(entity, "sku")
+                ):
+                    await self._cache_service.invalidate_product(product_id)
+                    has_product_changes = True
+
+            if has_product_changes:
+                await self._cache_service.invalidate_products_list()
+        except Exception as e:
+            logger.log_warning_with_context(
+                "Post-commit cache invalidation failed (best-effort)",
+                context={"error": str(e)},
+            )
 
     async def rollback(self) -> None:
         await self._session.rollback()

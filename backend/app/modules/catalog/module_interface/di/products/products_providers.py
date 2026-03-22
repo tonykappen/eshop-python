@@ -257,6 +257,30 @@ def get_catalog_container_provider():
     return get_catalog_container()
 
 
+# UoW factory for handler injection (not FastAPI Depends)
+def create_catalog_uow_factory():
+    """Return a callable async-context-manager that yields ICatalogUnitOfWork.
+
+    Usage in handlers::
+
+        async with self._uow_factory() as uow:
+            await uow.products.add(product)
+            # commit happens on successful __aexit__
+    """
+    from contextlib import asynccontextmanager
+
+    session_maker = get_catalog_session_maker()
+    cache_service = get_catalog_cache_service()
+
+    @asynccontextmanager
+    async def factory():
+        async with session_maker() as session:
+            async with SqlCatalogUnitOfWork(session, cache_service) as uow:
+                yield uow
+
+    return factory
+
+
 # Dependency aliases for easier imports
 CatalogEngine = Depends(get_catalog_engine)
 CatalogSessionMaker = Depends(get_catalog_session_maker)

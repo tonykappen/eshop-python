@@ -1,10 +1,5 @@
-"""Catalog module initialization."""
+"""Catalog bounded context package.
 
-# Database seeding will be enabled when SQLAlchemy is available
-from app.core.database.seeding import register_seeder
-from app.modules.catalog.infrastructure.seed.catalog_data_seeder import (
-    CatalogDataSeeder,
-)
-
-# Register the catalog seeder
-register_seeder(CatalogDataSeeder)
+Seeder registration and outbox worker wiring are performed at application
+startup through the bootstrap lifecycle, not via import side effects here.
+"""

@@ -6,8 +6,8 @@ import asyncio
 import importlib.util
 import inspect
 import logging
-import sys
-from datetime import datetime
+import logging.handlers
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,171 @@ from structlog.stdlib import LoggerFactory
 from app.core.logging.base_logger import LogFormatters
 
 HTTPX_AVAILABLE = importlib.util.find_spec("httpx") is not None
+
+
+def _resolve_log_directory(log_directory: str) -> Path:
+    """Resolve log directory path relative to backend directory.
+
+    Args:
+        log_directory: Relative or absolute log directory path
+
+    Returns:
+        Resolved absolute Path to log directory
+    """
+    log_path = Path(log_directory)
+
+    # If already absolute, return as is
+    if log_path.is_absolute():
+        return log_path
+
+    # Get the backend directory (parent of app directory)
+    # __file__ is in backend/app/core/logging/logger.py
+    # So we go: logger.py -> logging/ -> core/ -> app/ -> backend/
+    backend_dir = Path(__file__).parent.parent.parent.parent
+
+    # Resolve relative to backend directory
+    resolved_path = backend_dir / log_path
+
+    return resolved_path
+
+
+class DailyRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
+    """Custom file handler that rotates logs daily.
+
+    Today's logs go to base_filename (e.g., app.log).
+    Previous days' logs are renamed to base_filename_YYYY-MM-DD (e.g., app_2024-01-15.log).
+    """
+
+    def __init__(self, filename: str, log_directory: str, **kwargs):
+        """Initialize daily rotating file handler.
+
+        Args:
+            filename: Base filename (e.g., 'app.log')
+            log_directory: Directory where logs are stored (relative or absolute)
+            **kwargs: Additional arguments for TimedRotatingFileHandler
+        """
+        # Resolve log directory relative to backend directory
+        resolved_log_dir = _resolve_log_directory(log_directory)
+
+        # Ensure directory exists
+        resolved_log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create full file path
+        file_path = resolved_log_dir / filename
+
+        # Initialize with daily rotation at midnight
+        # Set delay=False to ensure files are created immediately, not lazily
+        super().__init__(
+            filename=str(file_path),
+            when="midnight",
+            interval=1,
+            backupCount=0,  # We handle backup naming manually
+            delay=False,  # Create file immediately, not on first write
+            **kwargs,
+        )
+
+        self.base_filename = filename
+        self.log_directory = resolved_log_dir
+        self.current_date = date.today()
+
+        # Check if existing file is from a previous day and rotate it
+        self._check_and_rotate_existing_file()
+
+        # Rotate on initialization if needed (for date change detection)
+        self._rotate_if_needed()
+
+        # Ensure file stream is open if delay is False
+        # This ensures the file is created immediately, not on first write
+        if not self.delay and self.stream is None:
+            try:
+                self.stream = self._open()
+                # Verify file was created
+                if Path(self.baseFilename).exists():
+                    import sys
+
+                    print(
+                        f"[Logging] Created log file: {self.baseFilename}",
+                        file=sys.stderr,
+                    )
+            except Exception as e:
+                import sys
+
+                print(
+                    f"[Logging] WARNING: Failed to open log file {self.baseFilename}: {e}",
+                    file=sys.stderr,
+                )
+                raise
+
+    def _check_and_rotate_existing_file(self) -> None:
+        """Check if existing log file is from a previous day and rotate it."""
+        current_path = Path(self.baseFilename)
+        if current_path.exists() and current_path.stat().st_size > 0:
+            try:
+                # Get file modification date
+                file_mtime = date.fromtimestamp(current_path.stat().st_mtime)
+
+                # If file is from a previous day, rename it
+                if file_mtime < self.current_date:
+                    base_name = current_path.stem  # e.g., 'app' from 'app.log'
+                    extension = current_path.suffix  # e.g., '.log'
+                    dated_filename = (
+                        f"{base_name}_{file_mtime.strftime('%Y-%m-%d')}{extension}"
+                    )
+                    dated_path = self.log_directory / dated_filename
+                    current_path.rename(dated_path)
+            except Exception as e:
+                # If rotation fails, log to stderr to avoid recursion
+                import sys
+
+                print(
+                    f"Failed to rotate existing file {self.baseFilename}: {e}",
+                    file=sys.stderr,
+                )
+
+    def _rotate_if_needed(self) -> None:
+        """Check if rotation is needed and rotate if necessary."""
+        current_date = date.today()
+
+        # If date changed, rotate the old file
+        if self.current_date != current_date and self.baseFilename:
+            self._do_rollover()
+
+        self.current_date = current_date
+
+    def _do_rollover(self) -> None:
+        """Perform the actual rollover (rename current file to dated name)."""
+        if self.stream:
+            self.stream.close()
+            self.stream = None
+
+        # Get yesterday's date for the filename
+        yesterday = self.current_date
+        base_name = Path(self.baseFilename).stem  # e.g., 'app' from 'app.log'
+        extension = Path(self.baseFilename).suffix  # e.g., '.log'
+
+        # Create dated filename: app_2024-01-15.log
+        dated_filename = f"{base_name}_{yesterday.strftime('%Y-%m-%d')}{extension}"
+        dated_path = self.log_directory / dated_filename
+
+        # Rename current file to dated name if it exists
+        current_path = Path(self.baseFilename)
+        if current_path.exists() and current_path.stat().st_size > 0:
+            current_path.rename(dated_path)
+
+        # Update current date
+        self.current_date = date.today()
+
+        # Reopen the base file for today
+        if not self.delay:
+            self.stream = self._open()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Emit a record, rotating if necessary."""
+        # Check if we need to rotate before emitting
+        if date.today() != self.current_date:
+            self._rotate_if_needed()
+
+        super().emit(record)
 
 
 def configure_logging(
@@ -33,10 +198,31 @@ def configure_logging(
 ) -> None:
     """Configure structured logging with optional SEQ support and auto-logging."""
 
-    # Create logs directory if it doesn't exist
+    # Resolve and create logs directory if it doesn't exist
     if enable_file_logging:
-        log_path = Path(log_directory)
-        log_path.mkdir(parents=True, exist_ok=True)
+        resolved_log_dir = _resolve_log_directory(log_directory)
+        try:
+            resolved_log_dir.mkdir(parents=True, exist_ok=True)
+            # Verify directory was created
+            if not resolved_log_dir.exists():
+                raise OSError(f"Failed to create log directory: {resolved_log_dir}")
+            # Use resolved path for handlers
+            log_directory = str(resolved_log_dir)
+            # Debug output (can be removed in production)
+            import sys
+
+            print(
+                f"[Logging] Log directory resolved to: {resolved_log_dir.resolve()}",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            import sys
+
+            print(
+                f"[Logging] ERROR: Failed to create log directory {resolved_log_dir}: {e}",
+                file=sys.stderr,
+            )
+            raise
 
     # Configure structlog processors
     processors = [
@@ -81,12 +267,16 @@ def configure_logging(
 
     # File handlers if enabled
     if enable_file_logging:
-        # Application logs
-        app_handler = logging.FileHandler(f"{log_directory}/app.log")
+        # Application logs with daily rotation
+        app_handler = DailyRotatingFileHandler(
+            filename="app.log", log_directory=log_directory
+        )
         app_handler.setFormatter(LogFormatters.get_standard_formatter())
 
-        # Error logs
-        error_handler = logging.FileHandler(f"{log_directory}/error.log")
+        # Error logs with daily rotation
+        error_handler = DailyRotatingFileHandler(
+            filename="error.log", log_directory=log_directory
+        )
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(LogFormatters.get_standard_formatter())
 
@@ -108,14 +298,14 @@ def configure_logging(
 
     # Configure Uvicorn server logs separately if enabled
     if separate_server_logs and enable_file_logging:
-        # Create separate handlers for uvicorn
-        uvicorn_access_handler = logging.FileHandler(
-            f"{log_directory}/uvicorn_access.log"
+        # Create separate handlers for uvicorn with daily rotation
+        uvicorn_access_handler = DailyRotatingFileHandler(
+            filename="uvicorn_access.log", log_directory=log_directory
         )
         uvicorn_access_handler.setFormatter(LogFormatters.get_uvicorn_formatter())
 
-        uvicorn_error_handler = logging.FileHandler(
-            f"{log_directory}/uvicorn_error.log"
+        uvicorn_error_handler = DailyRotatingFileHandler(
+            filename="uvicorn_error.log", log_directory=log_directory
         )
         uvicorn_error_handler.setFormatter(LogFormatters.get_uvicorn_formatter())
 
@@ -159,7 +349,7 @@ def configure_logging(
             logging.getLogger().addHandler(clef_handler)
 
             get_logger(__name__).info(
-                f"✅ CLEF/SEQ logging configured successfully at {seq_url}"
+                f"[OK] CLEF/SEQ logging configured successfully at {seq_url}"
             )
         except Exception as e:
             # Fallback to console logging if SEQ configuration fails

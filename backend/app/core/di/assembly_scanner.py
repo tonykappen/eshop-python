@@ -102,6 +102,13 @@ class AssemblyScanner:
             self._discover_services_in_module(module, module_name)
         except ImportError as e:
             logger.warning(f"Could not import module {module_name}: {e}")
+        except (NameError, AttributeError) as e:
+            # Handle cases where modules have missing imports (e.g., Dict not defined)
+            # This can happen during scanning when modules are imported in a different order
+            logger.debug(f"Module {module_name} has import issues (non-critical): {e}")
+        except Exception as e:
+            # Catch any other errors during module scanning to prevent one bad module from breaking the entire scan
+            logger.warning(f"Error scanning module {module_name}: {e}")
 
     def _discover_services_in_module(self, module: Any, module_name: str) -> None:
         """Discover services in a module and register them."""

@@ -12,21 +12,19 @@ async def initialize_logging() -> None:
     logger = BaseLogger("initialization")
     logger.log_with_context("Initializing logging configuration", "info")
 
-    # Configure logging first (handlers, formatters, etc.)
     configure_logging(
         log_level=settings.log_level,
         log_format="json",
         enable_seq=settings.log_enable_seq,
         seq_url=settings.seq_url,
-        seq_api_key=settings.seq_api_key,
+        _seq_api_key=settings.seq_api_key,
         enable_file_logging=settings.log_enable_file,
         log_directory=settings.log_directory,
         separate_server_logs=settings.log_separate_server_logs,
-        enable_console=True,  # Always enable console output
+        enable_console=True,
         environment=settings.environment,
     )
 
-    # Initialize async CLEF dispatcher for Seq
     if settings.log_enable_seq:
         try:
             from app.core.logging.clef_dispatcher import init_dispatcher
@@ -47,19 +45,17 @@ async def initialize_logging() -> None:
             )
         except Exception as e:
             logger.log_error_with_context(
-                "Failed to initialize async CLEF dispatcher",
-                error=e,
+                "Failed to initialize async CLEF dispatcher", error=e
             )
 
     logger.log_with_context("Logging configuration completed", "info")
 
 
-async def initialize_dependency_injection() -> None:
-    """Initialize dependency injection container."""
+async def initialize_dependency_injection(app=None):
+    """Initialize dependency injection container and store on app.state if provided."""
     logger = BaseLogger("initialization")
     logger.log_with_context("Initializing dependency injection container", "info")
 
-    # Initialize DI container
     container = create_container()
     container.config.from_dict(
         {
@@ -75,13 +71,11 @@ async def initialize_dependency_injection() -> None:
         }
     )
 
-    # Scan assemblies for automatic service registration
     scan_assemblies(
         container,
         ["app.modules.catalog", "app.modules.basket", "app.modules.ordering"],
     )
 
-    # Wire container with packages (after services are registered)
     try:
         wire_container(
             container,
@@ -91,71 +85,70 @@ async def initialize_dependency_injection() -> None:
         logger.log_warning_with_context(
             "Container wiring failed (non-critical)", context={"error": str(e)}
         )
-        # Continue without wiring - services can still be accessed directly
 
-    # Store container in global variable for access in main.py
-    global _app_container
-    _app_container = container
+    if app is not None:
+        app.state.container = container
+    else:
+        global _app_container
+        _app_container = container
 
     logger.log_with_context("Dependency injection container initialized", "info")
 
+    return container
 
-# Global container reference for lifecycle management
+
 _app_container = None
 
 
-def get_app_container():
-    """Get the application container instance."""
+def get_app_container(app=None):
+    """Get the application container — prefers app.state, falls back to module global."""
+    if app is not None and hasattr(app, "state") and hasattr(app.state, "container"):
+        return app.state.container
     return _app_container
 
 
 async def initialize_mediator() -> None:
-    """Initialize mediator pattern - matches .NET AddMediatRWithAssemblies()."""
+    """Initialize mediator pattern."""
     logger = BaseLogger("initialization")
     logger.log_with_context("Initializing mediator pattern", "info")
-
-    # Configure mediator (matches .NET Program.cs configuration)
     configure_mediator()
-
     logger.log_with_context("Mediator pattern initialized", "info")
 
 
-async def cleanup_dependency_injection() -> None:
+async def cleanup_dependency_injection(app=None) -> None:
     """Cleanup dependency injection container and associated resources."""
     logger = BaseLogger("initialization")
     logger.log_with_context("Cleaning up dependency injection container", "info")
 
-    global _app_container
-    if _app_container:
+    container = get_app_container(app)
+
+    if container:
         try:
-            # Unwire the container to release any wired dependencies
-            _app_container.unwire()
+            container.unwire()
             logger.log_with_context("Container unwired successfully", "info")
 
-            # Clear any cached instances in providers
-            for provider_name, provider in _app_container.providers.items():
+            for provider_name, provider in container.providers.items():
                 if hasattr(provider, "reset"):
                     provider.reset()
-                    logger.log_debug_with_context(f"Reset provider: {provider_name}")
 
-            # Clear the global container reference
+            if app is not None and hasattr(app.state, "container"):
+                del app.state.container
+
+            global _app_container
             _app_container = None
-            logger.log_with_context(
-                "Dependency injection container cleanup completed", "info"
-            )
+
+            logger.log_with_context("DI container cleanup completed", "info")
 
         except Exception as e:
             logger.log_error_with_context(
                 "Error during container cleanup",
                 error=e,
-                context={"container_available": _app_container is not None},
+                context={"container_available": container is not None},
             )
-            # Still clear the reference even if cleanup fails
             _app_container = None
     else:
         logger.log_with_context("No container to cleanup", "info")
 
-    # Cleanup database resources
     try:
         from app.core.database.session import close_db_engine
 
@@ -170,7 +163,6 @@ async def shutdown_logging() -> None:
     logger = BaseLogger("initialization")
     logger.log_with_context("Shutting down logging system", "info")
 
-    # Shutdown async CLEF dispatcher
     try:
         from app.core.logging.clef_dispatcher import shutdown_dispatcher
 
@@ -178,6 +170,5 @@ async def shutdown_logging() -> None:
         logger.log_with_context("Async CLEF dispatcher shutdown completed", "info")
     except Exception as e:
         logger.log_error_with_context(
-            "Error during CLEF dispatcher shutdown",
-            error=e,
+            "Error during CLEF dispatcher shutdown", error=e
         )

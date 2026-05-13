@@ -520,7 +520,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product for API testing\",\n    \"price\": 99.99,\n    \"category\": \"Electronics\",\n    \"stock_quantity\": 100,\n    \"picture_url\": \"https://example.com/image.jpg\"\n}"
+							"raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product for API testing\",\n    \"price\": 99.99,\n    \"picture_url\": \"https://example.com/image.jpg\",\n    \"category\": [\"Electronics\"]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/products/",

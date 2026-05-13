@@ -1,6 +1,5 @@
 """ORM mapping utilities for converting between Domain entities and SQLAlchemy ORM models."""
 
-import logging
 from datetime import datetime
 from inspect import signature
 from typing import Any, TypeVar, get_type_hints
@@ -10,8 +9,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.domain.entity import Entity
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 T = TypeVar("T")
 DomainEntityType = TypeVar("DomainEntityType", bound=Entity)
@@ -52,6 +52,67 @@ class ORMMapper:
             # Convert UUIDs to strings if needed
             entity_data = cls._convert_uuids_for_orm(entity_data)
 
+            # Handle Product-specific conversions (domain to ORM)
+            is_product = domain_entity.__class__.__name__ == "Product"
+
+            if is_product:
+                # Convert SKU value object to string
+                if "sku" in entity_data:
+                    sku_value = entity_data["sku"]
+                    if hasattr(sku_value, "value"):  # SKU value object
+                        entity_data["sku"] = sku_value.value
+                    elif isinstance(sku_value, dict) and "value" in sku_value:
+                        entity_data["sku"] = sku_value["value"]
+                    elif isinstance(sku_value, str):
+                        entity_data["sku"] = sku_value
+                    else:
+                        entity_data["sku"] = str(sku_value)
+
+                # Convert Money value object to price_amount and price_currency
+                if "price" in entity_data:
+                    price_value = entity_data["price"]
+                    if hasattr(price_value, "amount") and hasattr(
+                        price_value, "currency"
+                    ):
+                        # Money value object
+                        entity_data["price_amount"] = str(price_value.amount)
+                        entity_data["price_currency"] = price_value.currency
+                    elif isinstance(price_value, dict):
+                        # Dictionary representation
+                        entity_data["price_amount"] = str(price_value.get("amount", ""))
+                        entity_data["price_currency"] = price_value.get(
+                            "currency", "USD"
+                        )
+                    # Remove price field as it doesn't exist in ORM
+                    entity_data.pop("price", None)
+
+                # Map category (domain) to categories (ORM)
+                if "category" in entity_data and "categories" not in entity_data:
+                    entity_data["categories"] = entity_data.pop("category")
+
+                # Set default audit fields if not present
+                current_time = datetime.utcnow()
+                if (
+                    "created_at" not in entity_data
+                    or entity_data.get("created_at") is None
+                ):
+                    entity_data["created_at"] = current_time
+                if (
+                    "updated_at" not in entity_data
+                    or entity_data.get("updated_at") is None
+                ):
+                    entity_data["updated_at"] = current_time
+                if (
+                    "is_deleted" not in entity_data
+                    or entity_data.get("is_deleted") is None
+                ):
+                    entity_data["is_deleted"] = False
+                # Map last_modified (domain) to updated_at (ORM) if needed
+                if "last_modified" in entity_data and "updated_at" not in entity_data:
+                    entity_data["updated_at"] = (
+                        entity_data.pop("last_modified") or current_time
+                    )
+
             # Filter data to only include fields that exist in ORM model
             orm_fields = cls._get_orm_model_fields(orm_model_class)
             filtered_data = {k: v for k, v in entity_data.items() if k in orm_fields}
@@ -59,13 +120,24 @@ class ORMMapper:
             # Create ORM model instance
             orm_instance = orm_model_class(**filtered_data)
 
-            logger.debug(
-                f"Converted domain entity {type(domain_entity).__name__} to ORM model {orm_model_class.__name__}"
+            logger.log_debug_with_context(
+                "Converted domain entity to ORM model",
+                context={
+                    "domain_entity_type": type(domain_entity).__name__,
+                    "orm_model_type": orm_model_class.__name__
+                }
             )
             return orm_instance
 
         except Exception as e:
-            logger.error(f"Failed to convert domain entity to ORM model: {e}")
+            logger.log_error_with_context(
+                "Failed to convert domain entity to ORM model",
+                error=e,
+                context={
+                    "domain_entity_type": type(domain_entity).__name__,
+                    "orm_model_type": orm_model_class.__name__
+                }
+            )
             raise ValueError(
                 f"Failed to convert {type(domain_entity).__name__} to {orm_model_class.__name__}: {e}"
             ) from e
@@ -93,13 +165,24 @@ class ORMMapper:
                 # Regular domain entity
                 domain_entity = domain_entity_class(**domain_data)
 
-            logger.debug(
-                f"Converted ORM model {type(orm_model).__name__} to domain entity {domain_entity_class.__name__}"
+            logger.log_debug_with_context(
+                "Converted ORM model to domain entity",
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": domain_entity_class.__name__
+                }
             )
             return domain_entity
 
         except Exception as e:
-            logger.error(f"Failed to convert ORM model to domain entity: {e}")
+            logger.log_error_with_context(
+                "Failed to convert ORM model to domain entity",
+                error=e,
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": domain_entity_class.__name__
+                }
+            )
             raise ValueError(
                 f"Failed to convert {type(orm_model).__name__} to {domain_entity_class.__name__}: {e}"
             ) from e
@@ -146,19 +229,76 @@ class ORMMapper:
             # Convert UUIDs for ORM
             entity_data = cls._convert_uuids_for_orm(entity_data)
 
+            # Handle Product-specific conversions (domain to ORM)
+            is_product = domain_entity.__class__.__name__ == "Product"
+
+            if is_product:
+                # Convert SKU value object to string
+                if "sku" in entity_data:
+                    sku_value = entity_data["sku"]
+                    if hasattr(sku_value, "value"):  # SKU value object
+                        entity_data["sku"] = sku_value.value
+                    elif isinstance(sku_value, dict) and "value" in sku_value:
+                        entity_data["sku"] = sku_value["value"]
+                    elif isinstance(sku_value, str):
+                        entity_data["sku"] = sku_value
+                    else:
+                        entity_data["sku"] = str(sku_value)
+
+                # Convert Money value object to price_amount and price_currency
+                if "price" in entity_data:
+                    price_value = entity_data["price"]
+                    if hasattr(price_value, "amount") and hasattr(
+                        price_value, "currency"
+                    ):
+                        # Money value object
+                        entity_data["price_amount"] = str(price_value.amount)
+                        entity_data["price_currency"] = price_value.currency
+                    elif isinstance(price_value, dict):
+                        # Dictionary representation
+                        entity_data["price_amount"] = str(price_value.get("amount", ""))
+                        entity_data["price_currency"] = price_value.get(
+                            "currency", "USD"
+                        )
+                    # Remove price field as it doesn't exist in ORM
+                    entity_data.pop("price", None)
+
+                # Map category (domain) to categories (ORM)
+                if "category" in entity_data and "categories" not in entity_data:
+                    entity_data["categories"] = entity_data.pop("category")
+
+                # Always update updated_at on update operations
+                entity_data["updated_at"] = datetime.utcnow()
+                # Map last_modified (domain) to updated_at (ORM) if present
+                if "last_modified" in entity_data:
+                    entity_data["updated_at"] = (
+                        entity_data.pop("last_modified") or datetime.utcnow()
+                    )
+
             # Update ORM model attributes
             orm_fields = cls._get_orm_model_fields(type(orm_model))
             for field_name, field_value in entity_data.items():
                 if field_name in orm_fields and hasattr(orm_model, field_name):
                     setattr(orm_model, field_name, field_value)
 
-            logger.debug(
-                f"Updated ORM model {type(orm_model).__name__} from domain entity {type(domain_entity).__name__}"
+            logger.log_debug_with_context(
+                "Updated ORM model from domain entity",
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": type(domain_entity).__name__
+                }
             )
             return orm_model
 
         except Exception as e:
-            logger.error(f"Failed to update ORM model from domain entity: {e}")
+            logger.log_error_with_context(
+                "Failed to update ORM model from domain entity",
+                error=e,
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": type(domain_entity).__name__
+                }
+            )
             raise ValueError(
                 f"Failed to update {type(orm_model).__name__} from {type(domain_entity).__name__}: {e}"
             ) from e
@@ -251,7 +391,72 @@ class ORMMapper:
             except Exception:
                 valid_fields = set()
 
+        # Handle Product-specific conversions
+        is_product = domain_entity_class.__name__ == "Product"
+
+        if is_product:
+            # Convert sku string to SKU value object
+            if "sku" in data and isinstance(data["sku"], str):
+                try:
+                    from app.modules.catalog.domain.value_objects import SKU
+
+                    converted["sku"] = SKU(value=data["sku"])
+                except Exception as e:
+                    logger.log_warning_with_context(
+                        "Failed to convert sku to SKU value object",
+                        context={"error": str(e)}
+                    )
+                    # Fallback: try to use as-is, validation will catch it
+                    converted["sku"] = data["sku"]
+
+            # Convert price_amount and price_currency to Money value object
+            if "price_amount" in data:
+                try:
+                    from decimal import Decimal
+
+                    from app.modules.catalog.domain.value_objects import Money
+
+                    price_amount = data["price_amount"]
+                    price_currency = data.get("price_currency") or "USD"
+
+                    # Convert price_amount to Decimal if it's a string
+                    if isinstance(price_amount, str):
+                        price_amount = Decimal(price_amount)
+                    elif not isinstance(price_amount, Decimal):
+                        price_amount = Decimal(str(price_amount))
+
+                    converted["price"] = Money(
+                        amount=price_amount, currency=price_currency
+                    )
+                except Exception as e:
+                    logger.log_warning_with_context(
+                        "Failed to convert price to Money value object",
+                        context={"error": str(e)}
+                    )
+                    # Don't add price if conversion fails - let validation catch it
+
+            # Map categories (ORM) to category (domain)
+            if "categories" in data and "category" in valid_fields:
+                converted["category"] = data["categories"]
+            elif "categories" in data:
+                # If domain expects "categories", use it directly
+                converted["categories"] = data["categories"]
+
+            # Map updated_at (ORM) to last_modified (domain Entity)
+            if "updated_at" in data and "last_modified" in valid_fields:
+                converted["last_modified"] = data["updated_at"]
+
         for key, value in data.items():
+            # Skip fields we've already handled specially
+            if is_product and key in (
+                "sku",
+                "price_amount",
+                "price_currency",
+                "categories",
+                "updated_at",
+            ):
+                continue
+
             # Only include fields that exist in the domain entity
             if key in valid_fields:
                 if key in type_hints:

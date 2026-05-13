@@ -1,28 +1,6 @@
 {
-    // VS Code Debug Configurations for eShop Application
-    // 
-    // Environment Variables Priority (highest to lowest):
-    // 1. os.environ (system/production environment variables) - HIGHEST
-    // 2. .env file (local development configuration)
-    // 3. launch.json "env" values (IDE debugging convenience) - LOWEST
-    // 4. settings.py defaults (fallback)
-    //
-    // This priority order follows 12-Factor App methodology and ensures:
-    // - Production safety: System env vars always take precedence
-    // - Docker/Kubernetes compatibility: Container env vars win
-    // - Developer convenience: .env provides local defaults
-    // - IDE flexibility: launch.json provides debug overrides (but can't override production)
-    //
-    // Quick Start:
-    // 1. Copy env.example to .env: cp env.example .env
-    // 2. Start infrastructure: ./scripts/start-infrastructure.sh
-    // 3. Press F5 or select a debug configuration below
-    //
-    // See ENVIRONMENT_VARIABLES.md for detailed documentation
-    
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "Debug Backend (FastAPI)",
             "type": "debugpy",
@@ -47,11 +25,11 @@
                 "app.main:app",
                 "--host", "0.0.0.0",
                 "--port", "8000",
-                "--reload",
                 "--log-level", "debug"
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/backend",
+            "preLaunchTask": "Poetry Install",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/backend",
@@ -72,7 +50,51 @@
                 "KEYCLOAK_SERVER_URL": "http://localhost:8080"
             },
             "justMyCode": false,
-            "stopOnEntry": false
+            "stopOnEntry": false,
+            "subProcess": true,
+            "python": "${command:python.interpreterPath}",
+            "gevent": false
+        },
+        {
+            "name": "Debug Backend (uvicorn with reload)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--host", "0.0.0.0",
+                "--port", "8000",
+                "--reload",
+                "--log-level", "debug"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/backend",
+            "preLaunchTask": "Poetry Install",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/backend",
+                "DEBUG": "true",
+                "LOG_LEVEL": "DEBUG",
+                "LOG_ENABLE_SEQ": "true",
+                "SEQ_URL": "http://localhost:5341",
+                "SEQ_API_KEY": "l6obaob16J6292tGOfnc",
+                "DATABASE_HOST": "localhost",
+                "DATABASE_PORT": "5432",
+                "DATABASE_NAME": "eshop",
+                "DATABASE_USER": "postgres",
+                "DATABASE_PASSWORD": "postgres",
+                "REDIS_HOST": "localhost",
+                "REDIS_PORT": "6379",
+                "RABBITMQ_HOST": "localhost",
+                "RABBITMQ_PORT": "5672",
+                "KEYCLOAK_SERVER_URL": "http://localhost:8080"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "subProcess": true,
+            "python": "${command:python.interpreterPath}",
+            "gevent": false,
+            "note": "Note: Breakpoints in async event handlers may not work with --reload. Use 'Debug Backend (uvicorn)' without reload for debugging event handlers."
         },
         {
             "name": "Debug Frontend (HTTP Server)",
@@ -82,6 +104,7 @@
             "args": ["3000"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/frontend",
+            "envFile": "${workspaceFolder}/.env",
             "serverReadyAction": {
                 "pattern": "Serving HTTP on.*port 3000",
                 "uriFormat": "http://localhost:3000",
@@ -125,8 +148,7 @@
                 "TESTING": "true"
             },
             "justMyCode": false
-        },
-
+        }
     ],
     "compounds": [
         {
@@ -151,4 +173,4 @@
             "stopAll": true
         }
     ]
-} 
+}

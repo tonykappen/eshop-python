@@ -1,12 +1,11 @@
 # Infrastructure services for eShop application
 # This file can be used independently for development
 # or imported by the main docker-compose.yml
+# Compatible with both docker-compose and podman-compose
 
 services:
   postgres:
-    build:
-      context: ./docker/postgres
-      dockerfile: Dockerfile
+    image: postgres:17
     container_name: eshop-postgres
     environment:
       POSTGRES_USER: postgres
@@ -51,16 +50,27 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    # Fix permissions issue with .erlang.cookie in Podman
+    # The entrypoint script handles user switching, we just need to fix permissions first
+    entrypoint: >
+      bash -c "
+        chown -R rabbitmq:rabbitmq /var/lib/rabbitmq 2>/dev/null || true
+        if [ -f /var/lib/rabbitmq/.erlang.cookie ]; then
+          chmod 600 /var/lib/rabbitmq/.erlang.cookie 2>/dev/null || true
+        fi
+        exec docker-entrypoint.sh rabbitmq-server
+      "
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
+    restart: unless-stopped
     networks:
       - eshop-network
 
   seq:
-    image: datalust/seq:latest
+    image: datalust/seq:2024.3
     container_name: eshop-seq
     environment:
       ACCEPT_EULA: "Y"
@@ -72,8 +82,9 @@ services:
       - "5342:5341"
     volumes:
       - seq_data:/data
+    # Seq doesn't have curl, use a simple TCP check instead
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/80' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -90,8 +101,27 @@ services:
     networks:
       - eshop-network
 
+  keycloak-init:
+    image: postgres:17
+    container_name: eshop-keycloak-init
+    environment:
+      PGPASSWORD: postgres
+    command: >
+      sh -c "
+        until psql -h postgres -U postgres -d eshop -c 'SELECT 1' >/dev/null 2>&1; do
+          sleep 0.5
+        done &&
+        psql -h postgres -U postgres -d eshop -c 'CREATE SCHEMA IF NOT EXISTS keycloak; GRANT ALL PRIVILEGES ON SCHEMA keycloak TO postgres;'
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - eshop-network
+    restart: "no"
+
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.0
     container_name: eshop-keycloak
     environment:
       KC_HEALTH_ENABLED: "true"
@@ -105,6 +135,23 @@ services:
       KC_DB_SCHEMA: keycloak
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
+      KEYCLOAK_CLIENT_SECRET: "${KEYCLOAK_CLIENT_SECRET:-eshop-secure-client-secret-2024}"
+      # JVM optimizations to reduce CPU usage at startup
+      JAVA_OPTS_APPEND: >-
+        -Xms512m
+        -Xmx1536m
+        -XX:MetaspaceSize=128m
+        -XX:MaxMetaspaceSize=256m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+        -XX:+ParallelRefProcEnabled
+        -XX:+UseStringDeduplication
+        -XX:+OptimizeStringConcat
+        -Djava.awt.headless=true
+        -Dfile.encoding=UTF-8
+        -Djava.security.egd=file:/dev/./urandom
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
     ports:
       - "8080:8080"
     command: start-dev
@@ -113,17 +160,18 @@ services:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { java.net.URI uri = java.net.URI.create(args[0]); System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)uri.toURL().openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:8080/realms/master']
-      interval: 10s
+      interval: 15s
       timeout: 10s
       retries: 10
+      start_period: 120s
     deploy:
       resources:
         limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
           memory: 1G
           cpus: '0.5'
-        reservations:
-          memory: 512M
-          cpus: '0.25'
     networks:
       - eshop-network
 

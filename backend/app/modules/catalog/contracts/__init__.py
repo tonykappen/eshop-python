@@ -1,1 +1,1 @@
-"""Catalog module contracts."""
+"""Contracts package for catalog module."""

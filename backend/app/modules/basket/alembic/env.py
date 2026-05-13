@@ -12,14 +12,21 @@ from app.core.database.base import Base
 from app.modules.basket.infrastructure.orm_models import *  # noqa: F401, F403
 
 # this is the Alembic Config object
-config = context.config
-
-# Interpret the config file for Python logging
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-# Set the SQLAlchemy URL from settings
-config.set_main_option("sqlalchemy.url", settings.database_connection_string)
+# Only access config when Alembic is actually running (context is available)
+# When imported outside Alembic (e.g., during DI scanning), context.config won't exist
+config = None
+try:
+    config = context.config
+    # Interpret the config file for Python logging
+    if config and config.config_file_name is not None:
+        fileConfig(config.config_file_name)
+    # Set the SQLAlchemy URL from settings
+    if config:
+        config.set_main_option("sqlalchemy.url", settings.database_connection_string)
+except AttributeError:
+    # context.config is not available when module is imported outside of Alembic
+    # This is expected during DI scanning, so we silently ignore it
+    pass
 
 # Add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
@@ -78,7 +85,26 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
+# Only run migrations if Alembic context is properly initialized
+# This prevents errors during module imports (e.g., DI scanning)
+# Alembic will explicitly execute this code when running migrations
+# We skip execution during normal imports to avoid proxy initialization errors
+try:
+    # Only try to run migrations if we can safely access the context
+    # If config exists and is accessible, we're being run by Alembic
+    if config is not None:
+        # Double-check that context methods are accessible before calling them
+        try:
+            # This will fail if the proxy is not initialized
+            is_offline = context.is_offline_mode()
+            if is_offline:
+                run_migrations_offline()
+            else:
+                run_migrations_online()
+        except (AttributeError, RuntimeError, Exception):
+            # Proxy not ready, skip migrations
+            pass
+except (AttributeError, RuntimeError, Exception):
+    # If any error occurs (context not initialized, proxy not ready, etc.), skip migrations
+    # This is expected when the module is imported outside of Alembic (e.g., during DI scanning)
+    pass

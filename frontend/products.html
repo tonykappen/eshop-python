@@ -68,9 +68,29 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
+        .search-filters {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .search-filters input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .search-filters button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
         .product-card {
@@ -78,15 +98,24 @@
             border-radius: 8px;
             padding: 15px;
             background: #f9f9f9;
+            position: relative;
         }
         .product-card h3 {
             margin: 0 0 10px 0;
             color: #333;
         }
+        .product-description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            height: 40px;
+            overflow: hidden;
+        }
         .product-price {
             font-weight: bold;
             color: #007bff;
             font-size: 18px;
+            margin-bottom: 10px;
         }
         .product-category {
             background-color: #e9ecef;
@@ -94,7 +123,63 @@
             border-radius: 12px;
             font-size: 12px;
             display: inline-block;
-            margin: 5px 0;
+            margin: 2px;
+        }
+        .product-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-edit, .btn-delete, .btn-add-cart {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-edit {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-add-cart {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-edit:hover {
+            background-color: #e0a800;
+        }
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        .btn-add-cart:hover {
+            background-color: #218838;
+        }
+        .cart-info {
+            background-color: #e7f3ff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .cart-total {
+            font-weight: bold;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #007bff;
         }
         .loading {
             text-align: center;
@@ -109,6 +194,24 @@
         .pagination {
             margin-top: 20px;
             text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .pagination button:hover:not(:disabled) {
+            background-color: #f8f9fa;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .pagination span {
             margin: 0 10px;
@@ -128,11 +231,13 @@
         }
         .modal-content {
             background-color: white;
-            margin: 10% auto;
+            margin: 5% auto;
             padding: 20px;
             border-radius: 8px;
-            width: 400px;
+            width: 500px;
             max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
         }
         .modal-header {
             display: flex;
@@ -163,6 +268,64 @@
             height: 80px;
             resize: vertical;
         }
+        .form-group .category-input {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .form-group .category-input input {
+            flex: 1;
+        }
+        .form-group .category-input button {
+            padding: 8px 12px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .category-tag {
+            background-color: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .category-tag button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+        }
+        .form-group input.error, .form-group textarea.error {
+            border-color: #dc3545;
+        }
+        .validation-summary {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid #f5c6cb;
+        }
+        .validation-summary ul {
+            margin: 0;
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -182,6 +345,20 @@
             </button>
         </div>
         
+        <div class="search-filters">
+            <input type="text" id="searchTerm" placeholder="Search products...">
+            <button onclick="searchProducts()">Search</button>
+            <button onclick="clearSearch()">Clear</button>
+        </div>
+        
+        <!-- Shopping Cart Section -->
+        <div id="cartSection" class="cart-info" style="display: none;">
+            <h3>🛒 Shopping Cart</h3>
+            <div id="cartItems"></div>
+            <div id="cartTotal" class="cart-total"></div>
+            <button onclick="clearCart()" style="margin-top: 10px; padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Cart</button>
+        </div>
+        
         <div id="loading" class="loading">Loading products...</div>
         <div id="error" class="error" style="display: none;"></div>
         
@@ -190,35 +367,48 @@
         <div id="pagination" class="pagination" style="display: none;"></div>
     </div>
 
-    <!-- Create Product Modal -->
-    <div id="createProductModal" class="modal">
+    <!-- Create/Edit Product Modal -->
+    <div id="productModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Create New Product</h3>
-                <span class="close" onclick="closeCreateModal()">&times;</span>
+                <h3 id="modalTitle">Create New Product</h3>
+                <span class="close" onclick="closeProductModal()">&times;</span>
             </div>
-            <form id="createProductForm">
+            <form id="productForm">
+                <div id="validationSummary" class="validation-summary" style="display: none;"></div>
                 <div class="form-group">
                     <label for="productName">Product Name:</label>
                     <input type="text" id="productName" required>
+                    <span id="productName-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
                     <label for="productDescription">Description:</label>
                     <textarea id="productDescription" required></textarea>
+                    <span id="productDescription-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
                     <label for="productPrice">Price:</label>
-                    <input type="number" id="productPrice" step="0.01" required>
+                    <input type="number" id="productPrice" step="0.01" min="0.01" required>
+                    <span id="productPrice-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
-                    <label for="productCategory">Category:</label>
-                    <input type="text" id="productCategory" placeholder="e.g., electronics" required>
+                    <label for="productImage">Image URL (optional):</label>
+                    <input type="text" id="productImage" placeholder="https://example.com/image.jpg">
+                    <span id="productImage-error" class="error-message"></span>
                 </div>
                 <div class="form-group">
-                    <label for="productImage">Image URL:</label>
-                    <input type="url" id="productImage" placeholder="https://example.com/image.jpg" required>
+                    <label>Categories: <span style="font-size: 0.85em; color: #666; font-weight: normal;">(at least one required)</span></label>
+                    <div class="category-input">
+                        <input type="text" id="categoryInput" placeholder="Enter category name">
+                        <button type="button" onclick="addCategory()">Add</button>
+                    </div>
+                    <small style="display: block; color: #666; margin-top: 4px; font-size: 0.85em;">
+                        Type a category name and click "Add" to add it to the product. You can add multiple categories.
+                    </small>
+                    <div id="categoryTags" class="category-tags"></div>
+                    <span id="category-error" class="error-message"></span>
                 </div>
-                <button type="submit">Create Product</button>
+                <button type="submit" id="submitBtn">Create Product</button>
             </form>
         </div>
     </div>
@@ -226,6 +416,13 @@
     <script>
         const API_BASE = 'http://localhost:8000';
         let currentUser = null;
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalPages = 1;
+        let editingProductId = null;
+        let categories = [];
+        let cart = []; // Shopping cart array
+        let userRole = 'user'; // Default role
         
         // Check authentication
         const token = localStorage.getItem('access_token');
@@ -254,7 +451,6 @@
         const tokenData = parseJwt(token);
         if (tokenData && tokenData.realm_access && tokenData.realm_access.roles) {
             const roles = tokenData.realm_access.roles;
-            let userRole = 'user';
             if (roles.includes('admin')) {
                 userRole = 'admin';
                 document.getElementById('createProductBtn').style.display = 'block';
@@ -265,10 +461,29 @@
             document.getElementById('userRole').textContent = userRole;
         }
         
-        // Load products
-        async function loadProducts() {
+        // Load cart from localStorage - use user-specific key (only for regular users)
+        if (userRole !== 'admin' && userRole !== 'manager') {
+            const cartKey = `eshop_cart_${username}`;
+            const savedCart = localStorage.getItem(cartKey);
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+            }
+        }
+        // Always call updateCartDisplay to ensure cart section is hidden for admin/manager
+        updateCartDisplay();
+        
+        // Load products with pagination and search
+        async function loadProducts(page = 1, searchTerm = '') {
             try {
-                const response = await fetch(`${API_BASE}/api/v1/products/`, {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                
+                let url = `${API_BASE}/api/v1/products/?page=${page}&page_size=${pageSize}`;
+                if (searchTerm) {
+                    url += `&search_term=${encodeURIComponent(searchTerm)}`;
+                }
+                
+                const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -283,7 +498,15 @@
                 }
                 
                 const data = await response.json();
-                displayProducts(data.data, data.page, data.total_pages, data.total_count);
+                // API returns: items, page, pages, total, size
+                // Map to frontend expected format
+                const products = data.items || [];
+                const responsePage = data.page || 1;
+                const responseTotalPages = data.pages || 1;
+                const totalCount = data.total || 0;
+                displayProducts(products, responsePage, responseTotalPages, totalCount);
+                currentPage = responsePage;
+                totalPages = responseTotalPages;
                 
             } catch (error) {
                 document.getElementById('loading').style.display = 'none';
@@ -301,22 +524,44 @@
             if (!products || products.length === 0) {
                 grid.innerHTML = '<p>No products found.</p>';
             } else {
-                grid.innerHTML = products.map(product => `
-                    <div class="product-card">
-                        <h3>${escapeHtml(product.name)}</h3>
-                        <p>${escapeHtml(product.description)}</p>
-                        <div class="product-price">$${product.price}</div>
-                        ${product.category.map(cat => `<span class="product-category">${escapeHtml(cat)}</span>`).join(' ')}
-                    </div>
-                `).join('');
+                grid.innerHTML = products.map(product => {
+                    const actions = getProductActions(product);
+                    // Safely handle all fields to prevent "undefined" display
+                    const name = product.name || 'Unnamed Product';
+                    const description = product.description || 'No description available';
+                    const price = product.price || 0;
+                    const categories = product.category || [];
+                    
+                    return `
+                        <div class="product-card">
+                            <h3>${escapeHtml(name)}</h3>
+                            <div class="product-description">${escapeHtml(description)}</div>
+                            <div class="product-price">$${price}</div>
+                            <div class="product-categories">
+                                ${categories.length > 0 
+                                    ? categories.map(cat => `<span class="product-category">${escapeHtml(cat || '')}</span>`).join('')
+                                    : '<span class="product-category">No categories</span>'
+                                }
+                            </div>
+                            <div class="product-actions">
+                                ${actions}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
             
+            // Update pagination
             pagination.innerHTML = `
+                <button onclick="loadProducts(1)" ${page === 1 ? 'disabled' : ''}>First</button>
+                <button onclick="loadProducts(${page - 1})" ${page === 1 ? 'disabled' : ''}>Previous</button>
                 <span>Page ${page} of ${totalPages} (${totalCount} total products)</span>
+                <button onclick="loadProducts(${page + 1})" ${page === totalPages ? 'disabled' : ''}>Next</button>
+                <button onclick="loadProducts(${totalPages})" ${page === totalPages ? 'disabled' : ''}>Last</button>
             `;
             
             grid.style.display = 'grid';
-            pagination.style.display = 'block';
+            pagination.style.display = 'flex';
         }
         
         function escapeHtml(text) {
@@ -325,64 +570,631 @@
             return div.innerHTML;
         }
         
+        // Field name mapping from backend to frontend
+        const fieldNameMap = {
+            'picture_url': 'productImage',
+            'name': 'productName',
+            'description': 'productDescription',
+            'price': 'productPrice',
+            'category': 'category'
+        };
+        
+        function displayValidationErrors(validationErrors) {
+            // Clear previous errors
+            clearValidationErrors();
+            
+            // Group errors by field
+            const errorsByField = {};
+            const summaryErrors = [];
+            
+            validationErrors.forEach(error => {
+                const fieldName = error.field || 'unknown';
+                const message = error.message || 'Validation error';
+                const frontendFieldName = fieldNameMap[fieldName] || fieldName;
+                
+                if (!errorsByField[frontendFieldName]) {
+                    errorsByField[frontendFieldName] = [];
+                }
+                errorsByField[frontendFieldName].push(message);
+                summaryErrors.push(`${fieldName}: ${message}`);
+            });
+            
+            // Display field-specific errors
+            Object.keys(errorsByField).forEach(fieldId => {
+                const inputElement = document.getElementById(fieldId);
+                const errorElement = document.getElementById(`${fieldId}-error`);
+                
+                if (inputElement && errorElement) {
+                    inputElement.classList.add('error');
+                    errorElement.textContent = errorsByField[fieldId].join(', ');
+                    errorElement.style.display = 'block';
+                }
+            });
+            
+            // Display validation summary
+            const summaryElement = document.getElementById('validationSummary');
+            if (summaryElement && summaryErrors.length > 0) {
+                summaryElement.innerHTML = `
+                    <strong>Please fix the following errors:</strong>
+                    <ul>
+                        ${summaryErrors.map(err => `<li>${escapeHtml(err)}</li>`).join('')}
+                    </ul>
+                `;
+                summaryElement.style.display = 'block';
+            }
+        }
+        
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.style.borderColor = '#dc3545';
+                // Try to find or create an error element
+                let errorEl = document.getElementById(`${fieldId}-error`);
+                if (!errorEl) {
+                    errorEl = document.createElement('span');
+                    errorEl.id = `${fieldId}-error`;
+                    errorEl.className = 'error-message';
+                    field.parentNode.appendChild(errorEl);
+                }
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+        }
+        
+        function clearValidationErrors() {
+            // Clear all error messages
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            
+            // Remove error styling from inputs and reset border colors
+            document.querySelectorAll('.form-group input, .form-group textarea').forEach(el => {
+                el.classList.remove('error');
+                el.style.borderColor = '';
+            });
+            
+            // Clear category error specifically
+            const categoryErrorEl = document.getElementById('category-error');
+            if (categoryErrorEl) {
+                categoryErrorEl.textContent = '';
+                categoryErrorEl.style.display = 'none';
+            }
+            
+            // Hide validation summary
+            const summaryElement = document.getElementById('validationSummary');
+            if (summaryElement) {
+                summaryElement.style.display = 'none';
+                summaryElement.innerHTML = '';
+            }
+        }
+        
+        // Get appropriate actions based on user role
+        function getProductActions(product) {
+            // Ensure product ID is a string (UUID might be object)
+            const productId = product.id ? String(product.id) : '';
+            const productName = product.name || 'Product';
+            const productPrice = product.price || 0;
+            
+            if (userRole === 'admin' || userRole === 'manager') {
+                // Admin and Manager can edit/delete products
+                return `
+                    <button class="btn-edit" onclick="editProduct('${productId}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteProduct('${productId}')">Delete</button>
+                `;
+            } else {
+                // Regular users can only add to cart
+                return `
+                    <button class="btn-add-cart" onclick="addToCart('${productId}', '${escapeHtml(productName)}', ${productPrice})">Add to Cart</button>
+                `;
+            }
+        }
+        
+        // Cart functionality - helper to get user-specific cart key
+        function getCartKey() {
+            return `eshop_cart_${username}`;
+        }
+        
+        function addToCart(productId, productName, price) {
+            // Only regular users can add to cart
+            if (userRole === 'admin' || userRole === 'manager') {
+                return;
+            }
+            
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    id: productId,
+                    name: productName,
+                    price: price,
+                    quantity: 1
+                });
+            }
+            
+            // Save to localStorage with user-specific key
+            localStorage.setItem(getCartKey(), JSON.stringify(cart));
+            
+            // Update display
+            updateCartDisplay();
+            
+            // Show feedback
+            alert(`${productName} added to cart!`);
+        }
+        
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            localStorage.setItem(getCartKey(), JSON.stringify(cart));
+            updateCartDisplay();
+        }
+        
+        function updateCartQuantity(productId, newQuantity) {
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                if (newQuantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    item.quantity = newQuantity;
+                    localStorage.setItem(getCartKey(), JSON.stringify(cart));
+                    updateCartDisplay();
+                }
+            }
+        }
+        
+        function clearCart() {
+            cart = [];
+            localStorage.removeItem(getCartKey());
+            updateCartDisplay();
+        }
+        
+        function updateCartDisplay() {
+            const cartSection = document.getElementById('cartSection');
+            const cartItems = document.getElementById('cartItems');
+            const cartTotal = document.getElementById('cartTotal');
+            
+            // Hide cart for admin and manager users
+            if (userRole === 'admin' || userRole === 'manager') {
+                cartSection.style.display = 'none';
+                return;
+            }
+            
+            if (cart.length === 0) {
+                cartSection.style.display = 'none';
+                return;
+            }
+            
+            cartSection.style.display = 'block';
+            
+            let total = 0;
+            cartItems.innerHTML = cart.map(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                
+                return `
+                    <div class="cart-item">
+                        <div>
+                            <strong>${escapeHtml(item.name)}</strong><br>
+                            <small>$${item.price} each</small>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button onclick="updateCartQuantity('${item.id}', ${item.quantity - 1})" style="padding: 2px 6px; font-size: 12px;">-</button>
+                            <span>${item.quantity}</span>
+                            <button onclick="updateCartQuantity('${item.id}', ${item.quantity + 1})" style="padding: 2px 6px; font-size: 12px;">+</button>
+                            <span style="font-weight: bold;">$${itemTotal.toFixed(2)}</span>
+                            <button onclick="removeFromCart('${item.id}')" style="padding: 2px 6px; font-size: 12px; background-color: #dc3545; color: white; border: none; border-radius: 3px;">×</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            cartTotal.innerHTML = `Total: $${total.toFixed(2)}`;
+        }
+        
+        function searchProducts() {
+            const searchTerm = document.getElementById('searchTerm').value;
+            loadProducts(1, searchTerm);
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchTerm').value = '';
+            loadProducts(1, '');
+        }
+        
         function logout() {
+            // Clear user-specific data
             localStorage.removeItem('access_token');
             localStorage.removeItem('username');
+            // Clear old shared cart key if it exists (for backward compatibility)
+            localStorage.removeItem('eshop_cart');
             window.location.href = 'index.html';
         }
         
         function showCreateModal() {
-            document.getElementById('createProductModal').style.display = 'block';
+            editingProductId = null;
+            document.getElementById('modalTitle').textContent = 'Create New Product';
+            document.getElementById('submitBtn').textContent = 'Create Product';
+            document.getElementById('productForm').reset();
+            categories = [];
+            updateCategoryTags();
+            clearValidationErrors(); // Clear any previous validation errors
+            document.getElementById('productModal').style.display = 'block';
         }
         
-        function closeCreateModal() {
-            document.getElementById('createProductModal').style.display = 'none';
-            document.getElementById('createProductForm').reset();
+        function editProduct(productId) {
+            editingProductId = productId;
+            document.getElementById('modalTitle').textContent = 'Edit Product';
+            document.getElementById('submitBtn').textContent = 'Update Product';
+            clearValidationErrors(); // Clear any previous validation errors
+            
+            // Find the product data (you might want to store this in a variable)
+            // For now, we'll make a request to get the product details
+            fetch(`${API_BASE}/api/v1/products/${productId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // API returns product wrapped in "product" field
+                // Response structure: { product: { id, name, ... } }
+                let product = null;
+                
+                // Try different possible response structures
+                if (data.product && data.product.id) {
+                    // Product wrapped in "product" field (actual API format)
+                    product = data.product;
+                } else if (data.data && data.data.id) {
+                    // Standard DataResponse format
+                    product = data.data;
+                } else if (data.id) {
+                    // Direct product object
+                    product = data;
+                }
+                
+                if (!product || !product.id) {
+                    alert('Product data not found in response. Please try again.');
+                    return;
+                }
+                
+                // Populate form fields - check if elements exist first
+                const nameField = document.getElementById('productName');
+                const descField = document.getElementById('productDescription');
+                const priceField = document.getElementById('productPrice');
+                const imageField = document.getElementById('productImage');
+                
+                if (nameField) nameField.value = product.name || '';
+                if (descField) descField.value = product.description || '';
+                if (priceField) priceField.value = product.price || '';
+                
+                // Handle image_file or picture_url - prevent "undefined" display
+                const imageUrl = product.image_file || product.picture_url || '';
+                if (imageField) imageField.value = imageUrl;
+                
+                // Handle categories - ensure it's an array
+                categories = Array.isArray(product.category) ? [...product.category] : [];
+                updateCategoryTags();
+                
+                // Show the modal
+                const modal = document.getElementById('productModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                const errorMessage = error instanceof TypeError && error.message.includes('fetch')
+                    ? 'Network error: Unable to connect to server.'
+                    : error.message;
+                alert('Failed to load product details: ' + errorMessage);
+            });
         }
         
-        // Handle create product form
-        document.getElementById('createProductForm').addEventListener('submit', async (e) => {
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+            document.getElementById('productForm').reset();
+            categories = [];
+            updateCategoryTags();
+            editingProductId = null;
+        }
+        
+        function addCategory() {
+            const input = document.getElementById('categoryInput');
+            const category = input.value.trim();
+            if (category && !categories.includes(category)) {
+                categories.push(category);
+                input.value = '';
+                updateCategoryTags();
+            }
+        }
+        
+        function removeCategory(category) {
+            categories = categories.filter(cat => cat !== category);
+            updateCategoryTags();
+        }
+        
+        function updateCategoryTags() {
+            const container = document.getElementById('categoryTags');
+            container.innerHTML = categories.map(cat => `
+                <div class="category-tag">
+                    ${escapeHtml(cat)}
+                    <button type="button" onclick="removeCategory('${escapeHtml(cat)}')">&times;</button>
+                </div>
+            `).join('');
+        }
+        
+        // Handle create/edit product form
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Clear previous validation errors
+            clearValidationErrors();
+            
+            // Client-side validation
+            const name = document.getElementById('productName').value.trim();
+            const description = document.getElementById('productDescription').value.trim();
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const categoryInput = document.getElementById('categoryInput').value.trim();
+            
+            let hasErrors = false;
+            
+            if (!name) {
+                showFieldError('productName', 'Product name is required and cannot be empty');
+                hasErrors = true;
+            }
+            
+            if (!description) {
+                showFieldError('productDescription', 'Product description is required and cannot be empty');
+                hasErrors = true;
+            }
+            
+            if (!price || price <= 0) {
+                showFieldError('productPrice', 'Product price must be greater than $0.00');
+                hasErrors = true;
+            }
+            
+            if (categories.length === 0) {
+                const categoryErrorEl = document.getElementById('category-error');
+                if (categoryErrorEl) {
+                    categoryErrorEl.textContent = 'At least one category is required. Please add a category using the "Add" button';
+                    categoryErrorEl.style.display = 'block';
+                }
+                hasErrors = true;
+            }
+            
+            // If there's text in the category input but it hasn't been added, warn the user
+            if (categoryInput && categories.length === 0) {
+                const categoryErrorEl = document.getElementById('category-error');
+                if (categoryErrorEl) {
+                    categoryErrorEl.textContent = 'Please click "Add" to add the category before submitting';
+                    categoryErrorEl.style.display = 'block';
+                }
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                return; // Don't submit if there are validation errors
+            }
+            
+            const imageUrl = document.getElementById('productImage').value.trim();
             const productData = {
-                name: document.getElementById('productName').value,
-                description: document.getElementById('productDescription').value,
-                price: parseFloat(document.getElementById('productPrice').value),
-                category: [document.getElementById('productCategory').value],
-                picture_url: document.getElementById('productImage').value
+                name: name,
+                description: description,
+                price: price,
+                category: categories
             };
             
+            // Only include picture_url if provided (make it optional)
+            if (imageUrl) {
+                productData.picture_url = imageUrl;
+            }
+            
             try {
-                const response = await fetch(`${API_BASE}/api/v1/products/`, {
-                    method: 'POST',
+                const url = editingProductId 
+                    ? `${API_BASE}/api/v1/products/${editingProductId}`
+                    : `${API_BASE}/api/v1/products/`;
+                const method = editingProductId ? 'PUT' : 'POST';
+                
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                } catch (fetchError) {
+                    // This is a true network error - fetch itself failed
+                    console.error('Fetch error (network issue):', fetchError);
+                    if (fetchError instanceof TypeError || 
+                        (fetchError.message && (fetchError.message.includes('fetch') || fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')))) {
+                        alert('Failed to save product: Network error: Unable to connect to server. Please check if the backend is running.');
+                        return;
+                    }
+                    // Re-throw unexpected errors
+                    throw fetchError;
+                }
+                
+                // Ensure we have a valid response object
+                if (!response) {
+                    alert('Failed to save product: No response received from server.');
+                    return;
+                }
+                
+                // Handle HTTP errors (response received but not ok)
+                // This is NOT a network error - we got a response from the server
+                if (!response.ok) {
+                    console.log('HTTP error response:', response.status, response.statusText);
+                    let errorMessage = 'Failed to save product';
+                    let validationErrors = [];
+                    
+                    // Try to parse the error response
+                    const contentType = response.headers.get('content-type');
+                    console.log('Error response content-type:', contentType);
+                    console.log('Error response status:', response.status);
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        try {
+                            // Clone the response to read it without consuming the stream
+                            const errorText = await response.text();
+                            console.log('Error response body:', errorText);
+                            
+                            if (errorText) {
+                                const errorData = JSON.parse(errorText);
+                                console.log('Parsed error data:', errorData);
+                                
+                                // Handle different error response formats
+                                if (errorData.detail) {
+                                    errorMessage = errorData.detail;
+                                } else if (errorData.error && errorData.error.message) {
+                                    errorMessage = errorData.error.message;
+                                } else if (errorData.message) {
+                                    errorMessage = errorData.message;
+                                }
+                                
+                                // Extract validation errors if present
+                                if (errorData.validationErrors && Array.isArray(errorData.validationErrors)) {
+                                    validationErrors = errorData.validationErrors;
+                                } else if (errorData.error && errorData.error.details) {
+                                    // Some error formats have details
+                                    const details = errorData.error.details;
+                                    if (typeof details === 'string') {
+                                        errorMessage = details;
+                                    }
+                                }
+                            } else {
+                                errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                            }
+                        } catch (parseError) {
+                            // If JSON parsing fails, use status text
+                            console.error('Failed to parse error response:', parseError);
+                            errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                        }
+                    } else {
+                        // Response is not JSON, try to get text
+                        try {
+                            const errorText = await response.text();
+                            if (errorText) {
+                                errorMessage = errorText;
+                            } else {
+                                errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                            }
+                        } catch (textError) {
+                            console.error('Failed to read error response text:', textError);
+                            errorMessage = `HTTP ${response.status}: ${response.statusText || 'Bad Request'}`;
+                        }
+                    }
+                    
+                    // Display validation errors on the form
+                    if (validationErrors.length > 0) {
+                        displayValidationErrors(validationErrors);
+                    } else {
+                        // No specific validation errors, show the error message (this is a bad data error, not network error)
+                        clearValidationErrors();
+                        alert('Failed to save product: ' + errorMessage);
+                    }
+                    return; // Don't proceed if there are errors
+                }
+                
+                // Clear any previous validation errors
+                clearValidationErrors();
+                
+                // Store the operation type before closing modal (which resets editingProductId)
+                const wasUpdating = !!editingProductId;
+                
+                closeProductModal();
+                loadProducts(currentPage); // Reload current page
+                alert(wasUpdating ? 'Product updated successfully!' : 'Product created successfully!');
+                
+            } catch (error) {
+                // Handle unexpected errors (not network, not HTTP errors)
+                // Only show network error if it's actually a network/fetch error
+                console.error('Error saving product:', error);
+                
+                // Check if this is a real network error
+                const isNetworkError = 
+                    error instanceof TypeError && 
+                    (error.message.includes('fetch') || 
+                     error.message.includes('Failed to fetch') ||
+                     error.message.includes('NetworkError') ||
+                     error.message.includes('Network request failed'));
+                
+                if (isNetworkError) {
+                    alert('Failed to save product: Network error: Unable to connect to server. Please check if the backend is running.');
+                } else {
+                    // This is some other error - show the actual error message
+                    alert('Failed to save product: ' + (error.message || 'An unexpected error occurred'));
+                }
+            }
+        });
+        
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/products/${productId}`, {
+                    method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(productData)
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to create product');
+                    throw new Error(errorData.detail || 'Failed to delete product');
                 }
                 
-                closeCreateModal();
-                loadProducts(); // Reload products
-                alert('Product created successfully!');
+                // Reload products - refresh the list immediately
+                const searchTerm = document.getElementById('searchTerm').value;
+                await loadProducts(currentPage, searchTerm);
+                
+                // Check if current page is empty and navigate back if needed
+                const grid = document.getElementById('productsGrid');
+                if (grid && grid.textContent.includes('No products found') && currentPage > 1) {
+                    await loadProducts(currentPage - 1, searchTerm);
+                }
+                
+                alert('Product deleted successfully!');
                 
             } catch (error) {
-                alert('Failed to create product: ' + error.message);
+                alert('Failed to delete product: ' + error.message);
+                // Still reload products even if there was an error to ensure UI is in sync
+                const searchTerm = document.getElementById('searchTerm').value;
+                loadProducts(currentPage, searchTerm);
             }
-        });
+        }
         
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('createProductModal');
+            const modal = document.getElementById('productModal');
             if (event.target === modal) {
-                closeCreateModal();
+                closeProductModal();
             }
         }
+        
+        // Handle Enter key in search
+        document.getElementById('searchTerm').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchProducts();
+            }
+        });
+        
+        // Handle Enter key in category input
+        document.getElementById('categoryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCategory();
+            }
+        });
         
         // Load products on page load
         loadProducts();

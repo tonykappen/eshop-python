@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, ValidationError
 
-from app.core.exceptions.base import (
+from app.core.exceptions import (
     BadRequestError,
     BaseError,
     ConfigurationError,
@@ -16,9 +16,11 @@ from app.core.exceptions.base import (
     NotFoundError,
     UnauthorizedError,
 )
-from app.core.exceptions.base import ValidationError as CustomValidationError
+from app.core.exceptions import (
+    ValidationError as CustomValidationError,
+)
 from app.core.exceptions.handler import CustomExceptionHandler
-from app.modules.catalog.domain.exceptions import ProductNotFoundError
+from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
 
 
 class TestBaseExceptions:

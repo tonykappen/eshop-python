@@ -95,8 +95,9 @@ class RequestToCommandMapper(IRequestMapper, Generic[TRequest, TCommand]):
         self, request: TRequest, http_request: Request
     ) -> TCommand:
         """Map request to command using factory."""
-        # Extract command data from request
-        command_data = request.model_dump()
+        # Extract command data from request, excluding unset values so optional fields with defaults work correctly
+        # This allows None to be explicitly passed while omitting fields that weren't provided
+        command_data = request.model_dump(exclude_unset=True)
 
         # Add request context if needed
         if hasattr(self, "_add_request_context"):
@@ -115,8 +116,9 @@ class RequestToQueryMapper(IRequestMapper, Generic[TRequest, TQuery]):
         self, request: TRequest, http_request: Request
     ) -> TQuery:
         """Map request to query using factory."""
-        # Extract query data from request
-        query_data = request.model_dump()
+        # Extract query data from request, excluding unset values so optional fields with defaults work correctly
+        # This allows None to be explicitly passed while omitting fields that weren't provided
+        query_data = request.model_dump(exclude_unset=True)
 
         # Add request context if needed
         if hasattr(self, "_add_request_context"):
@@ -202,12 +204,19 @@ class CQRSEndpoint(Endpoint[TRequest, TResponse], Generic[TRequest, TResponse]):
         # Use the unified send method - matches .NET ISender.Send()
         # Get cancellation token from request
         cancellation_token = CancellationToken(request)
-        result = await self.mediator.send(command_or_query, cancellation_token)
+        try:
+            result = await self.mediator.send(command_or_query, cancellation_token)
 
-        # Step 3: Result -> Response
-        response = await self.result_mapper.map_to_response(result, request)
+            # Step 3: Result -> Response
+            response = await self.result_mapper.map_to_response(result, request)
 
-        return response
+            # Mark token as completed before returning (prevents false disconnection logs)
+            cancellation_token.mark_completed()
+
+            return response
+        finally:
+            # Always cleanup the cancellation token
+            await cancellation_token.cleanup()
 
 
 class CommandEndpoint(CQRSEndpoint[TRequest, TResponse], Generic[TRequest, TResponse]):
@@ -251,18 +260,19 @@ class PaginatedRequest(BaseRequest):
         return (self.page - 1) * self.page_size
 
 
-class PaginatedResponse(DataResponse[list[TResult]], Generic[TResult]):
-    """Base class for paginated responses."""
+class PaginatedResponse(BaseResponse, Generic[TResult]):
+    """Base class for paginated responses matching PaginatedResult structure."""
 
-    total_count: int = Field(..., description="Total number of items")
+    items: list[TResult] = Field(..., description="List of items")
+    total: int = Field(..., description="Total number of items")
     page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Number of items per page")
-    total_pages: int = Field(..., description="Total number of pages")
+    size: int = Field(..., description="Page size")
+    pages: int = Field(..., description="Total number of pages")
 
     @property
     def has_next(self) -> bool:
         """Check if there's a next page."""
-        return self.page < self.total_pages
+        return self.page < self.pages
 
     @property
     def has_previous(self) -> bool:
@@ -283,11 +293,11 @@ class PaginatedResultToResponseMapper(
         """Map paginated result to paginated response."""
         # Assuming result is a PaginatedResult with items, total, page, size, pages
         return PaginatedResponse[TResult](
-            data=result.items,
-            total_count=result.total,
+            items=result.items,
+            total=result.total,
             page=result.page,
-            page_size=result.size,
-            total_pages=result.pages,
+            size=result.size,
+            pages=result.pages,
             message="Paginated data retrieved successfully",
         )
 

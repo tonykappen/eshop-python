@@ -1,1 +1,1 @@
-"""Product contracts."""
+"""Product contracts package."""

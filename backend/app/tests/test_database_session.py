@@ -14,7 +14,7 @@ from app.core.database.session import (
     engine,
     get_db_session,
 )
-from app.core.exceptions.base import DatabaseError
+from app.core.exceptions.common_exceptions import DatabaseError
 
 
 class TestDatabaseSession:

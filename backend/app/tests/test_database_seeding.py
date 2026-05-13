@@ -12,10 +12,12 @@ from app.core.database.seeding import (
     register_seeder,
     run_seeding,
 )
-from app.modules.catalog.infrastructure.seed.catalog_data_seeder import (
+from app.modules.catalog.infrastructure.seeding.products.catalog_data_seeder import (
     CatalogDataSeeder,
 )
-from app.modules.catalog.infrastructure.seed.initial_data import InitialData
+from app.modules.catalog.infrastructure.seeding.products.seed_product_data import (
+    CatalogInitialData,
+)
 
 
 class TestDataSeederInterface:
@@ -258,26 +260,26 @@ class TestCatalogDataSeeder:
                 mock_seed.assert_called_once()
 
 
-class TestInitialData:
-    """Test InitialData functionality."""
+class TestCatalogInitialData:
+    """Test CatalogInitialData functionality."""
 
-    def test_initial_data_get_products_structure(self):
-        """Test that InitialData.get_products method exists and is callable."""
+    def test_catalog_initial_data_get_products_structure(self):
+        """Test that CatalogInitialData.get_initial_products method exists and is callable."""
         # Test that the method exists and is callable
-        assert hasattr(InitialData, "get_products")
-        assert callable(InitialData.get_products)
+        assert hasattr(CatalogInitialData, "get_initial_products")
+        assert callable(CatalogInitialData.get_initial_products)
 
         # Test that it's a method (not necessarily staticmethod)
-        assert callable(InitialData.get_products)
+        assert callable(CatalogInitialData.get_initial_products)
 
-    def test_initial_data_class_structure(self):
-        """Test that InitialData class has expected structure."""
+    def test_catalog_initial_data_class_structure(self):
+        """Test that CatalogInitialData class has expected structure."""
         # Test class attributes
-        assert hasattr(InitialData, "__doc__")
-        assert InitialData.__doc__ is not None
+        assert hasattr(CatalogInitialData, "__doc__")
+        assert CatalogInitialData.__doc__ is not None
 
         # Test that it's a class
-        assert isinstance(InitialData, type)
+        assert isinstance(CatalogInitialData, type)
 
 
 class TestRunSeeding:

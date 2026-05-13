@@ -180,7 +180,7 @@ class CredentialsLoader:
                     f"No credentials file found, using example file: {example_path}"
                 )
                 logger.warning(
-                    "⚠️  WARNING: Using example credentials! Copy to infra/keycloak/credentials.yaml and update for production."
+                    " WARNING: Using example credentials! Copy to infra/keycloak/credentials.yaml and update for production."
                 )
                 return example_path
 

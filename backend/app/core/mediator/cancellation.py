@@ -21,6 +21,8 @@ class CancellationToken:
         self._request = request
         self._session = session
         self._cancelled = False
+        self._completed = False  # Track if request completed successfully
+        self._cleaning_up = False  # Track if cleanup is in progress
         self._logger = BaseLogger(__name__)
         self._monitor_task: asyncio.Task[None] | None = None
         self._rollback_callbacks: list[callable] = []
@@ -37,21 +39,33 @@ class CancellationToken:
     async def _monitor_disconnection(self) -> None:
         """Monitor for request disconnection."""
         try:
-            while not self._cancelled and self._request is not None:
+            while (
+                not self._cancelled
+                and not self._completed
+                and not self._cleaning_up
+                and self._request is not None
+            ):
                 if await self._request.is_disconnected():
-                    self._cancelled = True
-                    self._logger.log_debug_with_context(
-                        "Request disconnected, cancellation token triggered"
-                    )
+                    # Only log and cancel if request disconnected BEFORE completion
+                    if not self._completed and not self._cleaning_up:
+                        self._cancelled = True
+                        self._logger.log_debug_with_context(
+                            "Request disconnected, cancellation token triggered"
+                        )
                     break
                 await asyncio.sleep(0.1)  # Check every 100ms
+        except asyncio.CancelledError:
+            # Task was cancelled during cleanup - this is expected
+            pass
         except Exception as e:
-            self._logger.log_error_with_context(
-                "Error monitoring request disconnection",
-                error=e,
-                context={"operation": "monitor_disconnection"},
-            )
-            self._cancelled = True
+            # Only log errors if not cleaning up
+            if not self._cleaning_up:
+                self._logger.log_error_with_context(
+                    "Error monitoring request disconnection",
+                    error=e,
+                    context={"operation": "monitor_disconnection"},
+                )
+                self._cancelled = True
 
     @property
     def is_cancellation_requested(self) -> bool:
@@ -75,8 +89,14 @@ class CancellationToken:
         # Trigger rollback callbacks immediately
         asyncio.create_task(self._execute_rollback_callbacks())
 
+    def mark_completed(self) -> None:
+        """Mark the request as successfully completed to prevent false disconnection logs."""
+        self._completed = True
+
     async def cleanup(self) -> None:
         """Clean up monitoring task and execute rollback if cancelled."""
+        self._cleaning_up = True  # Signal that cleanup is in progress
+
         if self._cancelled:
             await self._execute_rollback_callbacks()
 
@@ -160,6 +180,8 @@ async def create_cancellation_token(
     token = CancellationToken(request, session)
     try:
         yield token
+        # Mark as completed if we reach here (no exception)
+        token.mark_completed()
     finally:
         await token.cleanup()
 
@@ -173,6 +195,8 @@ async def create_cancellation_token_with_session(
     token = CancellationToken(request, session)
     try:
         yield token
+        # Mark as completed if we reach here (no exception)
+        token.mark_completed()
     finally:
         await token.cleanup()
 

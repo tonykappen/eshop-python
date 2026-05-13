@@ -1,15 +1,23 @@
 """Main Mediator implementation with 1-1 parity to .NET MediatR."""
 
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Union
 
+from app.core.application.behaviors import (
+    AuthorizationBehavior,
+    LoggingBehavior,
+    ValidationBehavior,
+)
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.logging.base_logger import BaseLogger
-from app.core.mediator.behaviors import LoggingBehavior, ValidationBehavior
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import HandlerRegistry
 
 TResponse = TypeVar("TResponse")
+
+# Type alias for IRequest (union of ICommand and IQuery)
+# Used in behaviors where we don't care about the specific response type
+IRequest = Union[ICommand[Any], IQuery[Any]]
 
 
 class IMediator(ABC):
@@ -33,7 +41,12 @@ class Mediator(IMediator):
         self.logger = BaseLogger(__name__)
 
         # Pipeline behaviors (matches .NET MediatR behaviors)
-        self.behaviors: list[Any] = [ValidationBehavior(), LoggingBehavior()]
+        # Order matters: validation -> authorization -> logging -> handler
+        self.behaviors: list[Any] = [
+            ValidationBehavior(),
+            AuthorizationBehavior(),
+            LoggingBehavior(),
+        ]
 
     async def send(
         self,

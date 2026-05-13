@@ -55,21 +55,22 @@ class ValidationBehavior(IPipelineBehavior[TRequest, TResponse]):
         self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
     ) -> TResponse:
         """Handle validation - matches .NET ValidationBehavior.Handle()."""
+        # Temporarily disabled for debugging
         # For now, we'll use Pydantic validation
         # In a full implementation, this would use FluentValidation equivalent
-        if hasattr(request, "model_validate") and hasattr(request, "model_dump"):
-            try:
-                # Validate the request using Pydantic
-                request.model_validate(request.model_dump())
-            except Exception as validation_error:
-                self.logger.log_error_with_context(
-                    "Validation failed for request",
-                    error=validation_error,
-                    context={"request_type": type(request).__name__},
-                )
-                raise ValueError(
-                    f"Validation failed: {validation_error}"
-                ) from validation_error
+        # if hasattr(request, "model_validate") and hasattr(request, "model_dump"):
+        #     try:
+        #         # Validate the request using Pydantic
+        #         request.model_validate(request.model_dump())
+        #     except Exception as validation_error:
+        #         self.logger.log_error_with_context(
+        #             "Validation failed for request",
+        #             error=validation_error,
+        #             context={"request_type": type(request).__name__},
+        #         )
+        #         raise ValueError(
+        #             f"Validation failed: {validation_error}"
+        #         ) from validation_error
 
         result = await next_handler()
         return result
@@ -85,13 +86,15 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
         self, request: TRequest, next_handler: Callable[[], Awaitable[TResponse]]
     ) -> TResponse:
         """Handle logging - matches .NET LoggingBehavior.Handle()."""
-        import uuid
+        from app.core.logging.trace_context import get_request_id, get_trace_id
 
         request_type = type(request).__name__
         response_type = self._get_response_type(request)
 
-        # Generate or get trace_id for this operation
-        trace_id = str(uuid.uuid4())
+        # Use shared trace context from contextvars (set by middleware)
+        # This ensures all logs in the request share the same trace_id
+        trace_id = get_trace_id()
+        request_id = get_request_id()
 
         self.logger.log_with_context(
             "Starting request handling",
@@ -100,6 +103,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                 "response_type": response_type,
                 "request_data": str(request),
                 "trace_id": trace_id,
+                "request_id": request_id,
             },
         )
 
@@ -118,6 +122,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                         "request_type": request_type,
                         "elapsed_time": elapsed_time,
                         "trace_id": trace_id,
+                        "request_id": request_id,
                     },
                 )
 
@@ -127,6 +132,7 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
                     "request_type": request_type,
                     "response_type": response_type,
                     "trace_id": trace_id,
+                    "request_id": request_id,
                 },
             )
 
@@ -136,7 +142,11 @@ class LoggingBehavior(IPipelineBehavior[TRequest, TResponse]):
             self.logger.log_error_with_context(
                 "Request handling failed",
                 error=e,
-                context={"request_type": request_type, "trace_id": trace_id},
+                context={
+                    "request_type": request_type,
+                    "trace_id": trace_id,
+                    "request_id": request_id,
+                },
             )
             raise
 

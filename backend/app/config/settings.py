@@ -1,9 +1,15 @@
 """Application settings configuration."""
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from app.config.env import get_env, get_env_bool, get_env_int, get_env_list
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = _BACKEND_DIR.parent
+_ENV_FILE = _BACKEND_DIR / ".env" if (_BACKEND_DIR / ".env").exists() else _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -60,6 +66,23 @@ class Settings(BaseSettings):
     )
     database_password: str = Field(
         default_factory=lambda: get_env("DATABASE_PASSWORD", "postgres")
+    )
+
+    # Database pool configuration (all configurable via env vars)
+    db_pool_size: int = Field(
+        default_factory=lambda: get_env_int("DB_POOL_SIZE", 10)
+    )
+    db_max_overflow: int = Field(
+        default_factory=lambda: get_env_int("DB_MAX_OVERFLOW", 20)
+    )
+    db_pool_recycle: int = Field(
+        default_factory=lambda: get_env_int("DB_POOL_RECYCLE", 300)
+    )
+    db_pool_timeout: int = Field(
+        default_factory=lambda: get_env_int("DB_POOL_TIMEOUT", 30)
+    )
+    db_echo: bool = Field(
+        default_factory=lambda: get_env_bool("DB_ECHO", False)
     )
 
     # Legacy database fields for backward compatibility
@@ -141,7 +164,9 @@ class Settings(BaseSettings):
         default_factory=lambda: get_env("KEYCLOAK_CLIENT_ID", "eshop-api")
     )
     keycloak_client_secret: str = Field(
-        default_factory=lambda: get_env("KEYCLOAK_CLIENT_SECRET", "your-client-secret")
+        default_factory=lambda: get_env(
+            "KEYCLOAK_CLIENT_SECRET", "eshop-secure-client-secret-2024"
+        )
     )
     keycloak_callback_uri: str = Field(
         default_factory=lambda: get_env(
@@ -204,10 +229,10 @@ class Settings(BaseSettings):
     class Config:
         """Pydantic configuration."""
 
-        env_file = ".env"
+        env_file = str(_ENV_FILE)
         env_file_encoding = "utf-8"
         case_sensitive = False
-        extra = "allow"  # Allow extra fields from .env file
+        extra = "allow"
 
 
 # Global settings instance

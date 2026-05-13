@@ -89,7 +89,7 @@ class RedisCacheService(ICacheService):
 
         Args:
             pattern: Redis glob pattern to match.
-            batch_cap: Maximum keys to delete per SCAN cycle to limit latency.
+            batch_cap: Max keys to delete per pipeline batch within one SCAN iteration.
         """
         try:
             deleted = 0
@@ -99,14 +99,14 @@ class RedisCacheService(ICacheService):
                     cursor=cursor, match=pattern, count=100
                 )
                 if keys:
-                    batch = keys[:batch_cap - deleted] if (deleted + len(keys)) > batch_cap else keys
-                    if batch:
+                    for i in range(0, len(keys), batch_cap):
+                        batch = keys[i : i + batch_cap]
                         pipe = self.redis_client.pipeline()
                         for key in batch:
                             pipe.delete(key)
                         await pipe.execute()
                         deleted += len(batch)
-                if cursor == 0 or deleted >= batch_cap:
+                if cursor == 0:
                     break
             if deleted:
                 logger.debug(f"Invalidated {deleted} keys matching pattern {pattern}")

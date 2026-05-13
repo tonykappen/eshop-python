@@ -168,7 +168,7 @@ async def get_unit_of_work(
     Returns:
         ICatalogUnitOfWork: Unit of work instance
     """
-    return SqlCatalogUnitOfWork(session)
+    return SqlCatalogUnitOfWork(session, get_catalog_cache_service())
 
 
 async def get_request_context() -> RequestContext:

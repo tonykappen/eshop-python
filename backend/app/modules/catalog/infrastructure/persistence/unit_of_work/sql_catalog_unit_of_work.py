@@ -1,6 +1,7 @@
 """SQL-based implementation of ICatalogUnitOfWork."""
 
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,14 +54,17 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
         """Get product repository with Redis caching."""
         if self._products_repo is None:
             sql_repo = SqlProductRepository(self._session)
-            if self._cache_service is not None:
-                self._products_repo = CachedProductRepository(sql_repo, self._cache_service)
-            else:
+            cache_svc = self._cache_service
+            if cache_svc is None:
                 try:
                     cache_svc = CatalogCacheService(RedisCacheService())
-                    self._products_repo = CachedProductRepository(sql_repo, cache_svc)
+                    self._cache_service = cache_svc
                 except Exception:
-                    self._products_repo = sql_repo
+                    cache_svc = None
+            if cache_svc is not None:
+                self._products_repo = CachedProductRepository(sql_repo, cache_svc)
+            else:
+                self._products_repo = sql_repo
         return self._products_repo
 
     @property
@@ -144,16 +148,27 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
             raise
 
     async def _invalidate_product_caches(self, entities: list[object]) -> None:
-        """Invalidate catalog-specific caches for committed product entities."""
+        """Invalidate catalog-specific caches for committed product changes."""
         if self._cache_service is None:
             return
         try:
-            from app.modules.catalog.domain.entities.product.product import Product as ProductEntity
+            from app.modules.catalog.domain.entities.product.product import (
+                Product as ProductEntity,
+            )
             from app.modules.catalog.infrastructure.persistence.orm.product_orm import (
                 ProductORM,
             )
+            from app.modules.catalog.infrastructure.persistence.repositories.products.sql.sql_product_repository import (
+                SESSION_INFO_CACHE_INVALIDATION_KEY,
+            )
 
-            has_product_changes = False
+            product_ids: set[UUID] = set()
+            for raw in list(
+                self._session.info.pop(SESSION_INFO_CACHE_INVALIDATION_KEY, []) or []
+            ):
+                if isinstance(raw, UUID):
+                    product_ids.add(raw)
+
             for entity in entities:
                 product_id = getattr(entity, "id", None)
                 if product_id is None:
@@ -161,10 +176,11 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
                 if isinstance(entity, (ProductEntity, ProductORM)) or (
                     hasattr(entity, "name") and hasattr(entity, "sku")
                 ):
-                    await self._cache_service.invalidate_product(product_id)
-                    has_product_changes = True
+                    product_ids.add(product_id)
 
-            if has_product_changes:
+            for pid in product_ids:
+                await self._cache_service.invalidate_product(pid)
+            if product_ids:
                 await self._cache_service.invalidate_products_list()
         except Exception as e:
             logger.log_warning_with_context(

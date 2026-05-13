@@ -19,10 +19,6 @@ from app.core.messaging.bus import (
 from app.core.messaging.domain_dispatcher import (
     DomainEventDispatcher,
 )
-from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-    RedisCacheService,
-)
 from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
     CachedProductRepository,
 )
@@ -38,6 +34,7 @@ from app.modules.catalog.module_interface.di.products.products_containers import
     get_catalog_container,
 )
 from app.modules.catalog.module_interface.di.products.products_providers import (
+    get_catalog_cache_service,
     get_catalog_dispatcher,
     get_catalog_engine,
     get_catalog_mediator,
@@ -146,12 +143,14 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
             # Wrap ProductRepository with CachedProductRepository for Redis caching
             ProductRepository: lambda session: CachedProductRepository(
                 SqlProductRepository(session),
-                CatalogCacheService(RedisCacheService())
+                get_catalog_cache_service(),
             ),
             CategoryRepository: lambda session: SqlCategoryRepository(session),
             InventoryRepository: lambda session: SqlInventoryRepository(session),
             # Application dependencies
-            ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),
+            ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(
+                session, get_catalog_cache_service()
+            ),
             RequestContext: lambda: RequestContext(),
             # Messaging dependencies
             IMessageBus: lambda: catalog_container.get(IMessageBus),
@@ -187,12 +186,14 @@ def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
         # Wrap ProductRepository with CachedProductRepository for Redis caching
         ProductRepository: lambda session: CachedProductRepository(
             SqlProductRepository(session),
-            CatalogCacheService(RedisCacheService())
+            get_catalog_cache_service(),
         ),
         CategoryRepository: lambda session: SqlCategoryRepository(session),
         InventoryRepository: lambda session: SqlInventoryRepository(session),
         # Application dependencies
-        ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(session),
+        ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(
+            session, get_catalog_cache_service()
+        ),
         RequestContext: lambda: RequestContext(),
         # Messaging dependencies
         IMessageBus: lambda: container.get(IMessageBus),

@@ -15,6 +15,20 @@ from app.modules.catalog.infrastructure.persistence.orm.product_orm import Produ
 
 logger = BaseLogger(__name__)
 
+SESSION_INFO_CACHE_INVALIDATION_KEY = "catalog_invalidate_product_ids"
+
+
+def schedule_catalog_product_cache_invalidation(
+    session: AsyncSession, product_id: UUID
+) -> None:
+    """Queue product id for post-commit cache invalidation.
+
+    ``session.new`` no longer contains ORMs after ``flush()``, so the unit of work
+    cannot discover inserted products from session state alone at commit time.
+    """
+    bag: list[UUID] = session.info.setdefault(SESSION_INFO_CACHE_INVALIDATION_KEY, [])
+    bag.append(product_id)
+
 
 class SqlProductRepository(ProductRepository):
     """SQL implementation of IProductRepository."""
@@ -359,6 +373,8 @@ class SqlProductRepository(ProductRepository):
                 )
             )
             result = await self.session.execute(stmt)
+            if result.rowcount > 0:
+                schedule_catalog_product_cache_invalidation(self.session, product_id)
             return result.rowcount > 0
 
         except Exception as e:
@@ -379,6 +395,7 @@ class SqlProductRepository(ProductRepository):
             product_orm = self._domain_to_orm(product)
             self.session.add(product_orm)
             await self.session.flush()
+            schedule_catalog_product_cache_invalidation(self.session, product_orm.id)
 
             # Return the domain model
             return self._orm_to_domain(product_orm)
@@ -425,6 +442,7 @@ class SqlProductRepository(ProductRepository):
                     f"(expected version {current_version})"
                 )
 
+            schedule_catalog_product_cache_invalidation(self.session, product.id)
             return await self.get_by_id(product.id)
 
         except OptimisticLockException:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from sqlalchemy import text
 
-from app.core.database.session import AsyncSessionLocal
+from app.core.database.session import AsyncSessionLocal, engine
 from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
@@ -126,6 +126,28 @@ async def ensure_schemas_exist() -> None:
 # ---------------------------------------------------------------------------
 
 
+async def ensure_outbox_tables_from_orm() -> None:
+    """Create catalog and basket outbox tables from ORM if missing (checkfirst).
+
+    Runs after Alembic so local/dev DBs self-heal when migrations were skipped or
+    failed historically. Ordering has no outbox table in this codebase.
+    """
+    from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
+        OutboxORM as BasketOutboxORM,
+    )
+    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
+        OutboxORM as CatalogOutboxORM,
+    )
+
+    def _create_outbox_tables(sync_conn) -> None:
+        CatalogOutboxORM.__table__.create(sync_conn, checkfirst=True)
+        BasketOutboxORM.__table__.create(sync_conn, checkfirst=True)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(_create_outbox_tables)
+    logger.info("[OK] Outbox tables verified via ORM DDL (checkfirst)")
+
+
 async def run_migrations() -> None:
     """Run database migrations for all modules using Alembic."""
     try:
@@ -142,6 +164,8 @@ async def run_migrations() -> None:
         # Run migrations for each module
         for module_config in MODULE_CONFIGS:
             await run_module_migrations(module_config)
+
+        await ensure_outbox_tables_from_orm()
 
         logger.info("[OK] All database migrations completed successfully")
 
@@ -273,11 +297,13 @@ async def run_module_migrations(module_config: dict) -> None:
             logger.error(
                 f"[FAILED] Migration execution failed for module {module_name}: {error_msg}"
             )
-            logger.warning("[WARNING] Continuing with other modules...")
-        else:
-            if stdout_str:
-                logger.debug(f"Migration output for {module_name}: {stdout_str}")
-            logger.info(f"[OK] Migrations completed for module: {module_name}")
+            raise RuntimeError(
+                f"Alembic upgrade failed for module {module_name} (exit {returncode}): {error_msg}"
+            )
+
+        if stdout_str:
+            logger.debug(f"Migration output for {module_name}: {stdout_str}")
+        logger.info(f"[OK] Migrations completed for module: {module_name}")
 
     except Exception as e:
         import traceback
@@ -287,7 +313,7 @@ async def run_module_migrations(module_config: dict) -> None:
             f"[FAILED] Migration execution failed for module {module_name}: {e}\n"
             f"Traceback: {error_traceback}"
         )
-        logger.warning("[WARNING] Continuing with other modules...")
+        raise
 
 
 # ---------------------------------------------------------------------------

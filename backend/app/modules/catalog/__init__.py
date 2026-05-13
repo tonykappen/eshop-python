@@ -1,5 +1,6 @@
 """Catalog bounded context package.
 
-Seeder registration and outbox worker wiring are performed at application
-startup through the bootstrap lifecycle, not via import side effects here.
+Default catalog data seeding is registered from ``initialize_dependency_injection``
+(see ``register_default_application_seeders``). Outbox worker wiring uses the
+catalog bootstrap lifecycle, not import side effects in this package.
 """

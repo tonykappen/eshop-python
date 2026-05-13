@@ -94,6 +94,10 @@ async def initialize_dependency_injection(app=None):
 
     logger.log_with_context("Dependency injection container initialized", "info")
 
+    from app.core.database.seeding import register_default_application_seeders
+
+    register_default_application_seeders()
+
     return container
 
 

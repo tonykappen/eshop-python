@@ -9,7 +9,7 @@ from app.core.messaging.integration_event import IIntegrationEventHandler, Integ
 from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_command import (
     UpdateItemPriceInBasketCommand,
 )
-from app.modules.catalog.application.integration_events.products.product_price_changed_integration_event_v1 import (
+from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
     ProductPriceChangedIntegrationEventV1,
 )
 

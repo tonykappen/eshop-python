@@ -41,5 +41,8 @@
     "debug.console.fontSize": 12,
     "debug.internalConsoleOptions": "openOnSessionStart",
     "debug.showBreakpointsInOverviewRuler": true,
-    "debug.showInlineBreakpointCandidates": true
+    "debug.showInlineBreakpointCandidates": true,
+    "cursorpyright.analysis.extraPaths": [
+        "./backend"
+    ]
 }

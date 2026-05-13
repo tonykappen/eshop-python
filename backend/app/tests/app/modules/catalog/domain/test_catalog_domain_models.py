@@ -370,8 +370,8 @@ class TestProduct:
         assert hasattr(product, "version")
         assert product.version == 1
 
-    def test_product_version_increment(self):
-        """Test that Product version increments properly."""
+    def test_product_version_stable_after_domain_update(self):
+        """Test that Product version is not changed by domain methods (repository owns versioning)."""
         product_id = uuid4()
         product = Product.create(
             product_id=product_id,
@@ -382,10 +382,8 @@ class TestProduct:
             price=Decimal("99.99"),
         )
 
-        # Initial version should be 1
         assert product.version == 1
 
-        # Update should increment version
         product.update(
             name="Updated Name",
             category=["Electronics"],
@@ -394,7 +392,8 @@ class TestProduct:
             price=Decimal("149.99"),
         )
 
-        assert product.version == 2
+        # Version stays the same — the repository increments it atomically during persist
+        assert product.version == 1
 
     def test_product_domain_events_immutability(self):
         """Test that domain events list is immutable."""

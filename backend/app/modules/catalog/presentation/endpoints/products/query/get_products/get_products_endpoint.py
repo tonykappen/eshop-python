@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
-from app.modules.catalog.application.features.products.queries.get_products.query import (
+from app.modules.catalog.application.features.products.queries.get_products.get_products_query import (
     GetProductsQuery,
     GetProductsResult,
 )

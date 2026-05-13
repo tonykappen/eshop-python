@@ -1,6 +1,7 @@
 """Product domain exceptions."""
 
 from app.modules.catalog.domain.exceptions.product_exceptions import (
+    OptimisticLockException,
     ProductCreationError,
     ProductDeleteError,
     ProductDeletionError,
@@ -10,6 +11,7 @@ from app.modules.catalog.domain.exceptions.product_exceptions import (
 )
 
 __all__ = [
+    "OptimisticLockException",
     "ProductNotFoundError",
     "ProductValidationError",
     "ProductCreationError",

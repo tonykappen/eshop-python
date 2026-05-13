@@ -1,6 +1,7 @@
 """Ordering module router registration."""
 
 import logging
+import re
 
 from fastapi import APIRouter
 
@@ -56,7 +57,7 @@ def register_ordering_module(container: Container, mediator: Mediator) -> APIRou
     return router
 
 
-def subscribe_ordering_integration_event_handlers(mediator: Mediator) -> None:
+def subscribe_ordering_integration_event_handlers(_mediator: Mediator) -> None:
     """
     Subscribe ordering integration event handlers.
 
@@ -95,16 +96,12 @@ async def subscribe_ordering_handlers_to_message_bus() -> None:
     # and create orders
     checkout_handler = BasketCheckoutIntegrationEventHandler(main_mediator)
 
-    # Subscribe handler to the shared message bus
-    # Generate event_type from class name (matches _generate_event_type logic)
-    import re
+    # Topic must match BasketCheckoutIntegrationEvent.event_type (IntegrationEvent._generate_event_type)
     class_name = BasketCheckoutIntegrationEvent.__name__
-    # Remove 'Event' suffix if present and convert to snake_case
     if class_name.endswith("Event"):
         class_name = class_name[:-5]
-    # Convert CamelCase to snake_case
     event_type = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
-    
+
     message_bus = get_shared_message_bus()
     await message_bus.subscribe(event_type, checkout_handler)
 

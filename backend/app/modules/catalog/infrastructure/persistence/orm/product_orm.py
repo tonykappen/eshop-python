@@ -4,8 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import ARRAY, DateTime, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.modules.catalog.infrastructure.persistence.orm.base import Base

@@ -204,7 +204,10 @@ def register_basket_handlers_with_mediator(mediator: Mediator) -> None:
             CachedBasketRepository,
         )
         from app.core.messaging.outbox.outbox_service import OutboxService
-        
+        from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
+            OutboxORM as BasketOutboxORM,
+        )
+
         # Get session maker and create a temporary session for handler registration
         session_maker = get_basket_session_maker()
         
@@ -221,7 +224,9 @@ def register_basket_handlers_with_mediator(mediator: Mediator) -> None:
             basket_mediator = await get_basket_mediator(mediator)
             
             # Create outbox service
-            outbox_service = OutboxService(temp_session)
+            outbox_service = OutboxService(
+                temp_session, outbox_orm_class=BasketOutboxORM
+            )
             
             # Create and register handlers
             mediator.register_handler(GetBasketQuery, GetBasketHandler(repository=repo))

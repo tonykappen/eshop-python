@@ -1,11 +1,12 @@
 """Dependency injection container for catalog module."""
 
-import logging
 from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, TypeVar
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 T = TypeVar("T")
 
@@ -30,7 +31,10 @@ class CatalogContainer:
             instance: Service instance
         """
         self._singletons[service_type] = instance
-        logger.debug(f"Registered singleton: {service_type.__name__}")
+        logger.log_debug_with_context(
+            "Registered singleton",
+            context={"service_type": service_type.__name__}
+        )
 
     def register_factory(self, service_type: type[T], factory: Callable[[], T]) -> None:
         """
@@ -41,7 +45,10 @@ class CatalogContainer:
             factory: Factory function
         """
         self._factories[service_type] = factory
-        logger.debug(f"Registered factory: {service_type.__name__}")
+        logger.log_debug_with_context(
+            "Registered factory",
+            context={"service_type": service_type.__name__}
+        )
 
     def register_scoped(
         self, service_type: type[T], instance: T, scope: str = "default"
@@ -57,8 +64,9 @@ class CatalogContainer:
         if scope not in self._scoped:
             self._scoped[scope] = {}
         self._scoped[scope][service_type] = instance
-        logger.debug(
-            f"Registered scoped service: {service_type.__name__} in scope {scope}"
+        logger.log_debug_with_context(
+            "Registered scoped service",
+            context={"service_type": service_type.__name__, "scope": scope}
         )
 
     def get(self, service_type: type[T]) -> T:
@@ -86,7 +94,10 @@ class CatalogContainer:
         # Check factories
         if service_type in self._factories:
             instance = self._factories[service_type]()
-            logger.debug(f"Created instance from factory: {service_type.__name__}")
+            logger.log_debug_with_context(
+                "Created instance from factory",
+                context={"service_type": service_type.__name__}
+            )
             return instance
 
         # Check direct services
@@ -119,7 +130,10 @@ class CatalogContainer:
             instance: Service instance
         """
         self._services[service_type] = instance
-        logger.debug(f"Registered service: {service_type.__name__}")
+        logger.log_debug_with_context(
+            "Registered service",
+            context={"service_type": service_type.__name__}
+        )
 
     def enter_scope(self, scope_name: str) -> None:
         """
@@ -129,12 +143,18 @@ class CatalogContainer:
             scope_name: Name of the scope
         """
         self._current_scope = scope_name
-        logger.debug(f"Entered scope: {scope_name}")
+        logger.log_debug_with_context(
+            "Entered scope",
+            context={"scope_name": scope_name}
+        )
 
     def exit_scope(self) -> None:
         """Exit the current scope."""
         if self._current_scope:
-            logger.debug(f"Exited scope: {self._current_scope}")
+            logger.log_debug_with_context(
+                "Exited scope",
+                context={"scope_name": self._current_scope}
+            )
             self._current_scope = None
 
     def clear_scope(self, scope_name: str) -> None:
@@ -146,12 +166,15 @@ class CatalogContainer:
         """
         if scope_name in self._scoped:
             del self._scoped[scope_name]
-            logger.debug(f"Cleared scope: {scope_name}")
+            logger.log_debug_with_context(
+                "Cleared scope",
+                context={"scope_name": scope_name}
+            )
 
     def clear_all_scopes(self) -> None:
         """Clear all scoped services."""
         self._scoped.clear()
-        logger.debug("Cleared all scopes")
+        logger.log_debug_with_context("Cleared all scopes")
 
     def is_registered(self, service_type: type[T]) -> bool:
         """

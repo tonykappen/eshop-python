@@ -120,124 +120,29 @@ def register_basket_module_with_fastapi(
     Returns:
         FastAPI router for the basket module
     """
-    # Get basket container and wire dependencies
     basket_container = get_basket_container()
     wire_basket_dependencies_to_fastapi(app, container, mediator)
 
-    # Register handlers with mediator
     register_basket_handlers_with_mediator(mediator)
-    
-    # Register handlers directly with mediator (similar to catalog module)
-    # Handlers need dependencies, so we'll create them using FastAPI's dependency injection
-    # We need to register them with the mediator's HandlerRegistry so the mediator can resolve them
-    
-    # Import handler dependencies
-    from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import (
-        SqlBasketRepository,
-    )
-    from app.modules.basket.infrastructure.persistence.repositories.basket.cached_basket_repository import (
-        CachedBasketRepository,
-    )
-    from app.modules.basket.application.services.basket_cache_service import (
-        BasketCacheService,
-    )
-    from app.modules.basket.infrastructure.persistence.unit_of_work.sql_basket_unit_of_work import (
-        SqlBasketUnitOfWork,
-    )
-    from app.core.mediator.fastapi_integration import get_mediator as get_main_mediator
-    from app.core.messaging.outbox.outbox_service import OutboxService
-    from app.modules.basket.infrastructure.persistence.db_context import get_session_maker
-    
-    # Register handlers with dependencies resolved from FastAPI DI
-    # We'll create handlers with dependencies from the app's dependency injection system
-    # Since handlers need async sessions, we'll create them with a session from the session maker
-    # Note: This is for registration only - handlers will be recreated per-request with proper DI
-    
-    try:
-        # Get dependencies
-        main_mediator = get_main_mediator()
-        session_maker = get_session_maker()
-        
-        # Create handlers with dependencies resolved from FastAPI DI
-        # We'll use the app's dependency_overrides to resolve dependencies
-        # Since we can't easily create async sessions here, we'll register handlers
-        # that will be created per-request via FastAPI DI
-        
-        # For registration, we need handler instances
-        # We'll create them with dependencies from the app's dependency injection
-        # But we need to handle async sessions
-        
-        # Solution: Create handlers with dependencies resolved from FastAPI app
-        # We'll use the app's dependency_overrides that were set up in wire_basket_dependencies_to_fastapi
-        
-        # Get dependencies from app's dependency injection
-        # We'll use the app's dependency_overrides to resolve dependencies
-        from app.modules.basket.module_interface.di.basket.basket_providers import (
-            get_basket_repository,
-        )
-        
-        # Create a wrapper that creates handlers on-demand with FastAPI DI
-        # But HandlerRegistry expects instances, not factories
-        
-        # For now, we'll register handlers with dependencies resolved from the app
-        # We'll create them with dependencies from FastAPI DI
-        # Note: This is a workaround - handlers will be recreated per-request with proper DI
-        
-        # Create handlers with dependencies from FastAPI DI
-        # We'll use the app's dependency_overrides to resolve dependencies
-        # But we need async context for sessions
-        
-        # Alternative: Register handlers with a factory that creates them on-demand
-        # But HandlerRegistry expects instances
-        
-        # Best solution: Register handlers in a way that allows FastAPI DI to create them
-        # We'll use the app's dependency injection system
-        
-        # For registration, we'll create handlers with dependencies from the app
-        # We'll use the app's dependency_overrides to resolve dependencies
-        # But we need to handle async sessions
-        
-        # Let's register handlers with dependencies resolved from the app
-        # We'll create them with dependencies from FastAPI DI
-        # The handlers will be recreated per-request with proper DI
-        
-        # Note: Since we can't easily create async sessions here, we'll register handlers
-        # that will be created per-request via FastAPI DI
-        # But the mediator needs them registered now, so we'll create placeholder handlers
-        
-        # Handlers will be created per-request via FastAPI DI
-        # We don't register handler instances here because they need real database sessions
-        # The CQRSEndpointFactory creates endpoints that use the mediator,
-        # and handlers are resolved dynamically via FastAPI dependency injection
-        # when commands/queries are sent through endpoints
-        
-        logger.info("Basket handlers will be created via FastAPI DI per-request with real database sessions")
-        
-    except Exception as e:
-        logger.warning(f"Could not register basket handlers: {e}")
-        logger.info("Handlers will be created via FastAPI DI per request")
-    
-    # Register integration event handlers
+
     subscribe_basket_integration_event_handlers(mediator)
 
-    # Create main router
     router = APIRouter(prefix="/api/v1", tags=["basket"])
-
-    # Include basket router
     router.include_router(basket_router)
-
-    # Include health router
     router.include_router(health_router)
 
     return router
 
 
-def subscribe_basket_integration_event_handlers(mediator: Mediator) -> None:
+def subscribe_basket_integration_event_handlers(_mediator: Mediator) -> None:
     """
-    Subscribe basket integration event handlers.
-    
-    This registers handlers for integration events from other modules (e.g., Catalog).
-    
+    Prepare basket integration event handlers.
+
+    Wires the basket module for integration events from other modules (e.g., Catalog).
+    This creates the handler instance used when events are dispatched; actual subscription
+    to the shared in-memory message bus happens in subscribe_basket_handlers_to_message_bus()
+    during application startup.
+
     Args:
         mediator: Mediator instance for sending commands
     """
@@ -245,18 +150,40 @@ def subscribe_basket_integration_event_handlers(mediator: Mediator) -> None:
     from app.modules.basket.application.integration_event_handlers.products.product_price_changed_integration_event_handler import (
         ProductPriceChangedIntegrationEventHandler,
     )
-    
-    # Get the main mediator (handlers need it to send commands)
+
     main_mediator = get_mediator()
-    
-    # Create and register the ProductPriceChangedIntegrationEventHandler
-    # This handler will receive ProductPriceChangedIntegrationEventV1 events from the Catalog module
-    # and update product prices in all shopping baskets
+
+    _handler = ProductPriceChangedIntegrationEventHandler(main_mediator)
+
+    logger.info("Created ProductPriceChangedIntegrationEventHandler for basket module")
+
+
+async def subscribe_basket_handlers_to_message_bus() -> None:
+    """
+    Subscribe basket integration event handlers to the shared message bus.
+
+    This should be called during application startup after modules are registered.
+    """
+    from app.core.mediator.fastapi_integration import get_mediator
+    from app.core.messaging.shared_message_bus import get_shared_message_bus
+    from app.modules.basket.application.integration_event_handlers.products.product_price_changed_integration_event_handler import (
+        ProductPriceChangedIntegrationEventHandler,
+    )
+    from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
+        ProductPriceChangedIntegrationEventV1,
+    )
+
+    main_mediator = get_mediator()
+
     price_changed_handler = ProductPriceChangedIntegrationEventHandler(main_mediator)
-    
-    # Note: Integration event handlers are typically registered with the EventBus/RabbitMQ
-    # For now, we create the handler instance. The actual subscription to RabbitMQ
-    # will be handled by the messaging system when events are published.
-    # The handler will be called when ProductPriceChangedIntegrationEventV1 events are consumed.
-    
-    logger.info("Registered ProductPriceChangedIntegrationEventHandler for basket module")
+
+    event_type = ProductPriceChangedIntegrationEventV1.model_fields["event_type"].default
+
+    message_bus = get_shared_message_bus()
+    await message_bus.subscribe(event_type, price_changed_handler)
+
+    logger.info(
+        "Subscribed ProductPriceChangedIntegrationEventHandler to message bus "
+        "for event type: '%s'",
+        event_type,
+    )

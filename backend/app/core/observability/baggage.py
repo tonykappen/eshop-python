@@ -1,8 +1,8 @@
 """OTEL baggage helpers (inject/extract)."""
 
-import logging
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class BaggageManager:

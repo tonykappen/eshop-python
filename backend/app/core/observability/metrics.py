@@ -1,9 +1,10 @@
 """Global OTEL/Prometheus metric registry."""
 
-import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class MetricsRegistry:
@@ -11,6 +12,7 @@ class MetricsRegistry:
 
     _meter_provider: Any = None
     _meter: Any = None
+    _initialized: bool = False
 
     @classmethod
     def initialize(cls, meter_provider: Any = None) -> None:
@@ -22,9 +24,23 @@ class MetricsRegistry:
         """
         if meter_provider:
             cls._meter_provider = meter_provider
-            logger.info("Meter provider initialized")
+            cls._initialized = True
+            logger.log_with_context(
+                "[OK] Metrics provider initialized",
+                "info",
+            )
         else:
-            logger.warning("No meter provider provided, using default")
+            cls._meter_provider = None
+            cls._initialized = False
+            logger.log_with_context(
+                "[NOOP] Metrics initialized as no-op — no provider configured",
+                "info",
+            )
+
+    @classmethod
+    def is_active(cls) -> bool:
+        """True when a real meter provider was configured via initialize()."""
+        return cls._initialized
 
     @classmethod
     def get_meter(cls, name: str) -> Any:
@@ -39,7 +55,7 @@ class MetricsRegistry:
         """
         if cls._meter_provider:
             return cls._meter_provider.get_meter(name)
-        logger.warning("Meter provider not initialized, returning None")
+        logger.log_warning_with_context("Meter provider not initialized, returning None")
         return None
 
     @classmethod
@@ -47,4 +63,7 @@ class MetricsRegistry:
         """Shutdown the meter provider."""
         if cls._meter_provider:
             # Shutdown logic would go here
-            logger.info("Meter provider shut down")
+            logger.log_with_context("Meter provider shut down")
+        cls._meter_provider = None
+        cls._meter = None
+        cls._initialized = False

@@ -23,11 +23,23 @@ class EnvConfig:
     """
 
     def __init__(self) -> None:
-        self._env_file_path = Path(__file__).parent.parent.parent / ".env"
-        self._launch_json_path = (
-            Path(__file__).parent.parent.parent.parent / ".vscode" / "launch.json"
-        )
+        backend_dir = Path(__file__).parent.parent.parent
+        project_root = backend_dir.parent
+        self._env_file_path = self._find_env_file(backend_dir, project_root)
+        self._launch_json_path = project_root / ".vscode" / "launch.json"
         self._launch_env = self._load_launch_json_env()
+        self._env_file_cache: dict[str, str] | None = None
+
+    @staticmethod
+    def _find_env_file(backend_dir: Path, project_root: Path) -> Path:
+        """Locate .env file — check backend/ first, then project root."""
+        backend_env = backend_dir / ".env"
+        if backend_env.exists():
+            return backend_env
+        root_env = project_root / ".env"
+        if root_env.exists():
+            return root_env
+        return backend_env
 
     def _load_launch_json_env(self) -> dict[str, str]:
         """Load environment variables from launch.json if available."""
@@ -49,8 +61,11 @@ class EnvConfig:
         return {}
 
     def _load_env_file(self) -> dict[str, str]:
-        """Load environment variables from .env file."""
-        env_vars = {}
+        """Load environment variables from .env file (cached after first read)."""
+        if self._env_file_cache is not None:
+            return self._env_file_cache
+
+        env_vars: dict[str, str] = {}
         if self._env_file_path.exists():
             try:
                 with open(self._env_file_path) as f:
@@ -60,8 +75,9 @@ class EnvConfig:
                             key, value = line.split("=", 1)
                             env_vars[key.strip()] = value.strip()
             except Exception as e:
-                # Silently fail if .env file is malformed
                 print(f"Warning: Could not load .env file: {e}", flush=True)
+
+        self._env_file_cache = env_vars
         return env_vars
 
     def get(self, key: str, default: Any | None = None) -> str:

@@ -1,6 +1,6 @@
 """Shared message bus instance for cross-module communication."""
 
-from app.modules.catalog.infrastructure.messaging.bus import InMemoryMessageBus
+from app.core.messaging.bus import InMemoryMessageBus
 
 # Global shared message bus instance
 # This allows different modules to publish and subscribe to events

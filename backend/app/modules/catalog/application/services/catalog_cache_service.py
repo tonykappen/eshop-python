@@ -12,6 +12,10 @@ from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 
+# Unfiltered product list keys invalidated without SCAN (pages × common page sizes).
+_PRODUCTS_LIST_INVALIDATE_MAX_PAGE = 10
+_PRODUCTS_LIST_INVALIDATE_PAGE_SIZES = (10, 20, 50, 100)
+
 
 class RedisCacheService(ICacheService):
     """Redis implementation of cache service."""
@@ -80,13 +84,32 @@ class RedisCacheService(ICacheService):
             logger.error(f"Failed to check cache key {key}: {e}")
             return False
 
-    async def invalidate_pattern(self, pattern: str) -> None:
-        """Invalidate all keys matching pattern."""
+    async def invalidate_pattern(self, pattern: str, batch_cap: int = 500) -> None:
+        """Invalidate all keys matching pattern using SCAN (never KEYS).
+
+        Args:
+            pattern: Redis glob pattern to match.
+            batch_cap: Maximum keys to delete per SCAN cycle to limit latency.
+        """
         try:
-            keys = await self.redis_client.keys(pattern)
-            if keys:
-                await self.redis_client.delete(*keys)
-                logger.debug(f"Invalidated {len(keys)} keys matching pattern {pattern}")
+            deleted = 0
+            cursor: int | bytes = 0
+            while True:
+                cursor, keys = await self.redis_client.scan(
+                    cursor=cursor, match=pattern, count=100
+                )
+                if keys:
+                    batch = keys[:batch_cap - deleted] if (deleted + len(keys)) > batch_cap else keys
+                    if batch:
+                        pipe = self.redis_client.pipeline()
+                        for key in batch:
+                            pipe.delete(key)
+                        await pipe.execute()
+                        deleted += len(batch)
+                if cursor == 0 or deleted >= batch_cap:
+                    break
+            if deleted:
+                logger.debug(f"Invalidated {deleted} keys matching pattern {pattern}")
         except Exception as e:
             logger.error(f"Failed to invalidate pattern {pattern}: {e}")
 
@@ -148,8 +171,15 @@ class CatalogCacheService:
             await self.cache.invalidate_pattern(pattern)
 
     async def invalidate_products_list(self) -> None:
-        """Invalidate all products list cache."""
-        await self.cache.invalidate_pattern("catalog:products:list:*")
+        """Invalidate unfiltered products list cache for early pages (no wildcard SCAN).
+
+        Category- or filter-specific list keys are not enumerated here; callers that
+        need full coverage may still use invalidate_product / invalidate_all_catalog.
+        """
+        for page in range(1, _PRODUCTS_LIST_INVALIDATE_MAX_PAGE + 1):
+            for size in _PRODUCTS_LIST_INVALIDATE_PAGE_SIZES:
+                key = self.cache_patterns.products_list_key(page, size, None)
+                await self.cache.delete(key)
 
     async def invalidate_all_catalog(self) -> None:
         """Invalidate all catalog cache."""

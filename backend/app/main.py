@@ -56,10 +56,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Set shutdown timeout for production deployment
     lifecycle_manager.set_shutdown_timeout(60.0)  # 60 seconds for graceful shutdown
 
-    # Store container reference in app state for access in routes
+    # Store container and mediator on app.state (Phase 1.7)
     container = get_app_container()
     if container:
         app.state.container = container
+
+    from app.core.mediator.fastapi_integration import store_mediator_on_app
+    store_mediator_on_app(app)
 
     # Update auth handler with app instance before startup
     set_app_instance(app)
@@ -87,11 +90,37 @@ async def register_catalog_router():
         catalog_router = register_catalog_module_with_fastapi(app, container, mediator)
         app.include_router(catalog_router)
     except Exception as e:
-        print(f"Warning: Could not register catalog router: {e}")
-        # Fallback to basic router
-        from app.modules.catalog.presentation.router import router as catalog_router
+        print(f"Error: Could not register catalog router: {e}")
+        raise
 
-        app.include_router(catalog_router, prefix="/api/v1", tags=["catalog"])
+
+async def register_outbox_workers():
+    """Register all module outbox workers explicitly (composition root). Runs after DB startup."""
+    try:
+        from app.modules.catalog.outbox_registration import register_outbox_worker as register_catalog_outbox
+
+        register_catalog_outbox()
+    except Exception as e:
+        print(f"Error: Could not register outbox workers: {e}")
+        raise
+
+
+def _wire_module_lifecycle_hooks() -> None:
+    """Wire module-specific messaging hooks into the lifecycle handler."""
+    from app.modules.catalog.module_interface.catalog_bootstrap import CatalogModuleBootstrap
+
+    catalog = CatalogModuleBootstrap()
+    messaging_handler.add_startup_hook(catalog._startup_messaging)
+    messaging_handler.add_shutdown_hook(catalog._shutdown_messaging)
+
+    from app.core.messaging.outbox import register_outbox_orm
+
+    outbox_orm = catalog.get_outbox_orm_class()
+    if outbox_orm:
+        register_outbox_orm(outbox_orm)
+
+
+_wire_module_lifecycle_hooks()
 
 
 # Include basket router with DI integration
@@ -167,7 +196,21 @@ register_startup_callback(
 )  # Register ordering router after mediator is initialized
 print("DEBUG: Registered all startup callbacks including register_basket_router and register_ordering_router")
 
-# Subscribe ordering handlers to message bus after ordering router is registered
+
+async def subscribe_basket_handlers():
+    """Subscribe basket integration event handlers to the shared message bus."""
+    from app.modules.basket.module_interface.router import (
+        subscribe_basket_handlers_to_message_bus,
+    )
+
+    await subscribe_basket_handlers_to_message_bus()
+    print("✅ Subscribed basket handlers to message bus")
+
+
+register_startup_callback(subscribe_basket_handlers)
+
+
+# Subscribe ordering handlers to message bus after basket (both before outbox worker)
 async def subscribe_ordering_handlers():
     """Subscribe ordering integration event handlers to message bus."""
     from app.modules.ordering.module_interface.router import (
@@ -191,6 +234,7 @@ async def start_basket_outbox_worker():
 register_startup_callback(start_basket_outbox_worker)
 
 register_startup_callback(database_handler.startup)
+register_startup_callback(register_outbox_workers)  # Before messaging so workers exist for start_all()
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)
 register_startup_callback(auth_handler.startup)
@@ -283,9 +327,6 @@ add_pagination(app)
 # Add custom exception handlers
 add_exception_handlers(app)
 
-# from app.modules.basket.api.router import router as basket_router
-# from app.modules.ordering/api.router import router as ordering_router
-
 # Include root router from global module_interface (includes health)
 root_router = create_root_router()
 app.include_router(root_router)
@@ -293,9 +334,6 @@ app.include_router(root_router)
 app.include_router(auth_proxy_router, prefix="/api/v1", tags=["auth-proxy"])
 # Health router is now included via root_router, but keeping for backward compatibility
 app.include_router(health_router)
-
-# app.include_router(basket_router, prefix="/api/v1/basket", tags=["basket"])
-# app.include_router(ordering_router, prefix="/api/v1/ordering", tags=["ordering"])
 
 
 @app.get("/")

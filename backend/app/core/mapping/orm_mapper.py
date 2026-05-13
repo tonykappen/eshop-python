@@ -1,6 +1,5 @@
 """ORM mapping utilities for converting between Domain entities and SQLAlchemy ORM models."""
 
-import logging
 from datetime import datetime
 from inspect import signature
 from typing import Any, TypeVar, get_type_hints
@@ -10,8 +9,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.domain.entity import Entity
+from app.core.logging.base_logger import BaseLogger
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 T = TypeVar("T")
 DomainEntityType = TypeVar("DomainEntityType", bound=Entity)
@@ -120,13 +120,24 @@ class ORMMapper:
             # Create ORM model instance
             orm_instance = orm_model_class(**filtered_data)
 
-            logger.debug(
-                f"Converted domain entity {type(domain_entity).__name__} to ORM model {orm_model_class.__name__}"
+            logger.log_debug_with_context(
+                "Converted domain entity to ORM model",
+                context={
+                    "domain_entity_type": type(domain_entity).__name__,
+                    "orm_model_type": orm_model_class.__name__
+                }
             )
             return orm_instance
 
         except Exception as e:
-            logger.error(f"Failed to convert domain entity to ORM model: {e}")
+            logger.log_error_with_context(
+                "Failed to convert domain entity to ORM model",
+                error=e,
+                context={
+                    "domain_entity_type": type(domain_entity).__name__,
+                    "orm_model_type": orm_model_class.__name__
+                }
+            )
             raise ValueError(
                 f"Failed to convert {type(domain_entity).__name__} to {orm_model_class.__name__}: {e}"
             ) from e
@@ -154,13 +165,24 @@ class ORMMapper:
                 # Regular domain entity
                 domain_entity = domain_entity_class(**domain_data)
 
-            logger.debug(
-                f"Converted ORM model {type(orm_model).__name__} to domain entity {domain_entity_class.__name__}"
+            logger.log_debug_with_context(
+                "Converted ORM model to domain entity",
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": domain_entity_class.__name__
+                }
             )
             return domain_entity
 
         except Exception as e:
-            logger.error(f"Failed to convert ORM model to domain entity: {e}")
+            logger.log_error_with_context(
+                "Failed to convert ORM model to domain entity",
+                error=e,
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": domain_entity_class.__name__
+                }
+            )
             raise ValueError(
                 f"Failed to convert {type(orm_model).__name__} to {domain_entity_class.__name__}: {e}"
             ) from e
@@ -259,13 +281,24 @@ class ORMMapper:
                 if field_name in orm_fields and hasattr(orm_model, field_name):
                     setattr(orm_model, field_name, field_value)
 
-            logger.debug(
-                f"Updated ORM model {type(orm_model).__name__} from domain entity {type(domain_entity).__name__}"
+            logger.log_debug_with_context(
+                "Updated ORM model from domain entity",
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": type(domain_entity).__name__
+                }
             )
             return orm_model
 
         except Exception as e:
-            logger.error(f"Failed to update ORM model from domain entity: {e}")
+            logger.log_error_with_context(
+                "Failed to update ORM model from domain entity",
+                error=e,
+                context={
+                    "orm_model_type": type(orm_model).__name__,
+                    "domain_entity_type": type(domain_entity).__name__
+                }
+            )
             raise ValueError(
                 f"Failed to update {type(orm_model).__name__} from {type(domain_entity).__name__}: {e}"
             ) from e
@@ -369,7 +402,10 @@ class ORMMapper:
 
                     converted["sku"] = SKU(value=data["sku"])
                 except Exception as e:
-                    logger.warning(f"Failed to convert sku to SKU value object: {e}")
+                    logger.log_warning_with_context(
+                        "Failed to convert sku to SKU value object",
+                        context={"error": str(e)}
+                    )
                     # Fallback: try to use as-is, validation will catch it
                     converted["sku"] = data["sku"]
 
@@ -393,8 +429,9 @@ class ORMMapper:
                         amount=price_amount, currency=price_currency
                     )
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to convert price to Money value object: {e}"
+                    logger.log_warning_with_context(
+                        "Failed to convert price to Money value object",
+                        context={"error": str(e)}
                     )
                     # Don't add price if conversion fails - let validation catch it
 

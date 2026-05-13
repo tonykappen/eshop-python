@@ -31,7 +31,24 @@ class HandlerRegistry:
     def register_handler(
         self, request_type: type[Any], handler: IRequestHandler[Any, Any]
     ) -> None:
-        """Register a handler for a specific request type."""
+        """Register a handler for a specific request type.
+
+        Raises:
+            RuntimeError: If a handler is already registered for the given request type.
+        """
+        if request_type in self.handlers:
+            existing = type(self.handlers[request_type]).__name__
+            incoming = type(handler).__name__
+            if existing == incoming:
+                self.logger.debug(
+                    f"Handler {incoming} already registered for {request_type.__name__} — skipping duplicate"
+                )
+                return
+            raise RuntimeError(
+                f"Duplicate handler registration for {request_type.__name__}: "
+                f"existing={existing}, incoming={incoming}. "
+                f"Each request type must have exactly one handler."
+            )
         self.handlers[request_type] = handler
         self.logger.debug(
             f"Registered handler {type(handler).__name__} for request {request_type.__name__}"

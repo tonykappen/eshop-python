@@ -1,11 +1,12 @@
 """Outbox dispatcher - background worker that publishes and marks processed."""
 
 import asyncio
-import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from app.core.logging.base_logger import BaseLogger
+
+logger = BaseLogger(__name__)
 
 
 class IOutboxDispatcher(ABC):
@@ -59,12 +60,12 @@ class OutboxDispatcher(IOutboxDispatcher):
     async def start(self) -> None:
         """Start the outbox dispatcher."""
         if self.is_running:
-            logger.warning("Outbox dispatcher is already running")
+            logger.log_warning_with_context("Outbox dispatcher is already running")
             return
 
         self.is_running = True
         self._task = asyncio.create_task(self._run_loop())
-        logger.info("Outbox dispatcher started")
+        logger.log_with_context("Outbox dispatcher started")
 
     async def stop(self) -> None:
         """Stop the outbox dispatcher."""
@@ -75,7 +76,7 @@ class OutboxDispatcher(IOutboxDispatcher):
                 await self._task
             except asyncio.CancelledError:
                 pass
-        logger.info("Outbox dispatcher stopped")
+        logger.log_with_context("Outbox dispatcher stopped")
 
     async def _run_loop(self) -> None:
         """Main loop for processing outbox messages."""
@@ -86,14 +87,17 @@ class OutboxDispatcher(IOutboxDispatcher):
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Error in outbox dispatcher loop: {e}")
+                logger.log_error_with_context(
+                "Error in outbox dispatcher loop",
+                error=e
+            )
                 await asyncio.sleep(self.poll_interval)
 
     async def publish_pending_messages(self) -> None:
         """Publish all pending messages from outbox."""
         # This should be implemented by modules using their ORM model
         # The dispatcher will query for pending messages and publish them
-        logger.debug("Publishing pending outbox messages")
+        logger.log_debug_with_context("Publishing pending outbox messages")
 
         # Example implementation:
         # async with self.session_factory() as session:

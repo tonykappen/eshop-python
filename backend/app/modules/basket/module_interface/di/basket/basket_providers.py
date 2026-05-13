@@ -34,6 +34,9 @@ from app.modules.basket.infrastructure.persistence.repositories.basket.sql_baske
 from app.modules.basket.infrastructure.persistence.unit_of_work.sql_basket_unit_of_work import (
     SqlBasketUnitOfWork,
 )
+from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
+    OutboxORM as BasketOutboxORM,
+)
 from app.modules.basket.module_interface.di.basket.basket_containers import (
     get_basket_container,
 )
@@ -199,7 +202,7 @@ async def get_basket_outbox_service(
     Returns:
         IOutboxService: Outbox service instance
     """
-    return OutboxService(session)
+    return OutboxService(session, outbox_orm_class=BasketOutboxORM)
 
 
 # Cache providers

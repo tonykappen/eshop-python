@@ -1,18 +1,18 @@
 """SQL implementation of IInventoryRepository."""
 
-import logging
 from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.entities.inventory import InventoryItem
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
 from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import (
     InventoryItemORM,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class SqlInventoryRepository(InventoryRepository):
@@ -50,7 +50,11 @@ class SqlInventoryRepository(InventoryRepository):
             return None
 
         except Exception as e:
-            logger.error(f"Error getting inventory item by ID {inventory_item_id}: {e}")
+            logger.log_error_with_context(
+                "Error getting inventory item by ID",
+                error=e,
+                context={"inventory_item_id": str(inventory_item_id)}
+            )
             raise
 
     async def get_by_product_id(self, product_id: UUID) -> InventoryItem | None:
@@ -76,8 +80,10 @@ class SqlInventoryRepository(InventoryRepository):
             return None
 
         except Exception as e:
-            logger.error(
-                f"Error getting inventory item by product ID {product_id}: {e}"
+            logger.log_error_with_context(
+                "Error getting inventory item by product ID",
+                error=e,
+                context={"product_id": str(product_id)}
             )
             raise
 
@@ -102,7 +108,10 @@ class SqlInventoryRepository(InventoryRepository):
             ]
 
         except Exception as e:
-            logger.error(f"Error getting low stock items: {e}")
+            logger.log_error_with_context(
+                "Error getting low stock items",
+                error=e
+            )
             raise
 
     async def get_out_of_stock_items(self) -> list[InventoryItem]:
@@ -125,7 +134,10 @@ class SqlInventoryRepository(InventoryRepository):
             ]
 
         except Exception as e:
-            logger.error(f"Error getting out of stock items: {e}")
+            logger.log_error_with_context(
+                "Error getting out of stock items",
+                error=e
+            )
             raise
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[InventoryItem]:
@@ -155,7 +167,10 @@ class SqlInventoryRepository(InventoryRepository):
             ]
 
         except Exception as e:
-            logger.error(f"Error getting all inventory items: {e}")
+            logger.log_error_with_context(
+                "Error getting all inventory items",
+                error=e
+            )
             raise
 
     async def count(self) -> int:
@@ -175,7 +190,10 @@ class SqlInventoryRepository(InventoryRepository):
             return result.scalar() or 0
 
         except Exception as e:
-            logger.error(f"Error counting inventory items: {e}")
+            logger.log_error_with_context(
+                "Error counting inventory items",
+                error=e
+            )
             raise
 
     async def exists_by_product_id(self, product_id: UUID) -> bool:
@@ -197,8 +215,10 @@ class SqlInventoryRepository(InventoryRepository):
             return result.scalar_one_or_none() is not None
 
         except Exception as e:
-            logger.error(
-                f"Error checking inventory item existence by product ID {product_id}: {e}"
+            logger.log_error_with_context(
+                "Error checking inventory item existence by product ID",
+                error=e,
+                context={"product_id": str(product_id)}
             )
             raise
 
@@ -215,7 +235,10 @@ class SqlInventoryRepository(InventoryRepository):
             await self.session.flush()
 
         except Exception as e:
-            logger.error(f"Error adding inventory item: {e}")
+            logger.log_error_with_context(
+                "Error adding inventory item",
+                error=e
+            )
             raise
 
     async def update(self, inventory_item: InventoryItem) -> None:
@@ -241,7 +264,10 @@ class SqlInventoryRepository(InventoryRepository):
             await self.session.execute(stmt)
 
         except Exception as e:
-            logger.error(f"Error updating inventory item: {e}")
+            logger.log_error_with_context(
+                "Error updating inventory item",
+                error=e
+            )
             raise
 
     async def delete(self, inventory_item_id: UUID) -> None:
@@ -260,7 +286,11 @@ class SqlInventoryRepository(InventoryRepository):
             await self.session.execute(stmt)
 
         except Exception as e:
-            logger.error(f"Error deleting inventory item: {e}")
+            logger.log_error_with_context(
+                "Error deleting inventory item",
+                error=e,
+                context={"inventory_item_id": str(inventory_item_id)}
+            )
             raise
 
     def _orm_to_domain(self, inventory_orm: InventoryItemORM) -> InventoryItem:

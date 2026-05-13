@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,10 @@ class OutboxORM(Base):
     """Outbox ORM model for reliable messaging."""
 
     __tablename__ = "outbox"
-    __table_args__ = {"schema": "catalog"}
+    __table_args__ = (
+        Index("ix_outbox_status_created_at", "status", "created_at"),
+        {"schema": "catalog"},
+    )
 
     # Primary key
     id: Mapped[UUID] = mapped_column(
@@ -48,6 +51,10 @@ class OutboxORM(Base):
         DateTime, nullable=False, default=datetime.utcnow
     )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Claim tracking for atomic outbox processing
+    claimed_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Correlation
     correlation_id: Mapped[str | None] = mapped_column(String(255), nullable=True)

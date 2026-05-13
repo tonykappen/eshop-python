@@ -392,7 +392,33 @@ def add_keycloak_routes(app: Any) -> Any:
         else:
             # Authentication still works via middleware and dependencies
             # Swagger config might be the only thing we can add
+            # Log available attributes for debugging
+            available_attrs = [
+                attr
+                for attr in dir(keycloak_service.keycloak)
+                if not attr.startswith("_") or attr in ["router", "add_auth_routes"]
+            ]
+            
+            # Get detailed diagnostic information
+            keycloak_type = type(keycloak_service.keycloak).__name__
+            has_router = hasattr(keycloak_service.keycloak, "router")
+            has_add_auth_routes = hasattr(keycloak_service.keycloak, "add_auth_routes")
+            public_attrs = [a for a in available_attrs if not a.startswith("_")]
+            
+            # This is expected behavior - FastAPIKeycloak instance was created via object.__new__()
+            # to avoid admin token retrieval issues, so router/add_auth_routes were never initialized.
+            # Authentication still works via middleware and dependencies, and we have auth_proxy routes.
+            # Only log at DEBUG level since this is expected and not an error.
             logger.log_debug_with_context(
-                "Keycloak route methods not found - authentication works via middleware and dependencies"
+                "Keycloak route methods not found - this is expected when using object.__new__() initialization. "
+                "Authentication works via middleware and dependencies.",
+                context={
+                    "keycloak_type": keycloak_type,
+                    "has_router": has_router,
+                    "has_add_auth_routes": has_add_auth_routes,
+                    "public_attrs_count": len(public_attrs),
+                    "reason": "FastAPIKeycloak instance created via object.__new__() without calling __init__, so router/add_auth_routes were never initialized. This is intentional to avoid admin token retrieval issues.",
+                    "note": "Authentication endpoints are provided via auth_proxy router and middleware, so these routes are not needed.",
+                },
             )
     return app

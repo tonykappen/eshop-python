@@ -1,78 +1,60 @@
-"""Product DTOs for public contracts."""
+"""Product DTO for internal use within Catalog BC.
 
-from decimal import Decimal
+This DTO is used for:
+- Query results (GetProductById, GetProducts, etc.)
+- Internal service communication
+- Mapping between domain models and public interfaces
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+if TYPE_CHECKING:
+    pass
+
 
 class ProductDto(BaseModel):
-    """Product Data Transfer Object for public API."""
+    """
+    Product DTO for internal Catalog BC use.
 
-    id: UUID = Field(..., description="Product ID")
+    This DTO represents a product in a format suitable for:
+    - Query results
+    - Internal service communication
+    - Mapping to/from domain models and public DTOs
+    """
+
+    # Core identifiers
+    id: UUID | str = Field(..., description="Product ID (UUID or string)")
+    sku: str = Field(..., description="Product SKU (unique identifier)")
+
+    # Product information
     name: str = Field(..., description="Product name")
-    sku: str = Field(..., description="Product SKU")
-    category: list[str] = Field(..., description="Product categories")
-    description: str = Field(..., description="Product description")
-    image_file: str | None = Field(
-        default=None, description="Product image file path (optional)"
-    )
-    price: float = Field(..., description="Product price")
-    currency: str = Field(default="USD", description="Product currency")
-    version: int = Field(..., description="Product version")
-    created_at: str = Field(..., description="Creation timestamp")
-    updated_at: str = Field(..., description="Last update timestamp")
+    description: str | None = Field(None, description="Product description")
+    category: list[str] = Field(default_factory=list, description="Product categories")
+
+    # Media
+    image_file: str | None = Field(None, description="Product image file path/URL")
+
+    # Pricing information
+    price: float = Field(..., description="Product price amount")
+    currency: str = Field(default="USD", description="Product price currency (ISO 4217)")
+
+    # Versioning
+    version: int = Field(..., description="Product version (for optimistic concurrency)")
+
+    # Timestamps (ISO 8601 strings)
+    created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
+    updated_at: str | None = Field(None, description="Last update timestamp (ISO 8601)")
 
     class Config:
         """Pydantic configuration."""
 
         json_encoders = {
             UUID: str,
-            Decimal: float,
         }
-
-
-class ProductSummaryDto(BaseModel):
-    """Product summary DTO for list views."""
-
-    id: UUID = Field(..., description="Product ID")
-    name: str = Field(..., description="Product name")
-    sku: str = Field(..., description="Product SKU")
-    category: list[str] = Field(..., description="Product categories")
-    price: float = Field(..., description="Product price")
-    currency: str = Field(default="USD", description="Product currency")
-    image_file: str | None = Field(
-        default=None, description="Product image file path (optional)"
-    )
-
-    class Config:
-        """Pydantic configuration."""
-
-        json_encoders = {
-            UUID: str,
-            Decimal: float,
-        }
-
-
-class ProductSearchDto(BaseModel):
-    """Product search DTO."""
-
-    id: UUID = Field(..., description="Product ID")
-    name: str = Field(..., description="Product name")
-    sku: str = Field(..., description="Product SKU")
-    category: list[str] = Field(..., description="Product categories")
-    description: str = Field(..., description="Product description")
-    price: float = Field(..., description="Product price")
-    currency: str = Field(default="USD", description="Product currency")
-    image_file: str | None = Field(
-        default=None, description="Product image file path (optional)"
-    )
-    relevance_score: float | None = Field(None, description="Search relevance score")
-
-    class Config:
-        """Pydantic configuration."""
-
-        json_encoders = {
-            UUID: str,
-            Decimal: float,
-        }
+        # Allow population by field name or alias
+        populate_by_name = True

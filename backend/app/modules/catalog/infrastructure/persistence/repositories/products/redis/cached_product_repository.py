@@ -1,8 +1,8 @@
 """Redis + JSON decorator for product repo."""
 
-import logging
 from uuid import UUID
 
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.application.services.catalog_cache_patterns import (
     CatalogCachePatterns,
 )
@@ -14,7 +14,7 @@ from app.modules.catalog.domain.repositories.product.product_repository import (
     ProductRepository,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CachedProductRepository(ProductRepository):
@@ -49,19 +49,60 @@ class CachedProductRepository(ProductRepository):
 
         if cached_data:
             try:
+                logger.log_with_context(
+                    "Cache hit: Product retrieved from cache",
+                    context={
+                        "product_id": str(product_id),
+                        "cache_key": cache_key,
+                        "cache_status": "hit",
+                        "source": "cache"
+                    }
+                )
                 return self._deserialize_product(cached_data)
             except Exception as e:
-                logger.warning(
-                    f"Failed to deserialize cached product {product_id}: {e}"
+                logger.log_warning_with_context(
+                    f"Failed to deserialize cached product {product_id}: {e}",
+                    context={
+                        "product_id": str(product_id),
+                        "cache_key": cache_key,
+                        "cache_status": "deserialization_error"
+                    }
                 )
 
         # Cache miss - get from repository
+        logger.log_with_context(
+            "Cache miss: Product not found in cache, querying database",
+            context={
+                "product_id": str(product_id),
+                "cache_key": cache_key,
+                "cache_status": "miss",
+                "source": "database"
+            }
+        )
         product = await self._repository.get_by_id(product_id)
 
         if product:
             # Cache the result
             await self._cache.set_product(
                 product_id, self._serialize_product(product), self._default_ttl
+            )
+            logger.log_with_context(
+                "Product cached after database retrieval",
+                context={
+                    "product_id": str(product_id),
+                    "cache_key": cache_key,
+                    "cache_status": "stored",
+                    "ttl": self._default_ttl
+                }
+            )
+        else:
+            logger.log_debug_with_context(
+                "Product not found in database, nothing to cache",
+                context={
+                    "product_id": str(product_id),
+                    "cache_key": cache_key,
+                    "cache_status": "not_found"
+                }
             )
 
         return product
@@ -76,7 +117,7 @@ class CachedProductRepository(ProductRepository):
 
     async def get_by_category(
         self, category: str, page: int = 1, page_size: int = 10
-    ) -> list[Product] | tuple[list[Product], int]:
+    ) -> tuple[list[Product], int]:
         """Get products by category with caching."""
         # Try cache first
         cache_key = self._cache_patterns.product_list_key(category, page, page_size)
@@ -90,74 +131,153 @@ class CachedProductRepository(ProductRepository):
                     self._deserialize_product(p)
                     for p in cached_data.get("products", [])
                 ]
-                if "total_count" in cached_data:
-                    return products, cached_data["total_count"]
-                return products
+                total_count = cached_data.get("total_count", len(products))
+                logger.log_with_context(
+                    "Cache hit: Products by category retrieved from cache",
+                    context={
+                        "category": category,
+                        "page": page,
+                        "page_size": page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "hit",
+                        "source": "cache",
+                        "product_count": len(products),
+                        "total_count": total_count
+                    }
+                )
+                total = cached_data.get("total_count", len(products))
+                return products, total
             except Exception as e:
-                logger.warning(f"Failed to deserialize cached product list: {e}")
+                logger.log_warning_with_context(
+                    f"Failed to deserialize cached product list: {e}",
+                    context={
+                        "category": category,
+                        "page": page,
+                        "page_size": page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "deserialization_error"
+                    }
+                )
 
         # Cache miss - get from repository
-        result = await self._repository.get_by_category(category, page, page_size)
+        logger.log_with_context(
+            "Cache miss: Products by category not found in cache, querying database",
+            context={
+                "category": category,
+                "page": page,
+                "page_size": page_size,
+                "cache_key": cache_key,
+                "cache_status": "miss",
+                "source": "database"
+            }
+        )
+        products, total_count = await self._repository.get_by_category(
+            category, page, page_size
+        )
 
-        if isinstance(result, tuple):
-            products, total_count = result
-            # Cache the result
-            await self._cache.set_products_list(
-                page,
-                page_size,
-                {
-                    "products": [self._serialize_product(p) for p in products],
-                    "total_count": total_count,
-                },
-                {"category": category},
-                self._default_ttl,
-            )
-            return products, total_count
-        else:
-            # Cache the result
-            await self._cache.set_products_list(
-                page,
-                page_size,
-                {"products": [self._serialize_product(p) for p in result]},
-                {"category": category},
-                self._default_ttl,
-            )
-            return result
+        await self._cache.set_products_list(
+            page,
+            page_size,
+            {
+                "products": [self._serialize_product(p) for p in products],
+                "total_count": total_count,
+            },
+            {"category": category},
+            self._default_ttl,
+        )
+        logger.log_with_context(
+            "Products by category cached after database retrieval",
+            context={
+                "category": category,
+                "page": page,
+                "page_size": page_size,
+                "cache_key": cache_key,
+                "cache_status": "stored",
+                "ttl": self._default_ttl,
+                "product_count": len(products),
+                "total_count": total_count
+            }
+        )
+        return products, total_count
 
     async def search_by_name(self, search_term: str) -> list[Product]:
         """Search products by name (not cached due to dynamic nature)."""
         return await self._repository.search_by_name(search_term)
 
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[Product]:
+    async def get_all(
+        self, page: int = 1, page_size: int = 10
+    ) -> tuple[list[Product], int]:
         """Get all products with pagination (cached)."""
-        page = (skip // limit) + 1 if limit > 0 else 1
-        page_size = limit
-
-        # Try cache first
+        cache_key = self._cache_patterns.product_list_key(None, page, page_size)
         cached_data = await self._cache.get_products_list(page, page_size, None)
 
         if cached_data:
             try:
-                return [
+                products = [
                     self._deserialize_product(p)
                     for p in cached_data.get("products", [])
                 ]
+                total_count = cached_data.get("total_count", len(products))
+                logger.log_with_context(
+                    "Cache hit: Products list retrieved from cache",
+                    context={
+                        "page": page,
+                        "page_size": page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "hit",
+                        "source": "cache",
+                        "product_count": len(products),
+                        "total_count": total_count
+                    }
+                )
+                return products, total_count
             except Exception as e:
-                logger.warning(f"Failed to deserialize cached product list: {e}")
+                logger.log_warning_with_context(
+                    f"Failed to deserialize cached product list: {e}",
+                    context={
+                        "page": page,
+                        "page_size": page_size,
+                        "cache_key": cache_key,
+                        "cache_status": "deserialization_error"
+                    }
+                )
 
-        # Cache miss - get from repository
-        result = await self._repository.get_all(skip, limit)
+        logger.log_with_context(
+            "Cache miss: Products list not found in cache, querying database",
+            context={
+                "page": page,
+                "page_size": page_size,
+                "cache_key": cache_key,
+                "cache_status": "miss",
+                "source": "database"
+            }
+        )
+        products, total_count = await self._repository.get_all(page, page_size)
 
-        # Cache the result
         await self._cache.set_products_list(
             page,
             page_size,
-            {"products": [self._serialize_product(p) for p in result]},
+            {
+                "products": [self._serialize_product(p) for p in products],
+                "total_count": total_count,
+            },
             None,
             self._default_ttl,
         )
+        logger.log_with_context(
+            "Products list cached after database retrieval",
+            context={
+                "page": page,
+                "page_size": page_size,
+                "cache_key": cache_key,
+                "cache_status": "stored",
+                "ttl": self._default_ttl,
+                "product_count": len(products),
+                "total_count": total_count
+            }
+        )
 
-        return result
+        return products, total_count
 
     async def count(self) -> int:
         """Get total count of products (not cached)."""
@@ -176,19 +296,12 @@ class CachedProductRepository(ProductRepository):
         return await self._repository.exists(product_id)
 
     async def add(self, product: Product) -> Product:
-        """Add a new product and invalidate cache."""
-        result = await self._repository.add(product)
-        # Invalidate product lists cache
-        await self._cache.invalidate_products_list()
-        return result
+        """Add a new product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.add(product)
 
     async def update(self, product: Product) -> Product:
-        """Update a product and invalidate cache."""
-        result = await self._repository.update(product)
-        # Invalidate this product and product lists
-        await self._cache.invalidate_product(product.id)
-        await self._cache.invalidate_products_list()
-        return result
+        """Update a product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.update(product)
 
     async def delete(
         self,
@@ -196,13 +309,8 @@ class CachedProductRepository(ProductRepository):
         deleted_by: UUID | None = None,
         deletion_reason: str | None = None,
     ) -> bool:
-        """Delete a product and invalidate cache."""
-        result = await self._repository.delete(product_id, deleted_by, deletion_reason)
-        if result:
-            # Invalidate this product and product lists
-            await self._cache.invalidate_product(product_id)
-            await self._cache.invalidate_products_list()
-        return result
+        """Delete a product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.delete(product_id, deleted_by, deletion_reason)
 
     async def get_deleted_by_id(self, product_id: UUID) -> Product | None:
         """Get deleted product by ID (not cached)."""
@@ -223,13 +331,8 @@ class CachedProductRepository(ProductRepository):
     async def restore_product(
         self, product_id: UUID, restored_by: UUID | None = None
     ) -> bool:
-        """Restore a deleted product and invalidate cache."""
-        result = await self._repository.restore_product(product_id, restored_by)
-        if result:
-            # Invalidate this product and product lists
-            await self._cache.invalidate_product(product_id)
-            await self._cache.invalidate_products_list()
-        return result
+        """Restore a deleted product. Cache invalidation happens post-commit via interceptor."""
+        return await self._repository.restore_product(product_id, restored_by)
 
     def _serialize_product(self, product: Product) -> dict:
         """Serialize product to dictionary for caching."""

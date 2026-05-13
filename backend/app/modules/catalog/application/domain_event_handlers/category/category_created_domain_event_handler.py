@@ -1,14 +1,14 @@
 """Category created domain event handler - internal reactions."""
 
-import logging
 from typing import Any
 
 from app.core.domain.events import DomainEventHandler
+from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.category.domain_events.category_created_domain_event import (
     CategoryCreatedDomainEvent,
 )
 
-logger = logging.getLogger(__name__)
+logger = BaseLogger(__name__)
 
 
 class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomainEvent]):
@@ -21,12 +21,19 @@ class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomain
         Args:
             event: The category created domain event
         """
-        logger.info(
-            f"Category created: {event.category_name} (ID: {event.category_id})"
+        logger.log_with_context(
+            "Category created",
+            context={
+                "category_name": event.category_name,
+                "category_id": str(event.category_id)
+            }
         )
 
         if event.parent_id:
-            logger.info(f"Parent category ID: {event.parent_id}")
+            logger.log_with_context(
+                "Parent category ID",
+                context={"parent_id": str(event.parent_id)}
+            )
 
         # Internal reactions (no integration event):
         # 1. Update read models
@@ -34,7 +41,7 @@ class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomain
         # 3. Update metrics
 
         # For now, just log the event
-        logger.info("Category creation processed")
+        logger.log_with_context("Category creation processed")
 
     async def _update_search_index(self, category: Any) -> None:
         """Update search index with new category."""

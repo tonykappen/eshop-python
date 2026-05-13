@@ -52,41 +52,13 @@ def upgrade() -> None:
     # Create index on name
     op.create_index("ix_products_name", "products", ["name"], schema="catalog")
 
-    # Create index on categories
+    # Create index on categories (GIN index for array column)
     op.create_index(
         "ix_products_categories",
         "products",
         ["categories"],
         postgresql_using="gin",
         schema="catalog",
-    )
-
-    # Create categories table
-    op.create_table(
-        "categories",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("description", sa.Text(), nullable=False),
-        sa.Column("parent_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("version", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("updated_by", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("is_deleted", sa.Boolean(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        schema="catalog",
-    )
-
-    # Create unique index on category name
-    op.create_index(
-        "ix_categories_name", "categories", ["name"], unique=True, schema="catalog"
-    )
-
-    # Create index on parent_id
-    op.create_index(
-        "ix_categories_parent_id", "categories", ["parent_id"], schema="catalog"
     )
 
     # Create inventory_items table
@@ -129,6 +101,8 @@ def upgrade() -> None:
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("processed_at", sa.DateTime(), nullable=True),
+        sa.Column("claimed_by", sa.String(length=255), nullable=True),
+        sa.Column("claimed_at", sa.DateTime(), nullable=True),
         sa.Column("correlation_id", sa.String(length=255), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         schema="catalog",
@@ -146,7 +120,6 @@ def downgrade() -> None:
     # Drop tables in reverse order
     op.drop_table("outbox", schema="catalog")
     op.drop_table("inventory_items", schema="catalog")
-    op.drop_table("categories", schema="catalog")
     op.drop_table("products", schema="catalog")
 
     # Drop schema

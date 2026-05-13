@@ -19,7 +19,7 @@ from app.modules.basket.application.features.basket.command.add_item_into_basket
     AddItemIntoBasketHandler,
 )
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdResult,
 )
 from app.modules.catalog.application.public_interface.dto.product import ProductDto

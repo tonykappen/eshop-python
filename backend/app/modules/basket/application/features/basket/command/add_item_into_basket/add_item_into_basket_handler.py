@@ -9,7 +9,7 @@ from app.core.mediator.mediator import IMediator
 from app.modules.basket.domain.entities.basket import ShoppingCart
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
 from app.modules.basket.domain.repositories.basket import IBasketRepository
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdQuery,
 )
 from uuid import uuid4

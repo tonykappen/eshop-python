@@ -21,7 +21,7 @@ from app.modules.basket.application.features.basket.command.create_basket.create
 from app.modules.basket.application.features.basket.query.get_basket.get_basket_query import (
     GetBasketQuery,
 )
-from app.modules.catalog.application.features.products.queries.get_product_by_id.query import (
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
     GetProductByIdResult,
 )
 from app.modules.catalog.application.public_interface.dto.product import ProductDto

@@ -558,7 +558,7 @@ class TestGetProductsHandler:
         self, handler, sample_products, mock_repository, mock_session
     ):
         """Test successful products retrieval."""
-        from app.modules.catalog.application.features.products.queries.get_products.query import (
+        from app.modules.catalog.application.features.products.queries.get_products.get_products_query import (
             GetProductsQuery,
         )
 
@@ -635,7 +635,7 @@ class TestGetProductsByCategoryHandler:
         self, handler, sample_products, mock_repository, mock_session
     ):
         """Test successful products retrieval by category."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
             GetProductsByCategoryQuery,
         )
 
@@ -670,7 +670,7 @@ class TestGetProductsByCategoryHandler:
     @pytest.mark.asyncio
     async def test_handle_empty_results(self, handler, mock_repository, mock_session):
         """Test handler with empty results for category."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
             GetProductsByCategoryQuery,
         )
 
@@ -705,7 +705,7 @@ class TestGetProductsByCategoryHandler:
         self, handler, sample_products, mock_repository, mock_session
     ):
         """Test handler with pagination."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
             GetProductsByCategoryQuery,
         )
 
@@ -741,7 +741,7 @@ class TestGetProductsByCategoryHandler:
     @pytest.mark.asyncio
     async def test_handle_database_error(self, handler, mock_repository, mock_session):
         """Test handler with database error."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.query import (
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
             GetProductsByCategoryQuery,
         )
 

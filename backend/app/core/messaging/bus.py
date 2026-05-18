@@ -578,6 +578,90 @@ class RabbitMQMessageBus(IMessageBus):
             )
             raise
 
+    async def subscribe_to_exchange(
+        self,
+        exchange: str,
+        routing_key: str,
+        queue_name: str,
+        handler: Any,
+        durable: bool = True,
+    ) -> None:
+        """
+        Subscribe to a named exchange via a dedicated queue + binding.
+
+        Mirrors MassTransit-style endpoint consumers: declares a durable queue
+        named after the consumer endpoint and binds it to the integration-event
+        exchange with the message-type routing key.
+
+        Args:
+            exchange: Exchange name to bind against (e.g. "basket.events").
+            routing_key: Routing key to bind / filter on (event_type string).
+            queue_name: Durable queue name owned by the consumer (e.g.
+                "basket-checkout-queue").
+            handler: Async callable invoked with the decoded JSON dict.
+            durable: Whether the queue should be durable. Defaults to True.
+        """
+        if not self._connection or not self._channel:
+            await self.connect()
+
+        if hasattr(self._connection, "is_closed") and self._connection.is_closed:
+            await asyncio.sleep(0.1)
+            if self._connection.is_closed:
+                await self.connect()
+
+        try:
+            import aio_pika
+
+            try:
+                exchange_obj = await self._channel.declare_exchange(
+                    exchange, aio_pika.ExchangeType.DIRECT, passive=True
+                )
+            except Exception:
+                exchange_obj = await self._channel.declare_exchange(
+                    exchange, aio_pika.ExchangeType.DIRECT, durable=False
+                )
+
+            queue = await self._channel.declare_queue(queue_name, durable=durable)
+            await queue.bind(exchange_obj, routing_key=routing_key)
+
+            async def message_handler(message: aio_pika.IncomingMessage) -> None:
+                async with message.process():
+                    try:
+                        message_data = json.loads(message.body.decode())
+                        await handler(message_data)
+                    except Exception as e:
+                        logger.log_error_with_context(
+                            "Error processing message from exchange queue",
+                            error=e,
+                            context={
+                                "exchange": exchange,
+                                "routing_key": routing_key,
+                                "queue": queue_name,
+                            },
+                        )
+
+            await queue.consume(message_handler)
+            logger.log_with_context(
+                "Subscribed to RabbitMQ exchange queue",
+                "info",
+                context={
+                    "exchange": exchange,
+                    "routing_key": routing_key,
+                    "queue": queue_name,
+                },
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                "Error subscribing to RabbitMQ exchange",
+                error=e,
+                context={
+                    "exchange": exchange,
+                    "routing_key": routing_key,
+                    "queue": queue_name,
+                },
+            )
+            raise
+
     async def unsubscribe(self, topic: str, handler: Any) -> None:
         """
         Unsubscribe from a RabbitMQ topic.

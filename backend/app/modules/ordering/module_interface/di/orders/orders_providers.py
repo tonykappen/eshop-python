@@ -7,7 +7,9 @@ from functools import lru_cache
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.config.settings import settings
 from app.core.di.container import Container
+from app.core.messaging.bus import IMessageBus, RabbitMQMessageBus
 from app.modules.ordering.domain.repositories.order import IOrderRepository
 from app.modules.ordering.infrastructure.persistence.db_context import (
     get_engine,
@@ -30,6 +32,21 @@ def get_ordering_container() -> Container:
     """
     container = Container()
     return container
+
+
+@lru_cache(maxsize=1)
+def get_ordering_message_bus() -> IMessageBus:
+    """
+    Get the ordering module RabbitMQ message bus singleton.
+
+    Used by the ordering RabbitMQ consumer to declare its queue
+    (e.g. ``basket-checkout-queue``) and bind it to the relevant
+    integration-event exchange (e.g. ``basket.events``).
+
+    Returns:
+        IMessageBus: RabbitMQ-backed message bus instance.
+    """
+    return RabbitMQMessageBus(settings.rabbitmq_connection_string)
 
 
 # Database providers

@@ -8,8 +8,10 @@ from datetime import datetime
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.settings import settings
+from app.core.messaging.bus import RabbitMQMessageBus
+from app.core.messaging.exchange_resolver import get_exchange_for_event_type
 from app.core.messaging.outbox import OutboxMessage, OutboxMessageStatus
-from app.core.messaging.shared_message_bus import get_shared_message_bus
 from app.modules.basket.infrastructure.persistence.db_context import get_session_maker
 from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
     OutboxORM,
@@ -17,6 +19,17 @@ from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import 
 )
 
 logger = logging.getLogger(__name__)
+
+
+_basket_message_bus: RabbitMQMessageBus | None = None
+
+
+def _get_basket_message_bus() -> RabbitMQMessageBus:
+    """Return the singleton RabbitMQ bus used by the basket outbox publisher."""
+    global _basket_message_bus
+    if _basket_message_bus is None:
+        _basket_message_bus = RabbitMQMessageBus(settings.rabbitmq_connection_string)
+    return _basket_message_bus
 
 
 class BasketOutboxPublisherWorker:
@@ -38,7 +51,7 @@ class BasketOutboxPublisherWorker:
             poll_interval: Interval between polls in seconds
             max_retries: Maximum number of retries for failed messages
         """
-        self.message_bus = message_bus or get_shared_message_bus()
+        self.message_bus = message_bus or _get_basket_message_bus()
         self.batch_size = batch_size
         self.poll_interval = poll_interval
         self.max_retries = max_retries
@@ -200,17 +213,24 @@ class BasketOutboxPublisherWorker:
                 
                 # Create event instance from parsed data
                 event = BasketCheckoutIntegrationEvent(**event_data)
-                
-                # Publish event object to message bus using event_type as topic
-                await self.message_bus.publish(event, event.event_type)
-                
+
+                # Publish event object to message bus using event_type as
+                # routing key on the module exchange (e.g. basket.events).
+                exchange = get_exchange_for_event_type(event.event_type)
+                await self.message_bus.publish(
+                    event, event.event_type, exchange=exchange
+                )
+
             except Exception as e:
                 logger.error(
                     f"Failed to reconstruct/publish event for message {message_orm.id}: {e}",
                     exc_info=True
                 )
-                # Fallback: publish raw event_data dict
-                await self.message_bus.publish(event_data, message_orm.event_type)
+                # Fallback: publish raw event_data dict on the same exchange
+                fallback_exchange = get_exchange_for_event_type(message_orm.event_type)
+                await self.message_bus.publish(
+                    event_data, message_orm.event_type, exchange=fallback_exchange
+                )
 
             # Mark as published
             await self._mark_as_published(session, message_orm.id)

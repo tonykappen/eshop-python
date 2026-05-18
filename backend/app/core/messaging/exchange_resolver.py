@@ -128,13 +128,21 @@ def _get_default_exchange_for_event_type(event_type: str) -> str | None:
     Returns:
         Exchange name or None
     """
-    # Default module-based mappings
+    # Default module-based mappings. Both dotted ("basket.") and snake_case
+    # ("basket_") forms are accepted because IntegrationEvent._generate_event_type
+    # converts CamelCase class names to snake_case (e.g.
+    # ``BasketCheckoutIntegrationEvent`` -> ``basket_checkout_integration``).
     default_mappings = {
         "product.": "catalog.events",
+        "product_": "catalog.events",
         "order.": "ordering.events",
+        "order_": "ordering.events",
         "basket.": "basket.events",
+        "basket_": "basket.events",
         "payment.": "payment.events",
+        "payment_": "payment.events",
         "inventory.": "inventory.events",
+        "inventory_": "inventory.events",
     }
 
     # Check if event type matches any module prefix

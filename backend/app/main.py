@@ -250,6 +250,42 @@ async def stop_basket_outbox_worker():
     print("✅ Stopped basket outbox publisher worker")
 
 register_shutdown_callback(stop_basket_outbox_worker)
+
+
+async def stop_ordering_message_bus():
+    """Disconnect the ordering RabbitMQ message bus on shutdown."""
+    from app.modules.ordering.module_interface.di.orders import (
+        get_ordering_message_bus,
+    )
+
+    message_bus = get_ordering_message_bus()
+    if hasattr(message_bus, "disconnect"):
+        try:
+            await message_bus.disconnect()
+            print("✅ Disconnected ordering message bus")
+        except Exception as exc:  # noqa: BLE001 - log + swallow on shutdown
+            print(f"⚠️ Failed to disconnect ordering message bus: {exc}")
+
+
+register_shutdown_callback(stop_ordering_message_bus)
+
+
+async def stop_basket_message_bus():
+    """Disconnect the basket outbox RabbitMQ message bus on shutdown."""
+    from app.modules.basket.workers.outbox_publisher_worker import (
+        _get_basket_message_bus,
+    )
+
+    message_bus = _get_basket_message_bus()
+    if hasattr(message_bus, "disconnect"):
+        try:
+            await message_bus.disconnect()
+            print("✅ Disconnected basket outbox message bus")
+        except Exception as exc:  # noqa: BLE001 - log + swallow on shutdown
+            print(f"⚠️ Failed to disconnect basket outbox message bus: {exc}")
+
+
+register_shutdown_callback(stop_basket_message_bus)
 register_shutdown_callback(cleanup_dependency_injection)
 register_shutdown_callback(database_handler.shutdown)
 register_shutdown_callback(cache_handler.shutdown)

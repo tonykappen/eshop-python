@@ -1,7 +1,9 @@
 """Ordering module router registration."""
 
 import logging
-import re
+from decimal import Decimal
+from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter
 
@@ -13,9 +15,15 @@ logger = logging.getLogger(__name__)
 # Import DI components
 from app.modules.ordering.module_interface.di.orders import (
     get_ordering_container,
+    get_ordering_message_bus,
     register_ordering_handlers_with_mediator,
     wire_ordering_dependencies,
 )
+
+# Queue name owned by the ordering module's basket-checkout consumer. Mirrors
+# the MassTransit endpoint-per-consumer convention from the .NET reference.
+_BASKET_CHECKOUT_QUEUE = "basket-checkout-queue"
+_BASKET_EVENTS_EXCHANGE = "basket.events"
 
 # Import order router
 from app.modules.ordering.router.order_router import router as order_router
@@ -73,14 +81,45 @@ def subscribe_ordering_integration_event_handlers(_mediator: Mediator) -> None:
     )
 
 
-async def subscribe_ordering_handlers_to_message_bus() -> None:
+def _coerce_basket_checkout_payload(event_data: dict[str, Any]) -> dict[str, Any]:
+    """Coerce JSON-decoded basket checkout payload into model-friendly types.
+
+    The basket outbox serialises ``customer_id`` and ``total_price`` as strings;
+    Pydantic accepts them either way but we normalise here so the resulting
+    model matches what local in-process handlers used to receive.
     """
-    Subscribe ordering integration event handlers to the shared message bus.
-    
-    This should be called during application startup after modules are registered.
+    if not isinstance(event_data, dict):
+        return event_data
+
+    customer_id = event_data.get("customer_id")
+    if isinstance(customer_id, str):
+        try:
+            event_data["customer_id"] = UUID(customer_id)
+        except (ValueError, AttributeError):
+            pass
+
+    total_price = event_data.get("total_price")
+    if isinstance(total_price, str):
+        try:
+            event_data["total_price"] = Decimal(total_price)
+        except (ValueError, AttributeError):
+            pass
+    elif isinstance(total_price, (int, float)):
+        event_data["total_price"] = Decimal(str(total_price))
+
+    return event_data
+
+
+async def subscribe_ordering_handlers_to_message_bus() -> None:
+    """Subscribe ordering integration event handlers to RabbitMQ.
+
+    Declares the durable ``basket-checkout-queue`` and binds it to the
+    ``basket.events`` exchange with the routing key derived from
+    ``BasketCheckoutIntegrationEvent.event_type``. This mirrors the .NET
+    reference's MassTransit endpoint-per-consumer model so the queue is
+    visible in the RabbitMQ Management UI even before any messages flow.
     """
     from app.core.mediator.fastapi_integration import get_mediator
-    from app.core.messaging.shared_message_bus import get_shared_message_bus
     from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
         BasketCheckoutIntegrationEvent,
     )
@@ -88,24 +127,50 @@ async def subscribe_ordering_handlers_to_message_bus() -> None:
         BasketCheckoutIntegrationEventHandler,
     )
 
-    # Get the main mediator (handlers need it to send commands)
     main_mediator = get_mediator()
-
-    # Create and register the BasketCheckoutIntegrationEventHandler
-    # This handler will receive BasketCheckoutIntegrationEvent events from the Basket module
-    # and create orders
     checkout_handler = BasketCheckoutIntegrationEventHandler(main_mediator)
 
-    # Topic must match BasketCheckoutIntegrationEvent.event_type (IntegrationEvent._generate_event_type)
-    class_name = BasketCheckoutIntegrationEvent.__name__
-    if class_name.endswith("Event"):
-        class_name = class_name[:-5]
-    event_type = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
+    # Routing key matches the event_type produced by the basket outbox
+    # publisher (IntegrationEvent._generate_event_type on the model default).
+    routing_key = BasketCheckoutIntegrationEvent.model_fields["event_type"].default
+    if not routing_key:
+        # Fallback: instantiate-less generation by mimicking the algorithm.
+        import re as _re
 
-    message_bus = get_shared_message_bus()
-    await message_bus.subscribe(event_type, checkout_handler)
+        class_name = BasketCheckoutIntegrationEvent.__name__
+        if class_name.endswith("Event"):
+            class_name = class_name[:-5]
+        routing_key = _re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
+
+    async def _consume(event_data: Any) -> None:
+        """Adapter: reconstruct typed event and invoke the existing handler."""
+        try:
+            payload = _coerce_basket_checkout_payload(event_data)
+            event = BasketCheckoutIntegrationEvent(**payload)
+            await checkout_handler.handle(event)
+        except Exception:
+            logger.exception(
+                "Ordering basket-checkout consumer failed to handle message"
+            )
+            raise
+
+    message_bus = get_ordering_message_bus()
+    if hasattr(message_bus, "connect") and (
+        not hasattr(message_bus, "_connection") or message_bus._connection is None
+    ):
+        await message_bus.connect()
+
+    await message_bus.subscribe_to_exchange(
+        exchange=_BASKET_EVENTS_EXCHANGE,
+        routing_key=routing_key,
+        queue_name=_BASKET_CHECKOUT_QUEUE,
+        handler=_consume,
+    )
 
     logger.info(
-        f"Subscribed BasketCheckoutIntegrationEventHandler to message bus "
-        f"for event type: '{event_type}'"
+        "Subscribed BasketCheckoutIntegrationEventHandler to RabbitMQ "
+        "(exchange=%s, routing_key=%s, queue=%s)",
+        _BASKET_EVENTS_EXCHANGE,
+        routing_key,
+        _BASKET_CHECKOUT_QUEUE,
     )

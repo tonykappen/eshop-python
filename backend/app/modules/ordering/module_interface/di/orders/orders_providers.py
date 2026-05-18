@@ -4,21 +4,17 @@ import logging
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-
 from app.config.settings import settings
 from app.core.di.container import Container
 from app.core.messaging.bus import IMessageBus, RabbitMQMessageBus
 from app.modules.ordering.domain.repositories.order import IOrderRepository
 from app.modules.ordering.infrastructure.persistence.db_context import (
-    get_engine,
-    get_session,
-    get_session_maker,
-)
-from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import (
-    SqlOrderRepository,
-)
+    get_engine, get_session, get_session_maker)
+from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import \
+    SqlOrderRepository
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker)
 
 logger = logging.getLogger(__name__)
 

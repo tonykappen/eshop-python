@@ -1,14 +1,11 @@
 """SQL implementation of IBasketUnitOfWork."""
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.modules.basket.application.unit_of_work.basket_unit_of_work import (
-    IBasketUnitOfWork,
-)
+from app.modules.basket.application.unit_of_work.basket_unit_of_work import \
+    IBasketUnitOfWork
 from app.modules.basket.domain.repositories.basket import IBasketRepository
-from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import (
-    SqlBasketRepository,
-)
+from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import \
+    SqlBasketRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlBasketUnitOfWork(IBasketUnitOfWork):

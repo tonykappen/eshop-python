@@ -2,14 +2,17 @@
 
 from pathlib import Path
 
+from app.config.env import get_env, get_env_bool, get_env_int, get_env_list
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from app.config.env import get_env, get_env_bool, get_env_int, get_env_list
-
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 _PROJECT_ROOT = _BACKEND_DIR.parent
-_ENV_FILE = _BACKEND_DIR / ".env" if (_BACKEND_DIR / ".env").exists() else _PROJECT_ROOT / ".env"
+_ENV_FILE = (
+    _BACKEND_DIR / ".env"
+    if (_BACKEND_DIR / ".env").exists()
+    else _PROJECT_ROOT / ".env"
+)
 
 
 class Settings(BaseSettings):
@@ -69,9 +72,7 @@ class Settings(BaseSettings):
     )
 
     # Database pool configuration (all configurable via env vars)
-    db_pool_size: int = Field(
-        default_factory=lambda: get_env_int("DB_POOL_SIZE", 10)
-    )
+    db_pool_size: int = Field(default_factory=lambda: get_env_int("DB_POOL_SIZE", 10))
     db_max_overflow: int = Field(
         default_factory=lambda: get_env_int("DB_MAX_OVERFLOW", 20)
     )
@@ -81,9 +82,7 @@ class Settings(BaseSettings):
     db_pool_timeout: int = Field(
         default_factory=lambda: get_env_int("DB_POOL_TIMEOUT", 30)
     )
-    db_echo: bool = Field(
-        default_factory=lambda: get_env_bool("DB_ECHO", False)
-    )
+    db_echo: bool = Field(default_factory=lambda: get_env_bool("DB_ECHO", False))
 
     # Legacy database fields for backward compatibility
     @property

@@ -4,11 +4,11 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
+    Base
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.modules.ordering.infrastructure.persistence.orm.orders.base import Base
 
 
 class OrderItemORM(Base):
@@ -32,9 +32,7 @@ class OrderItemORM(Base):
     )
 
     # Product ID - matching .NET Property(oi => oi.ProductId).IsRequired()
-    product_id: Mapped[UUID] = mapped_column(
-        PostgresUUID(as_uuid=True), nullable=False
-    )
+    product_id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), nullable=False)
 
     # Quantity - matching .NET Property(oi => oi.Quantity).IsRequired()
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)

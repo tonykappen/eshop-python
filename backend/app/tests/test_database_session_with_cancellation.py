@@ -3,14 +3,11 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from app.core.database.session_with_cancellation import (
+    db_transaction_with_cancellation, get_cancellation_token_for_session,
+    get_db_session_with_cancellation)
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database.session_with_cancellation import (
-    db_transaction_with_cancellation,
-    get_cancellation_token_for_session,
-    get_db_session_with_cancellation,
-)
 
 
 class TestGetDbSessionWithCancellation:

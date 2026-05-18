@@ -3,20 +3,19 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Request, status
-
 from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.ordering.application.features.orders.command.delete_order.delete_order_command import (
-    DeleteOrderCommand,
-    DeleteOrderResult,
-)
+    DeleteOrderCommand, DeleteOrderResult)
 from app.modules.ordering.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Path, Request, status
 
 router = APIRouter()
 
 
-@router.delete("/{order_id}", response_model=DeleteOrderResult, status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{order_id}", response_model=DeleteOrderResult, status_code=status.HTTP_200_OK
+)
 async def delete_order(
     order_id: UUID = Path(..., description="Order ID"),
     http_request: Request = ...,

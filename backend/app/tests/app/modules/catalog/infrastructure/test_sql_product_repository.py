@@ -5,14 +5,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import Money
-from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository,
-)
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import \
+    ProductORM
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import \
+    SqlProductRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestProductRepositoryGetById:
@@ -285,7 +284,10 @@ class TestProductRepositoryGetByCategory:
         mock_count_result.scalar.return_value = 2
 
         mock_products_result = MagicMock()
-        mock_products_result.scalars.return_value.all.return_value = [mock_orm1, mock_orm2]
+        mock_products_result.scalars.return_value.all.return_value = [
+            mock_orm1,
+            mock_orm2,
+        ]
         mock_session.execute.side_effect = [mock_count_result, mock_products_result]
 
         with patch.object(repo, "_orm_to_domain") as mock_mapper:

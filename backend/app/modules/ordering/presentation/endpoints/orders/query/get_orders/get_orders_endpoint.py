@@ -2,16 +2,12 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
-
 from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.ordering.application.features.orders.query.get_orders.get_orders_query import (
-    GetOrdersQuery,
-    GetOrdersResult,
-    PaginationRequest,
-)
+    GetOrdersQuery, GetOrdersResult, PaginationRequest)
 from app.modules.ordering.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Query, Request
 
 router = APIRouter()
 
@@ -39,9 +35,7 @@ async def get_orders(
 
     # Create the query with pagination
     query = GetOrdersQuery(
-        pagination_request=PaginationRequest(
-            page_index=page_index, page_size=page_size
-        )
+        pagination_request=PaginationRequest(page_index=page_index, page_size=page_size)
     )
 
     # Execute the REPR pattern flow

@@ -2,15 +2,12 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Path, Request
-
 from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.basket.application.features.basket.query.get_basket.get_basket_query import (
-    GetBasketQuery,
-    GetBasketResult,
-)
+    GetBasketQuery, GetBasketResult)
 from app.modules.basket.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Path, Request
 
 router = APIRouter()
 

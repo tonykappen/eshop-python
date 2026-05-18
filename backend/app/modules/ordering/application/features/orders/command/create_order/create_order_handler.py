@@ -62,7 +62,8 @@ class CreateOrderHandler(IRequestHandler[CreateOrderCommand, CreateOrderResult])
         validator = CreateOrderCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.core.exceptions.bad_request_exception import BadRequestException
+            from app.core.exceptions.bad_request_exception import \
+                BadRequestException
 
             raise BadRequestException(message="; ".join(errors))
 

@@ -4,9 +4,8 @@ from typing import Any
 
 from app.core.domain.events import DomainEventHandler
 from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.domain.inventory.domain_events.stock_adjusted_domain_event import (
-    StockAdjustedDomainEvent,
-)
+from app.modules.catalog.domain.inventory.domain_events.stock_adjusted_domain_event import \
+    StockAdjustedDomainEvent
 
 logger = BaseLogger(__name__)
 
@@ -27,8 +26,8 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
                 "product_id": str(event.product_id),
                 "old_quantity": event.old_quantity,
                 "new_quantity": event.new_quantity,
-                "adjustment": event.adjustment
-            }
+                "adjustment": event.adjustment,
+            },
         )
 
         # Internal reactions (no integration event):
@@ -40,7 +39,7 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
         if event.inventory_item.is_low_stock:
             logger.log_warning_with_context(
                 "Low stock alert for product",
-                context={"product_id": str(event.product_id)}
+                context={"product_id": str(event.product_id)},
             )
             # await self._send_low_stock_alert(event.inventory_item)
 
@@ -48,7 +47,7 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
         if event.inventory_item.is_out_of_stock:
             logger.log_error_with_context(
                 "Out of stock alert for product",
-                context={"product_id": str(event.product_id)}
+                context={"product_id": str(event.product_id)},
             )
             # await self._send_out_of_stock_alert(event.inventory_item)
 

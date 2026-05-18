@@ -3,9 +3,7 @@
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.basket.application.dtos.shopping_cart_dto import (
-    ShoppingCartDto,
-    ShoppingCartItemDto,
-)
+    ShoppingCartDto, ShoppingCartItemDto)
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
 from .get_basket_query import GetBasketQuery, GetBasketResult
@@ -42,12 +40,13 @@ class GetBasketHandler(IRequestHandler[GetBasketQuery, GetBasketResult]):
         # Get basket with user_name (with tracking for read operations)
         # If basket doesn't exist, return an empty basket instead of raising an exception
         # This is a common pattern in e-commerce where baskets are created on first item addition
-        from app.modules.basket.domain.exceptions.basket.basket_not_found import (
-            BasketNotFoundException,
-        )
+        from app.modules.basket.domain.exceptions.basket.basket_not_found import \
+            BasketNotFoundException
 
         try:
-            basket = await self.repository.get_basket(query.user_name, as_no_tracking=True)
+            basket = await self.repository.get_basket(
+                query.user_name, as_no_tracking=True
+            )
 
             # Mapping basket entity to ShoppingCartDto
             items_dto = [

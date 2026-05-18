@@ -9,9 +9,7 @@ from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.exceptions.product import (
-    ProductCreationError,
-    ProductValidationError,
-)
+    ProductCreationError, ProductValidationError)
 from app.modules.catalog.domain.value_objects import Money
 
 from .create_product_command import CreateProductCommand, CreateProductResult
@@ -104,9 +102,7 @@ class CreateProductHandler(IRequestHandler[CreateProductCommand, CreateProductRe
                 else ""
             )
 
-            price_money = Money(
-                amount=Decimal(str(command.price)), currency="USD"
-            )
+            price_money = Money(amount=Decimal(str(command.price)), currency="USD")
 
             product = Product.create(
                 product_id=uuid4(),

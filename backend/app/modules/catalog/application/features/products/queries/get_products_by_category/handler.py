@@ -6,13 +6,12 @@ from typing import Any
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
 
-from .get_products_by_category_query import (
-    GetProductsByCategoryQuery,
-    GetProductsByCategoryResult,
-)
+from .get_products_by_category_query import (GetProductsByCategoryQuery,
+                                             GetProductsByCategoryResult)
 
 logger = BaseLogger(__name__)
 

@@ -3,13 +3,12 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-from httpx import AsyncClient
-
 from app.core.di.container import Container
 from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
 from app.main import app
+from fastapi.testclient import TestClient
+from httpx import AsyncClient
 
 
 @pytest.fixture

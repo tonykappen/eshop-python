@@ -2,15 +2,13 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
-
 from app.core.auth.rbac import require_query_access
-from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
+from app.core.repr.base import (CQRSEndpointFactory,
+                                PaginatedResultToResponseMapper)
 from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
-    GetProductsByCategoryQuery,
-    GetProductsByCategoryResult,
-)
+    GetProductsByCategoryQuery, GetProductsByCategoryResult)
 from app.modules.catalog.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Query, Request
 
 router = APIRouter()
 

@@ -3,17 +3,13 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from app.core.middleware.behaviors import (
-    AuditableEntityInterceptor,
-    DispatchDomainEventsInterceptor,
-    PerformanceLoggingMixin,
-    auto_log_async,
-    auto_log_database_operation,
-    auto_log_sync,
-    logging_behavior,
-    validation_behavior,
-)
+from app.core.middleware.behaviors import (AuditableEntityInterceptor,
+                                           DispatchDomainEventsInterceptor,
+                                           PerformanceLoggingMixin,
+                                           auto_log_async,
+                                           auto_log_database_operation,
+                                           auto_log_sync, logging_behavior,
+                                           validation_behavior)
 
 
 class TestLoggingBehavior:

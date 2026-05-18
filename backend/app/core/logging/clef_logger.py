@@ -226,35 +226,15 @@ class CLEFHandler(logging.Handler):
             # Add trace context from contextvars if available
             try:
                 from app.core.logging.trace_context import (
-                    get_auth_subject,
-                    get_client_ip,
-                    get_controller,
-                    get_http_version,
-                    get_kc_user_id,
-                    get_kc_user_name,
-                    get_method,
-                    get_operation_id,
-                    get_parent_span_id,
-                    get_path,
-                    get_path_params,
-                    get_query,
-                    get_referer,
-                    get_request_id,
-                    get_request_size,
-                    get_roles,
-                    get_route,
-                    get_scheme,
-                    get_session_id,
-                    get_session_id_prefix,
-                    get_span_id,
-                    get_tenant_id,
-                    get_token_id,
-                    get_trace_id,
-                    get_traceparent_raw,
-                    get_tracestate,
-                    get_user_agent,
-                    get_user_id,
-                )
+                    get_auth_subject, get_client_ip, get_controller,
+                    get_http_version, get_kc_user_id, get_kc_user_name,
+                    get_method, get_operation_id, get_parent_span_id, get_path,
+                    get_path_params, get_query, get_referer, get_request_id,
+                    get_request_size, get_roles, get_route, get_scheme,
+                    get_session_id, get_session_id_prefix, get_span_id,
+                    get_tenant_id, get_token_id, get_trace_id,
+                    get_traceparent_raw, get_tracestate, get_user_agent,
+                    get_user_id)
 
                 trace_id = get_trace_id()
                 span_id = get_span_id()

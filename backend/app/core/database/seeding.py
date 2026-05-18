@@ -2,10 +2,9 @@
 
 from abc import ABC, abstractmethod
 
-from sqlalchemy import text
-
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
+from sqlalchemy import text
 
 logger = BaseLogger(__name__)
 
@@ -74,9 +73,8 @@ def register_default_application_seeders() -> None:
 
     Called during application initialization so ``run_seeding()`` has work to do.
     """
-    from app.modules.catalog.infrastructure.seeding.products.catalog_data_seeder import (
-        CatalogDataSeeder,
-    )
+    from app.modules.catalog.infrastructure.seeding.products.catalog_data_seeder import \
+        CatalogDataSeeder
 
     register_seeder(CatalogDataSeeder)
 

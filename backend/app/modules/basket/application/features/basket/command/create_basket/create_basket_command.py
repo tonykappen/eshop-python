@@ -2,9 +2,9 @@
 
 from uuid import UUID
 
+from app.modules.basket.application.dtos.shopping_cart_dto import \
+    ShoppingCartDto
 from pydantic import BaseModel, Field
-
-from app.modules.basket.application.dtos.shopping_cart_dto import ShoppingCartDto
 
 
 class CreateBasketCommand(BaseModel):

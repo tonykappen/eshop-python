@@ -3,18 +3,17 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from app.modules.ordering.domain.entities.order.order import Order, OrderItem
 from app.modules.ordering.domain.exceptions.order import OrderNotFoundException
 from app.modules.ordering.domain.repositories.order import IOrderRepository
 from app.modules.ordering.domain.value_objects import Address, Payment
-from app.modules.ordering.infrastructure.persistence.orm.orders.order_item_orm import (
-    OrderItemORM,
-)
-from app.modules.ordering.infrastructure.persistence.orm.orders.order_orm import OrderORM
+from app.modules.ordering.infrastructure.persistence.orm.orders.order_item_orm import \
+    OrderItemORM
+from app.modules.ordering.infrastructure.persistence.orm.orders.order_orm import \
+    OrderORM
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +77,7 @@ class SqlOrderRepository(IOrderRepository):
 
         return self._orm_to_domain(order_orm)
 
-    async def get_all(
-        self, skip: int = 0, take: int = 10
-    ) -> tuple[list[Order], int]:
+    async def get_all(self, skip: int = 0, take: int = 10) -> tuple[list[Order], int]:
         """
         Get all orders with pagination - matches .NET GetOrdersHandler patterns.
 

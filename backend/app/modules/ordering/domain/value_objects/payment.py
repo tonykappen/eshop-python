@@ -1,8 +1,7 @@
 """Payment value object for ordering domain."""
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import ValueObject
+from pydantic import Field, field_validator
 
 
 class Payment(ValueObject):

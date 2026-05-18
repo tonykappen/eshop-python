@@ -4,7 +4,6 @@ import json
 from typing import Any
 
 import redis.asyncio as redis
-
 from app.config.settings import settings
 from app.core.cache.patterns import ICacheService
 from app.core.logging.base_logger import BaseLogger

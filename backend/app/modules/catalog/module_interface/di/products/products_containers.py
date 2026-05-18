@@ -32,8 +32,7 @@ class CatalogContainer:
         """
         self._singletons[service_type] = instance
         logger.log_debug_with_context(
-            "Registered singleton",
-            context={"service_type": service_type.__name__}
+            "Registered singleton", context={"service_type": service_type.__name__}
         )
 
     def register_factory(self, service_type: type[T], factory: Callable[[], T]) -> None:
@@ -46,8 +45,7 @@ class CatalogContainer:
         """
         self._factories[service_type] = factory
         logger.log_debug_with_context(
-            "Registered factory",
-            context={"service_type": service_type.__name__}
+            "Registered factory", context={"service_type": service_type.__name__}
         )
 
     def register_scoped(
@@ -66,7 +64,7 @@ class CatalogContainer:
         self._scoped[scope][service_type] = instance
         logger.log_debug_with_context(
             "Registered scoped service",
-            context={"service_type": service_type.__name__, "scope": scope}
+            context={"service_type": service_type.__name__, "scope": scope},
         )
 
     def get(self, service_type: type[T]) -> T:
@@ -96,7 +94,7 @@ class CatalogContainer:
             instance = self._factories[service_type]()
             logger.log_debug_with_context(
                 "Created instance from factory",
-                context={"service_type": service_type.__name__}
+                context={"service_type": service_type.__name__},
             )
             return instance
 
@@ -131,8 +129,7 @@ class CatalogContainer:
         """
         self._services[service_type] = instance
         logger.log_debug_with_context(
-            "Registered service",
-            context={"service_type": service_type.__name__}
+            "Registered service", context={"service_type": service_type.__name__}
         )
 
     def enter_scope(self, scope_name: str) -> None:
@@ -144,16 +141,14 @@ class CatalogContainer:
         """
         self._current_scope = scope_name
         logger.log_debug_with_context(
-            "Entered scope",
-            context={"scope_name": scope_name}
+            "Entered scope", context={"scope_name": scope_name}
         )
 
     def exit_scope(self) -> None:
         """Exit the current scope."""
         if self._current_scope:
             logger.log_debug_with_context(
-                "Exited scope",
-                context={"scope_name": self._current_scope}
+                "Exited scope", context={"scope_name": self._current_scope}
             )
             self._current_scope = None
 
@@ -167,8 +162,7 @@ class CatalogContainer:
         if scope_name in self._scoped:
             del self._scoped[scope_name]
             logger.log_debug_with_context(
-                "Cleared scope",
-                context={"scope_name": scope_name}
+                "Cleared scope", context={"scope_name": scope_name}
             )
 
     def clear_all_scopes(self) -> None:

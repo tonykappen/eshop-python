@@ -5,7 +5,6 @@ from typing import Any
 from uuid import UUID
 
 import redis.asyncio as redis
-
 from app.config.settings import settings
 from app.core.cache.patterns import ICacheService
 from app.core.logging.base_logger import BaseLogger

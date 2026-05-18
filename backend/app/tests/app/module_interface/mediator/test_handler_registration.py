@@ -5,14 +5,11 @@ from unittest.mock import MagicMock, patch
 from app.core.contracts.cqrs import ICommand as Command
 from app.core.contracts.cqrs import IQuery as Query
 from app.core.cqrs.base import CommandResult as Result
-from app.core.mediator.extensions import (
-    _extract_request_type,
-    _is_request_handler,
-    _register_handlers_from_assembly,
-    add_mediator_with_assemblies,
-    get_handler_registry,
-    get_mediator,
-)
+from app.core.mediator.extensions import (_extract_request_type,
+                                          _is_request_handler,
+                                          _register_handlers_from_assembly,
+                                          add_mediator_with_assemblies,
+                                          get_handler_registry, get_mediator)
 from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
 

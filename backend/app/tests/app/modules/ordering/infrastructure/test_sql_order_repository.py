@@ -5,16 +5,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.modules.ordering.domain.entities.order.order import Order
 from app.modules.ordering.domain.value_objects import Address, Payment
-from app.modules.ordering.infrastructure.persistence.orm.orders.order_orm import (
-    OrderORM,
-)
-from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import (
-    SqlOrderRepository,
-)
+from app.modules.ordering.infrastructure.persistence.orm.orders.order_orm import \
+    OrderORM
+from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import \
+    SqlOrderRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestOrderRepositoryGetById:

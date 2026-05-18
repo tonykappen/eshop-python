@@ -5,17 +5,11 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from app.core.mapping.orm_mapper import (ORMMapper, from_orm, from_orm_list,
+                                         to_orm, to_orm_list,
+                                         update_orm_from_domain)
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
-
-from app.core.mapping.orm_mapper import (
-    ORMMapper,
-    from_orm,
-    from_orm_list,
-    to_orm,
-    to_orm_list,
-    update_orm_from_domain,
-)
 
 
 class MockDeclarativeBase(DeclarativeBase):

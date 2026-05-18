@@ -61,7 +61,8 @@ class DeleteOrderHandler(IRequestHandler[DeleteOrderCommand, DeleteOrderResult])
         validator = DeleteOrderCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.core.exceptions.bad_request_exception import BadRequestException
+            from app.core.exceptions.bad_request_exception import \
+                BadRequestException
 
             raise BadRequestException(message="; ".join(errors))
 

@@ -1,14 +1,13 @@
 """Order ORM model for ordering module - matches .NET OrderConfiguration exactly."""
 
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String
+from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
+    Base
+from sqlalchemy import DateTime, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.modules.ordering.infrastructure.persistence.orm.orders.base import Base
 
 
 class OrderORM(Base):
@@ -40,9 +39,7 @@ class OrderORM(Base):
 
     # Shipping Address - ComplexProperty matching .NET configuration
     # FirstName: HasMaxLength(50), IsRequired()
-    shipping_address_first_name: Mapped[str] = mapped_column(
-        String(50), nullable=False
-    )
+    shipping_address_first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     # LastName: HasMaxLength(50), IsRequired()
     shipping_address_last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     # EmailAddress: HasMaxLength(50), optional
@@ -73,7 +70,9 @@ class OrderORM(Base):
     billing_address_address_line: Mapped[str] = mapped_column(
         String(180), nullable=False
     )
-    billing_address_country: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    billing_address_country: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )
     billing_address_state: Mapped[str | None] = mapped_column(String(50), nullable=True)
     billing_address_zip_code: Mapped[str] = mapped_column(String(5), nullable=False)
 

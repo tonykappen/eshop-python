@@ -4,10 +4,10 @@ import asyncio
 import logging
 
 from app.core.mediator.handler_registry import HandlerRegistry
-from app.modules.ordering.infrastructure.persistence.db_context import get_session_maker
-from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import (
-    SqlOrderRepository,
-)
+from app.modules.ordering.infrastructure.persistence.db_context import \
+    get_session_maker
+from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import \
+    SqlOrderRepository
 
 logger = logging.getLogger(__name__)
 
@@ -24,30 +24,22 @@ def register_ordering_handlers(handler_registry: HandlerRegistry) -> None:
     Args:
         handler_registry: Handler registry to register handlers with
     """
-    from app.modules.ordering.application.features.orders.command.create_order.create_order_handler import (
-        CreateOrderHandler,
-    )
-    from app.modules.ordering.application.features.orders.command.delete_order.delete_order_handler import (
-        DeleteOrderHandler,
-    )
-    from app.modules.ordering.application.features.orders.query.get_order_by_id.get_order_by_id_handler import (
-        GetOrderByIdHandler,
-    )
-    from app.modules.ordering.application.features.orders.query.get_orders.get_orders_handler import (
-        GetOrdersHandler,
-    )
-    from app.modules.ordering.application.features.orders.command.create_order.create_order_command import (
-        CreateOrderCommand,
-    )
-    from app.modules.ordering.application.features.orders.command.delete_order.delete_order_command import (
-        DeleteOrderCommand,
-    )
-    from app.modules.ordering.application.features.orders.query.get_order_by_id.get_order_by_id_query import (
-        GetOrderByIdQuery,
-    )
-    from app.modules.ordering.application.features.orders.query.get_orders.get_orders_query import (
-        GetOrdersQuery,
-    )
+    from app.modules.ordering.application.features.orders.command.create_order.create_order_command import \
+        CreateOrderCommand
+    from app.modules.ordering.application.features.orders.command.create_order.create_order_handler import \
+        CreateOrderHandler
+    from app.modules.ordering.application.features.orders.command.delete_order.delete_order_command import \
+        DeleteOrderCommand
+    from app.modules.ordering.application.features.orders.command.delete_order.delete_order_handler import \
+        DeleteOrderHandler
+    from app.modules.ordering.application.features.orders.query.get_order_by_id.get_order_by_id_handler import \
+        GetOrderByIdHandler
+    from app.modules.ordering.application.features.orders.query.get_order_by_id.get_order_by_id_query import \
+        GetOrderByIdQuery
+    from app.modules.ordering.application.features.orders.query.get_orders.get_orders_handler import \
+        GetOrdersHandler
+    from app.modules.ordering.application.features.orders.query.get_orders.get_orders_query import \
+        GetOrdersQuery
 
     # Create repository instances for handlers
     # We create a temporary session for registration purposes
@@ -83,7 +75,9 @@ def register_ordering_handlers(handler_registry: HandlerRegistry) -> None:
         # Try to get the current event loop
         asyncio.get_running_loop()
         # If we're in an async context, create a new event loop in a thread
-        logger.info("Event loop is already running. Creating handlers in separate thread.")
+        logger.info(
+            "Event loop is already running. Creating handlers in separate thread."
+        )
         import threading
 
         def run_in_new_loop():

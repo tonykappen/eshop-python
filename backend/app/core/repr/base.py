@@ -6,12 +6,11 @@ This module implements the flow: Request -> Command/Query -> Result -> Response
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-from fastapi import Request
-from pydantic import BaseModel, Field
-
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.mediator import IMediator
+from fastapi import Request
+from pydantic import BaseModel, Field
 
 # Type variables for REPR pattern
 TRequest = TypeVar("TRequest", bound=BaseModel)

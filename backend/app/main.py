@@ -3,51 +3,37 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_pagination import add_pagination
-
 from app.api.auth_proxy import router as auth_proxy_router
 from app.config.settings import settings
 from app.core.auth.keycloak import KeycloakUser, get_current_user
 from app.core.exceptions.handler import add_exception_handlers
 from app.core.health.health_endpoints import health_router
-from app.core.initialization import (
-    cleanup_dependency_injection,
-    get_app_container,
-    initialize_dependency_injection,
-    initialize_logging,
-    initialize_mediator,
-    shutdown_logging,
-)
-from app.core.lifecycle.handlers import (
-    auth_handler,
-    cache_handler,
-    database_handler,
-    health_handler,
-    messaging_handler,
-    set_app_instance,
-)
-from app.core.lifecycle.manager import (
-    lifecycle_manager,
-    register_shutdown_callback,
-    register_startup_callback,
-)
+from app.core.initialization import (cleanup_dependency_injection,
+                                     get_app_container,
+                                     initialize_dependency_injection,
+                                     initialize_logging, initialize_mediator,
+                                     shutdown_logging)
+from app.core.lifecycle.handlers import (auth_handler, cache_handler,
+                                         database_handler, health_handler,
+                                         messaging_handler, set_app_instance)
+from app.core.lifecycle.manager import (lifecycle_manager,
+                                        register_shutdown_callback,
+                                        register_startup_callback)
 from app.core.logging.clef_middleware import add_clef_logging_middleware
 from app.core.mediator.fastapi_integration import get_mediator
 from app.core.middleware.auth_middleware import add_auth_middleware
 from app.core.middleware.metrics_middleware import add_metrics_middleware
 from app.core.middleware.tracing_middleware import add_tracing_middleware
 from app.module_interface.router import create_root_router
-from app.modules.basket.module_interface.router import (
-    register_basket_module_with_fastapi,
-)
-from app.modules.catalog.module_interface.router import (
-    register_catalog_module_with_fastapi,
-)
-from app.modules.ordering.module_interface.router import (
-    register_ordering_module,
-)
+from app.modules.basket.module_interface.router import \
+    register_basket_module_with_fastapi
+from app.modules.catalog.module_interface.router import \
+    register_catalog_module_with_fastapi
+from app.modules.ordering.module_interface.router import \
+    register_ordering_module
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination
 
 
 @asynccontextmanager
@@ -62,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.container = container
 
     from app.core.mediator.fastapi_integration import store_mediator_on_app
+
     store_mediator_on_app(app)
 
     # Update auth handler with app instance before startup
@@ -97,7 +84,8 @@ async def register_catalog_router():
 async def register_outbox_workers():
     """Register all module outbox workers explicitly (composition root). Runs after DB startup."""
     try:
-        from app.modules.catalog.outbox_registration import register_outbox_worker as register_catalog_outbox
+        from app.modules.catalog.outbox_registration import \
+            register_outbox_worker as register_catalog_outbox
 
         register_catalog_outbox()
     except Exception as e:
@@ -107,7 +95,8 @@ async def register_outbox_workers():
 
 def _wire_module_lifecycle_hooks() -> None:
     """Wire module-specific messaging hooks into the lifecycle handler."""
-    from app.modules.catalog.module_interface.catalog_bootstrap import CatalogModuleBootstrap
+    from app.modules.catalog.module_interface.catalog_bootstrap import \
+        CatalogModuleBootstrap
 
     catalog = CatalogModuleBootstrap()
     messaging_handler.add_startup_hook(catalog._startup_messaging)
@@ -128,24 +117,30 @@ _wire_module_lifecycle_hooks()
 async def register_basket_router():
     """Register basket router with DI integration."""
     import logging
+
     logger = logging.getLogger(__name__)
     logger.info("🔧 Registering basket router...")
     try:
         container = get_app_container()
         mediator = get_mediator()
-        logger.info("Got container and mediator, calling register_basket_module_with_fastapi...")
+        logger.info(
+            "Got container and mediator, calling register_basket_module_with_fastapi..."
+        )
         basket_router = register_basket_module_with_fastapi(app, container, mediator)
         logger.info(f"Basket router created with {len(basket_router.routes)} routes")
         app.include_router(basket_router)
         logger.info("✅ Basket router included successfully!")
         # Log all routes for debugging
         for route in basket_router.routes:
-            if hasattr(route, 'path'):
-                methods = getattr(route, 'methods', set())
+            if hasattr(route, "path"):
+                methods = getattr(route, "methods", set())
                 logger.info(f"  - {methods} {route.path}")
-        print(f"✅ Successfully registered basket router with {len(basket_router.routes)} routes")
+        print(
+            f"✅ Successfully registered basket router with {len(basket_router.routes)} routes"
+        )
     except Exception as e:
         import traceback
+
         logger.error(f"❌ ERROR: Could not register basket router: {e}", exc_info=True)
         print(f"ERROR: Could not register basket router: {e}")
         traceback.print_exc()
@@ -157,6 +152,7 @@ async def register_basket_router():
 async def register_ordering_router():
     """Register ordering router with DI integration."""
     import logging
+
     logger = logging.getLogger(__name__)
     logger.info("🔧 Registering ordering router...")
     try:
@@ -164,18 +160,25 @@ async def register_ordering_router():
         mediator = get_mediator()
         logger.info("Got container and mediator, calling register_ordering_module...")
         ordering_router = register_ordering_module(container, mediator)
-        logger.info(f"Ordering router created with {len(ordering_router.routes)} routes")
+        logger.info(
+            f"Ordering router created with {len(ordering_router.routes)} routes"
+        )
         app.include_router(ordering_router)
         logger.info("✅ Ordering router included successfully!")
         # Log all routes for debugging
         for route in ordering_router.routes:
-            if hasattr(route, 'path'):
-                methods = getattr(route, 'methods', set())
+            if hasattr(route, "path"):
+                methods = getattr(route, "methods", set())
                 logger.info(f"  - {methods} {route.path}")
-        print(f"✅ Successfully registered ordering router with {len(ordering_router.routes)} routes")
+        print(
+            f"✅ Successfully registered ordering router with {len(ordering_router.routes)} routes"
+        )
     except Exception as e:
         import traceback
-        logger.error(f"❌ ERROR: Could not register ordering router: {e}", exc_info=True)
+
+        logger.error(
+            f"❌ ERROR: Could not register ordering router: {e}", exc_info=True
+        )
         print(f"ERROR: Could not register ordering router: {e}")
         traceback.print_exc()
         raise  # Re-raise to ensure the error is visible
@@ -194,14 +197,15 @@ register_startup_callback(
 register_startup_callback(
     register_ordering_router
 )  # Register ordering router after mediator is initialized
-print("DEBUG: Registered all startup callbacks including register_basket_router and register_ordering_router")
+print(
+    "DEBUG: Registered all startup callbacks including register_basket_router and register_ordering_router"
+)
 
 
 async def subscribe_basket_handlers():
     """Subscribe basket integration event handlers to the shared message bus."""
-    from app.modules.basket.module_interface.router import (
-        subscribe_basket_handlers_to_message_bus,
-    )
+    from app.modules.basket.module_interface.router import \
+        subscribe_basket_handlers_to_message_bus
 
     await subscribe_basket_handlers_to_message_bus()
     print("✅ Subscribed basket handlers to message bus")
@@ -213,50 +217,56 @@ register_startup_callback(subscribe_basket_handlers)
 # Subscribe ordering handlers to message bus after basket (both before outbox worker)
 async def subscribe_ordering_handlers():
     """Subscribe ordering integration event handlers to message bus."""
-    from app.modules.ordering.module_interface.router import (
-        subscribe_ordering_handlers_to_message_bus,
-    )
+    from app.modules.ordering.module_interface.router import \
+        subscribe_ordering_handlers_to_message_bus
+
     await subscribe_ordering_handlers_to_message_bus()
     print("✅ Subscribed ordering handlers to message bus")
 
+
 register_startup_callback(subscribe_ordering_handlers)
+
 
 # Start basket outbox publisher worker after handlers are subscribed
 # (so handlers are ready before worker starts processing)
 async def start_basket_outbox_worker():
     """Start the basket outbox publisher worker."""
-    from app.modules.basket.workers.outbox_publisher_worker import (
-        basket_outbox_publisher_worker,
-    )
+    from app.modules.basket.workers.outbox_publisher_worker import \
+        basket_outbox_publisher_worker
+
     await basket_outbox_publisher_worker.start()
     print("✅ Started basket outbox publisher worker")
+
 
 register_startup_callback(start_basket_outbox_worker)
 
 register_startup_callback(database_handler.startup)
-register_startup_callback(register_outbox_workers)  # Before messaging so workers exist for start_all()
+register_startup_callback(
+    register_outbox_workers
+)  # Before messaging so workers exist for start_all()
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)
 register_startup_callback(auth_handler.startup)
 register_startup_callback(health_handler.startup)
 
+
 # Register shutdown callbacks (executed in reverse order)
 async def stop_basket_outbox_worker():
     """Stop the basket outbox publisher worker."""
-    from app.modules.basket.workers.outbox_publisher_worker import (
-        basket_outbox_publisher_worker,
-    )
+    from app.modules.basket.workers.outbox_publisher_worker import \
+        basket_outbox_publisher_worker
+
     await basket_outbox_publisher_worker.stop()
     print("✅ Stopped basket outbox publisher worker")
+
 
 register_shutdown_callback(stop_basket_outbox_worker)
 
 
 async def stop_ordering_message_bus():
     """Disconnect the ordering RabbitMQ message bus on shutdown."""
-    from app.modules.ordering.module_interface.di.orders import (
-        get_ordering_message_bus,
-    )
+    from app.modules.ordering.module_interface.di.orders import \
+        get_ordering_message_bus
 
     message_bus = get_ordering_message_bus()
     if hasattr(message_bus, "disconnect"):
@@ -272,9 +282,8 @@ register_shutdown_callback(stop_ordering_message_bus)
 
 async def stop_basket_message_bus():
     """Disconnect the basket outbox RabbitMQ message bus on shutdown."""
-    from app.modules.basket.workers.outbox_publisher_worker import (
-        _get_basket_message_bus,
-    )
+    from app.modules.basket.workers.outbox_publisher_worker import \
+        _get_basket_message_bus
 
     message_bus = _get_basket_message_bus()
     if hasattr(message_bus, "disconnect"):

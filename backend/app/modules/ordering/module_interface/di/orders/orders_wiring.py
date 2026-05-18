@@ -15,10 +15,8 @@ def register_ordering_handlers_with_mediator(mediator: Mediator) -> None:
     Args:
         mediator: Mediator instance
     """
-    from app.core.mediator.handler_registry import HandlerRegistry
-    from app.modules.ordering.application.ordering_handler_registration import (
-        register_ordering_handlers,
-    )
+    from app.modules.ordering.application.ordering_handler_registration import \
+        register_ordering_handlers
 
     handler_registry = mediator.handler_registry
     register_ordering_handlers(handler_registry)

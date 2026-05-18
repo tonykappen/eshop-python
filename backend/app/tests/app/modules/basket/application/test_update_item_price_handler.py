@@ -5,16 +5,12 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.exceptions.bad_request_exception import BadRequestException
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_command import (
-    UpdateItemPriceInBasketCommand,
-    UpdateItemPriceInBasketResult,
-)
-from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_handler import (
-    UpdateItemPriceInBasketHandler,
-)
+    UpdateItemPriceInBasketCommand, UpdateItemPriceInBasketResult)
+from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_handler import \
+    UpdateItemPriceInBasketHandler
 
 
 class TestUpdateItemPriceInBasketHandler:
@@ -65,9 +61,8 @@ class TestUpdateItemPriceInBasketHandler:
     async def test_handle_missing_product_id_raises_error(self) -> None:
         """Test that missing product ID raises validation error."""
         # Note: UpdateItemPriceInBasketCommand requires UUID, so we test the validator directly
-        from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_handler import (
-            UpdateItemPriceInBasketCommandValidator,
-        )
+        from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_handler import \
+            UpdateItemPriceInBasketCommandValidator
 
         validator = UpdateItemPriceInBasketCommandValidator()
         # Create a command with None product_id using type ignore for testing

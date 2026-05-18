@@ -2,11 +2,10 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-
 from app.modules.ordering.application.dtos.address_dto import AddressDto
 from app.modules.ordering.application.dtos.order_item_dto import OrderItemDto
 from app.modules.ordering.application.dtos.payment_dto import PaymentDto
+from pydantic import BaseModel, Field
 
 
 class OrderDto(BaseModel):

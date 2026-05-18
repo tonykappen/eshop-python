@@ -2,21 +2,20 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request, status
-from fastapi.responses import JSONResponse
-
 from app.core.auth.rbac import require_user_or_higher
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.basket.application.features.basket.command.create_basket.create_basket_command import (
-    CreateBasketCommand,
-    CreateBasketResult,
-)
+    CreateBasketCommand, CreateBasketResult)
 from app.modules.basket.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Request, status
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
 
-@router.post("/", response_model=CreateBasketResult, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=CreateBasketResult, status_code=status.HTTP_201_CREATED
+)
 async def create_basket(
     request: CreateBasketCommand,
     http_request: Request,

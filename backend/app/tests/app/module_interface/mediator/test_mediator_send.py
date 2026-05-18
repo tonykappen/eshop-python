@@ -4,24 +4,17 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import Request
-
 from app.core.contracts.cqrs import ICommand, IQuery
-from app.core.mediator.behaviors import (
-    BehaviorWrapper,
-    IPipelineBehavior,
-    LoggingBehavior,
-    ValidationBehavior,
-)
-from app.core.mediator.cancellation import (
-    CancellationError,
-    CancellationToken,
-    create_cancellation_token,
-    get_cancellation_token,
-    get_global_cancellation_token,
-)
+from app.core.mediator.behaviors import (BehaviorWrapper, IPipelineBehavior,
+                                         LoggingBehavior, ValidationBehavior)
+from app.core.mediator.cancellation import (CancellationError,
+                                            CancellationToken,
+                                            create_cancellation_token,
+                                            get_cancellation_token,
+                                            get_global_cancellation_token)
 from app.core.mediator.handler_registry import HandlerRegistry, IRequestHandler
 from app.core.mediator.mediator import Mediator
+from fastapi import Request
 
 
 @pytest.mark.no_collect

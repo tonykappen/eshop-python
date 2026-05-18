@@ -3,9 +3,8 @@
 import logging
 
 from app.core.domain.events import DomainEventHandler
-from app.modules.ordering.domain.domain_events.orders.order_created_domain_event import (
-    OrderCreatedDomainEvent,
-)
+from app.modules.ordering.domain.domain_events.orders.order_created_domain_event import \
+    OrderCreatedDomainEvent
 
 logger = logging.getLogger(__name__)
 

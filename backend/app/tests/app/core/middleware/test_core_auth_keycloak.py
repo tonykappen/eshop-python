@@ -3,19 +3,12 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from app.core.auth.keycloak import (KeycloakService, KeycloakUser,
+                                    add_keycloak_routes, get_current_user,
+                                    get_current_user_optional,
+                                    get_keycloak_app, keycloak_service,
+                                    require_role, security)
 from fastapi import HTTPException, status
-
-from app.core.auth.keycloak import (
-    KeycloakService,
-    KeycloakUser,
-    add_keycloak_routes,
-    get_current_user,
-    get_current_user_optional,
-    get_keycloak_app,
-    keycloak_service,
-    require_role,
-    security,
-)
 
 
 class TestKeycloakUser:

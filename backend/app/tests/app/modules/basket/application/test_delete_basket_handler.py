@@ -3,15 +3,11 @@
 from unittest.mock import AsyncMock
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.basket.application.features.basket.command.delete_basket.delete_basket_command import (
-    DeleteBasketCommand,
-    DeleteBasketResult,
-)
-from app.modules.basket.application.features.basket.command.delete_basket.delete_basket_handler import (
-    DeleteBasketHandler,
-)
+    DeleteBasketCommand, DeleteBasketResult)
+from app.modules.basket.application.features.basket.command.delete_basket.delete_basket_handler import \
+    DeleteBasketHandler
 
 
 class TestDeleteBasketHandler:

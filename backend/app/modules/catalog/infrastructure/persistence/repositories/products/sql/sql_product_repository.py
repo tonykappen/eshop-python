@@ -2,16 +2,15 @@
 
 from uuid import UUID
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
 from app.modules.catalog.domain.value_objects import SKU, Money
-from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import \
+    ProductORM
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = BaseLogger(__name__)
 
@@ -58,8 +57,8 @@ class SqlProductRepository(ProductRepository):
                 context={
                     "product_id": str(product_id),
                     "source": "database",
-                    "operation": "get_by_id"
-                }
+                    "operation": "get_by_id",
+                },
             )
             stmt = select(ProductORM).where(
                 ProductORM.id == product_id, ProductORM.is_deleted == False
@@ -74,8 +73,8 @@ class SqlProductRepository(ProductRepository):
                         "product_id": str(product_id),
                         "source": "database",
                         "operation": "get_by_id",
-                        "found": True
-                    }
+                        "found": True,
+                    },
                 )
                 return self._orm_to_domain(product_orm)
             logger.log_debug_with_context(
@@ -84,8 +83,8 @@ class SqlProductRepository(ProductRepository):
                     "product_id": str(product_id),
                     "source": "database",
                     "operation": "get_by_id",
-                    "found": False
-                }
+                    "found": False,
+                },
             )
             return None
 
@@ -96,8 +95,8 @@ class SqlProductRepository(ProductRepository):
                 context={
                     "product_id": str(product_id),
                     "source": "database",
-                    "operation": "get_by_id"
-                }
+                    "operation": "get_by_id",
+                },
             )
             raise
 
@@ -200,8 +199,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_by_category"
-                }
+                    "operation": "get_by_category",
+                },
             )
             count_stmt = select(func.count(ProductORM.id)).where(
                 ProductORM.categories.contains([category]),
@@ -237,8 +236,8 @@ class SqlProductRepository(ProductRepository):
                     "source": "database",
                     "operation": "get_by_category",
                     "product_count": len(products),
-                    "total_count": total_count
-                }
+                    "total_count": total_count,
+                },
             )
             return products, total_count
 
@@ -251,8 +250,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_by_category"
-                }
+                    "operation": "get_by_category",
+                },
             )
             raise
 
@@ -410,9 +409,8 @@ class SqlProductRepository(ProductRepository):
         The WHERE clause includes the expected version; if no rows are affected
         another transaction has already modified this aggregate.
         """
-        from app.modules.catalog.domain.exceptions.product import (
-            OptimisticLockException,
-        )
+        from app.modules.catalog.domain.exceptions.product import \
+            OptimisticLockException
 
         try:
             current_version = product.version
@@ -542,8 +540,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_all"
-                }
+                    "operation": "get_all",
+                },
             )
 
             # Get total count
@@ -578,8 +576,8 @@ class SqlProductRepository(ProductRepository):
                         context={
                             "product_id": str(product_orm.id),
                             "source": "database",
-                            "operation": "get_all"
-                        }
+                            "operation": "get_all",
+                        },
                     )
                     raise
 
@@ -591,8 +589,8 @@ class SqlProductRepository(ProductRepository):
                     "source": "database",
                     "operation": "get_all",
                     "product_count": len(products),
-                    "total_count": total_count
-                }
+                    "total_count": total_count,
+                },
             )
             return products, total_count
 
@@ -604,8 +602,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_all"
-                }
+                    "operation": "get_all",
+                },
             )
             raise
 

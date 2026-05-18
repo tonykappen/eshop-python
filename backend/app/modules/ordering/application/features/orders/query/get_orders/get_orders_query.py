@@ -1,9 +1,8 @@
 """GetOrdersQuery definition - matches .NET implementation."""
 
-from pydantic import BaseModel, Field
-
 from app.core.pagination.models import PaginatedResult
 from app.modules.ordering.application.dtos.order_dto import OrderDto
+from pydantic import BaseModel, Field
 
 
 class PaginationRequest(BaseModel):
@@ -16,9 +15,7 @@ class PaginationRequest(BaseModel):
 class GetOrdersQuery(BaseModel):
     """Query to get orders - matches .NET GetOrdersQuery."""
 
-    pagination_request: PaginationRequest = Field(
-        ..., description="Pagination request"
-    )
+    pagination_request: PaginationRequest = Field(..., description="Pagination request")
 
 
 class GetOrdersResult(BaseModel):

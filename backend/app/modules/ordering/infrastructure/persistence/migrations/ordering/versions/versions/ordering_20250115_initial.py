@@ -7,9 +7,8 @@ Create Date: 2025-01-15 10:00:00.000000
 """
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "f26d684fe7af"
@@ -35,8 +34,12 @@ def upgrade() -> None:
         # Shipping Address - ComplexProperty matching .NET configuration
         sa.Column("shipping_address_first_name", sa.String(length=50), nullable=False),
         sa.Column("shipping_address_last_name", sa.String(length=50), nullable=False),
-        sa.Column("shipping_address_email_address", sa.String(length=50), nullable=True),
-        sa.Column("shipping_address_address_line", sa.String(length=180), nullable=False),
+        sa.Column(
+            "shipping_address_email_address", sa.String(length=50), nullable=True
+        ),
+        sa.Column(
+            "shipping_address_address_line", sa.String(length=180), nullable=False
+        ),
         sa.Column("shipping_address_country", sa.String(length=50), nullable=True),
         sa.Column("shipping_address_state", sa.String(length=50), nullable=True),
         sa.Column("shipping_address_zip_code", sa.String(length=5), nullable=False),
@@ -44,7 +47,9 @@ def upgrade() -> None:
         sa.Column("billing_address_first_name", sa.String(length=50), nullable=False),
         sa.Column("billing_address_last_name", sa.String(length=50), nullable=False),
         sa.Column("billing_address_email_address", sa.String(length=50), nullable=True),
-        sa.Column("billing_address_address_line", sa.String(length=180), nullable=False),
+        sa.Column(
+            "billing_address_address_line", sa.String(length=180), nullable=False
+        ),
         sa.Column("billing_address_country", sa.String(length=50), nullable=True),
         sa.Column("billing_address_state", sa.String(length=50), nullable=True),
         sa.Column("billing_address_zip_code", sa.String(length=5), nullable=False),

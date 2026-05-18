@@ -5,16 +5,11 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
-from app.modules.ordering.application.features.orders.query.get_orders.get_orders_handler import (
-    GetOrdersHandler,
-)
+from app.modules.ordering.application.features.orders.query.get_orders.get_orders_handler import \
+    GetOrdersHandler
 from app.modules.ordering.application.features.orders.query.get_orders.get_orders_query import (
-    GetOrdersQuery,
-    GetOrdersResult,
-    PaginationRequest,
-)
+    GetOrdersQuery, GetOrdersResult, PaginationRequest)
 from app.modules.ordering.domain.entities.order.order import Order
 from app.modules.ordering.domain.value_objects import Address, Payment
 

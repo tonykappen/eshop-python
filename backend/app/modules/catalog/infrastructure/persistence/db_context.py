@@ -2,16 +2,11 @@
 
 from collections.abc import AsyncGenerator
 
+from app.core.logging.base_logger import BaseLogger
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-
-from app.core.logging.base_logger import BaseLogger
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker, create_async_engine)
 
 logger = BaseLogger(__name__)
 
@@ -157,10 +152,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             yield session
         except Exception as e:
             await session.rollback()
-            logger.log_error_with_context(
-                "Database session error",
-                error=e
-            )
+            logger.log_error_with_context("Database session error", error=e)
             raise
         finally:
             await session.close()

@@ -9,10 +9,7 @@ from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.exceptions.product import (
-    ProductNotFoundError,
-    ProductUpdateError,
-    ProductValidationError,
-)
+    ProductNotFoundError, ProductUpdateError, ProductValidationError)
 from app.modules.catalog.domain.value_objects import Money
 
 from .update_product_command import UpdateProductCommand, UpdateProductResult
@@ -73,7 +70,11 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
 
                 self._update_product_with_new_values(product, command)
 
-                domain_event_count = len(product.domain_events) if hasattr(product, "domain_events") else 0
+                domain_event_count = (
+                    len(product.domain_events)
+                    if hasattr(product, "domain_events")
+                    else 0
+                )
                 if old_price != product.price:
                     logger.log_with_context(
                         "Price changed",
@@ -88,7 +89,11 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
                 uow.track(product)
                 updated_product = await uow.products.update(product)
 
-                if updated_product and hasattr(product, "domain_events") and product.domain_events:
+                if (
+                    updated_product
+                    and hasattr(product, "domain_events")
+                    and product.domain_events
+                ):
                     if hasattr(updated_product, "domain_events"):
                         from copy import deepcopy
 

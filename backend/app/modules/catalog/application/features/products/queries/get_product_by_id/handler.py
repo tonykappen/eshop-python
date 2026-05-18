@@ -5,7 +5,8 @@ from typing import Any
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
 
 from .get_product_by_id_query import GetProductByIdQuery, GetProductByIdResult

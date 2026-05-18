@@ -34,7 +34,9 @@ class OrderingCachePatterns:
         return f"orders:list:{page}:{page_size}"
 
     @staticmethod
-    def orders_list_by_customer_key(customer_id: UUID, page: int, page_size: int) -> str:
+    def orders_list_by_customer_key(
+        customer_id: UUID, page: int, page_size: int
+    ) -> str:
         """
         Get cache key for paginated orders list by customer.
 

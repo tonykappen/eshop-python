@@ -2,45 +2,28 @@
 
 from typing import Any
 
-from fastapi import FastAPI
-
+from app.core.context.application_context import RequestContext
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.mediator import Mediator
-from app.core.context.application_context import RequestContext
+from app.core.messaging.bus import IMessageBus
+from app.core.messaging.domain_dispatcher import DomainEventDispatcher
 from app.modules.catalog.application.unit_of_work import ICatalogUnitOfWork
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
-from app.core.messaging.bus import (
-    IMessageBus,
-)
-from app.core.messaging.domain_dispatcher import (
-    DomainEventDispatcher,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
-    CachedProductRepository,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import \
+    CachedProductRepository
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlCategoryRepository,
-    SqlInventoryRepository,
-    SqlProductRepository,
-)
-from app.modules.catalog.infrastructure.persistence.unit_of_work import (
-    SqlCatalogUnitOfWork,
-)
-from app.modules.catalog.module_interface.di.products.products_containers import (
-    get_catalog_container,
-)
+    SqlCategoryRepository, SqlInventoryRepository, SqlProductRepository)
+from app.modules.catalog.infrastructure.persistence.unit_of_work import \
+    SqlCatalogUnitOfWork
+from app.modules.catalog.module_interface.di.products.products_containers import \
+    get_catalog_container
 from app.modules.catalog.module_interface.di.products.products_providers import (
-    get_catalog_cache_service,
-    get_catalog_dispatcher,
-    get_catalog_engine,
-    get_catalog_mediator,
-    get_catalog_message_bus,
-    get_catalog_session_maker,
-)
+    get_catalog_cache_service, get_catalog_dispatcher, get_catalog_engine,
+    get_catalog_mediator, get_catalog_message_bus, get_catalog_session_maker)
+from fastapi import FastAPI
 
 logger = BaseLogger(__name__)
 
@@ -225,18 +208,14 @@ def subscribe_domain_events_to_integration_events(
         dispatcher: Domain event dispatcher
     """
     # Register internal domain event handlers (for cache, metrics, etc.)
-    from app.modules.catalog.application.domain_event_handlers.products.product_deleted_domain_event_handler import (
-        ProductDeletedDomainEventHandler,
-    )
-    from app.modules.catalog.application.domain_event_handlers.products.product_price_changed_domain_event_handler import (
-        ProductPriceChangedDomainEventHandler,
-    )
-    from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
-        ProductDeletedDomainEvent,
-    )
-    from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-        ProductPriceChangedDomainEvent,
-    )
+    from app.modules.catalog.application.domain_event_handlers.products.product_deleted_domain_event_handler import \
+        ProductDeletedDomainEventHandler
+    from app.modules.catalog.application.domain_event_handlers.products.product_price_changed_domain_event_handler import \
+        ProductPriceChangedDomainEventHandler
+    from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import \
+        ProductDeletedDomainEvent
+    from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+        ProductPriceChangedDomainEvent
 
     # Register ProductDeletedDomainEvent handler
     product_deleted_handler = ProductDeletedDomainEventHandler()
@@ -245,7 +224,9 @@ def subscribe_domain_events_to_integration_events(
 
     # Register ProductPriceChangedDomainEvent handler
     product_price_changed_handler = ProductPriceChangedDomainEventHandler()
-    dispatcher.register_handler(ProductPriceChangedDomainEvent, product_price_changed_handler)
+    dispatcher.register_handler(
+        ProductPriceChangedDomainEvent, product_price_changed_handler
+    )
     logger.log_with_context("Registered ProductPriceChangedDomainEventHandler")
 
     logger.log_with_context("Subscribed domain events to integration events")

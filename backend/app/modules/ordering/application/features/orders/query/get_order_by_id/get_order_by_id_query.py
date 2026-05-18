@@ -2,9 +2,8 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel, Field
-
 from app.modules.ordering.application.dtos.order_dto import OrderDto
+from pydantic import BaseModel, Field
 
 
 class GetOrderByIdQuery(BaseModel):

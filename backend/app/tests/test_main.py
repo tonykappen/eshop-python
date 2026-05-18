@@ -3,10 +3,9 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from app.core.auth.keycloak import KeycloakUser
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from app.core.auth.keycloak import KeycloakUser
 
 
 class TestMainApplication:
@@ -738,9 +737,8 @@ class TestMainIntegration:
     def test_application_instantiation(self) -> None:
         """Test that the application can be instantiated without errors."""
         # Test that the app can be used to create a test client
-        from fastapi.testclient import TestClient
-
         from app.main import app
+        from fastapi.testclient import TestClient
 
         client = TestClient(app)
 

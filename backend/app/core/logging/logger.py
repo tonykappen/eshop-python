@@ -1,7 +1,6 @@
 """Structured logging configuration with CLEF/SEQ support and async dispatcher."""
 
 import asyncio
-
 # Try to import httpx for SEQ HTTP transport
 import importlib.util
 import inspect
@@ -12,9 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from structlog.stdlib import LoggerFactory
-
 from app.core.logging.base_logger import LogFormatters
+from structlog.stdlib import LoggerFactory
 
 HTTPX_AVAILABLE = importlib.util.find_spec("httpx") is not None
 

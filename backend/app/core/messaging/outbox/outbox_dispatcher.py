@@ -88,9 +88,8 @@ class OutboxDispatcher(IOutboxDispatcher):
                 break
             except Exception as e:
                 logger.log_error_with_context(
-                "Error in outbox dispatcher loop",
-                error=e
-            )
+                    "Error in outbox dispatcher loop", error=e
+                )
                 await asyncio.sleep(self.poll_interval)
 
     async def publish_pending_messages(self) -> None:

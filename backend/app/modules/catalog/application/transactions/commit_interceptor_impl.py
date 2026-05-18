@@ -29,15 +29,12 @@ class OutboxEnqueuerInterceptor(CommitInterceptor):
         try:
             # Import here to avoid circular dependencies
             from app.core.messaging.outbox.outbox_service import OutboxService
-            from app.modules.catalog.application.outbound_outbox_enqueuers.products.product_deleted_outbox_enqueuer import (
-                ProductDeletedOutboxEnqueuer,
-            )
-            from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
-                ProductDeletedDomainEvent,
-            )
-            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-                OutboxORM,
-            )
+            from app.modules.catalog.application.outbound_outbox_enqueuers.products.product_deleted_outbox_enqueuer import \
+                ProductDeletedOutboxEnqueuer
+            from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import \
+                ProductDeletedDomainEvent
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+                OutboxORM
 
             # Collect domain events from entities
             domain_events = []
@@ -46,17 +43,24 @@ class OutboxEnqueuerInterceptor(CommitInterceptor):
                     domain_events.extend(entity.domain_events)
                     logger.log_debug_with_context(
                         f"Found {len(entity.domain_events)} domain events on entity {type(entity).__name__}",
-                        context={"event_types": [e.event_type for e in entity.domain_events]},
+                        context={
+                            "event_types": [e.event_type for e in entity.domain_events]
+                        },
                     )
 
             if not domain_events:
-                logger.log_debug_with_context("No domain events found in entities, skipping outbox enqueuing")
+                logger.log_debug_with_context(
+                    "No domain events found in entities, skipping outbox enqueuing"
+                )
                 return
 
             logger.log_with_context(
                 f"Collected {len(domain_events)} domain events for outbox processing",
                 "info",
-                context={"event_types": [e.event_type for e in domain_events], "count": len(domain_events)},
+                context={
+                    "event_types": [e.event_type for e in domain_events],
+                    "count": len(domain_events),
+                },
             )
 
             # Create outbox service with current session (inside transaction)
@@ -161,17 +165,25 @@ class DomainEventPublisherInterceptor(CommitInterceptor):
                     domain_events.extend(entity.domain_events)
                     logger.log_debug_with_context(
                         f"Collected {len(entity.domain_events)} domain events from entity {type(entity).__name__}",
-                        context={"entity_type": type(entity).__name__, "event_count": len(entity.domain_events)},
+                        context={
+                            "entity_type": type(entity).__name__,
+                            "event_count": len(entity.domain_events),
+                        },
                     )
 
             if not domain_events:
-                logger.log_debug_with_context("No domain events to dispatch after commit")
+                logger.log_debug_with_context(
+                    "No domain events to dispatch after commit"
+                )
                 return
 
             logger.log_with_context(
                 f"Dispatching {len(domain_events)} domain events after commit",
                 "info",
-                context={"event_types": [type(e).__name__ for e in domain_events], "count": len(domain_events)},
+                context={
+                    "event_types": [type(e).__name__ for e in domain_events],
+                    "count": len(domain_events),
+                },
             )
 
             # Dispatch to domain event dispatcher (internal handlers)
@@ -181,17 +193,17 @@ class DomainEventPublisherInterceptor(CommitInterceptor):
 
             # Handle direct publishing for best-effort events (after commit)
             if self.message_bus:
-                from app.modules.catalog.application.outbound_direct_publishers.products.product_price_changed_direct_publisher import (
-                    ProductPriceChangedDirectPublisher,
-                )
-                from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-                    ProductPriceChangedDomainEvent,
-                )
+                from app.modules.catalog.application.outbound_direct_publishers.products.product_price_changed_direct_publisher import \
+                    ProductPriceChangedDirectPublisher
+                from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+                    ProductPriceChangedDomainEvent
 
                 for event in domain_events:
                     if isinstance(event, ProductPriceChangedDomainEvent):
                         try:
-                            publisher = ProductPriceChangedDirectPublisher(self.message_bus)
+                            publisher = ProductPriceChangedDirectPublisher(
+                                self.message_bus
+                            )
                             await publisher.publish(event)
                             logger.log_debug_with_context(
                                 "Directly published ProductPriceChanged event",
@@ -207,10 +219,15 @@ class DomainEventPublisherInterceptor(CommitInterceptor):
             logger.log_with_context(
                 f"Domain events dispatched for {len(entities)} entities ({len(domain_events)} events)",
                 "info",
-                context={"entity_count": len(entities), "event_count": len(domain_events)},
+                context={
+                    "entity_count": len(entities),
+                    "event_count": len(domain_events),
+                },
             )
         except Exception as e:
-            logger.log_exception_detailed("Error dispatching domain events", exception=e)
+            logger.log_exception_detailed(
+                "Error dispatching domain events", exception=e
+            )
             # Don't re-raise - domain event dispatch failures shouldn't break the commit
 
     async def on_rollback(

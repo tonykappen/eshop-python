@@ -5,9 +5,9 @@ from collections.abc import AsyncGenerator
 from unittest.mock import patch
 
 import pytest
+from app.config.db import (DATABASE_URL, AsyncSessionLocal, engine,
+                           get_async_session)
 from sqlalchemy.exc import SQLAlchemyError
-
-from app.config.db import DATABASE_URL, AsyncSessionLocal, engine, get_async_session
 
 
 class TestDatabaseConfiguration:

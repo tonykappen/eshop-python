@@ -3,9 +3,8 @@
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from pydantic import Field
-
 from app.core.domain.entity import DomainEvent
+from pydantic import Field
 
 if TYPE_CHECKING:
     from app.modules.ordering.domain.entities.order.order import Order

@@ -4,9 +4,8 @@ from uuid import UUID
 
 from app.core.cache.patterns import ICacheService
 from app.modules.ordering.application.dtos.order_dto import OrderDto
-from app.modules.ordering.application.services.ordering_cache_patterns import (
-    OrderingCachePatterns,
-)
+from app.modules.ordering.application.services.ordering_cache_patterns import \
+    OrderingCachePatterns
 
 
 class OrderingCacheService:

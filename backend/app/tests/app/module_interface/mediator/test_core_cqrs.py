@@ -7,16 +7,9 @@ from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
+from app.core.cqrs.base import (CommandResult, ICommand, ICommandHandler,
+                                IQuery, IQueryHandler, QueryResult)
 from pydantic import BaseModel
-
-from app.core.cqrs.base import (
-    CommandResult,
-    ICommand,
-    ICommandHandler,
-    IQuery,
-    IQueryHandler,
-    QueryResult,
-)
 
 
 @pytest.mark.no_collect

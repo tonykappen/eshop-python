@@ -3,21 +3,19 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Path, Request
-
 from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_command import (
-    UpdateItemPriceInBasketCommand,
-    UpdateItemPriceInBasketResult,
-)
+    UpdateItemPriceInBasketCommand, UpdateItemPriceInBasketResult)
 from app.modules.basket.utils import get_endpoint_factory
+from fastapi import APIRouter, Body, Depends, Path, Request
 
 router = APIRouter()
 
 
 @router.put(
-    "/{user_name}/items/{product_id}/price", response_model=UpdateItemPriceInBasketResult
+    "/{user_name}/items/{product_id}/price",
+    response_model=UpdateItemPriceInBasketResult,
 )
 async def update_item_price_in_basket(
     user_name: str = Path(..., description="User name"),

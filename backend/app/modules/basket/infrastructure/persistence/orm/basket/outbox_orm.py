@@ -1,15 +1,14 @@
 """Outbox ORM model for basket module reliable messaging."""
 
-import json
 from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgresUUID
-from sqlalchemy.orm import Mapped, mapped_column
-
 from app.modules.basket.infrastructure.persistence.orm.basket.base import Base
+from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class OutboxMessageStatus(str, Enum):

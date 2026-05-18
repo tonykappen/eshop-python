@@ -1,8 +1,6 @@
 """Order mapping profile for core mapping engine."""
 
 from app.core.mapping.profiles.base_mapping_profile import BaseMappingProfile
-from app.modules.ordering.application.dtos.order_dto import OrderDto
-from app.modules.ordering.domain.entities.order.order import Order
 
 
 class OrderMappingProfile(BaseMappingProfile):

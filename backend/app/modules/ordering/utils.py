@@ -1,9 +1,8 @@
 """Ordering module utilities."""
 
-from fastapi import Depends
-
 from app.core.mediator.fastapi_integration import get_mediator
 from app.core.repr.base import CQRSEndpointFactory
+from fastapi import Depends
 
 
 def get_endpoint_factory(

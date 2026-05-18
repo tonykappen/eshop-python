@@ -6,13 +6,13 @@ from typing import Any
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
-    BasketCheckoutIntegrationEvent,
-)
+from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import \
+    BasketCheckoutIntegrationEvent
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
-from .checkout_basket_command import CheckoutBasketCommand, CheckoutBasketResult
+from .checkout_basket_command import (CheckoutBasketCommand,
+                                      CheckoutBasketResult)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ class CheckoutBasketCommandValidator:
         if not command.basket_checkout:
             errors.append("BasketCheckoutDto can't be null")
 
-        if not command.basket_checkout.user_name or not command.basket_checkout.user_name.strip():
+        if (
+            not command.basket_checkout.user_name
+            or not command.basket_checkout.user_name.strip()
+        ):
             errors.append("UserName is required")
 
         return errors
@@ -46,9 +49,7 @@ class CheckoutBasketHandler(
 ):
     """Handler for CheckoutBasketCommand - matches .NET CheckoutBasketHandler."""
 
-    def __init__(
-        self, repository: IBasketRepository, outbox_service: Any
-    ) -> None:
+    def __init__(self, repository: IBasketRepository, outbox_service: Any) -> None:
         """
         Initialize handler.
 
@@ -77,7 +78,8 @@ class CheckoutBasketHandler(
         validator = CheckoutBasketCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.core.exceptions.bad_request_exception import BadRequestException
+            from app.core.exceptions.bad_request_exception import \
+                BadRequestException
 
             raise BadRequestException(message="; ".join(errors))
 
@@ -94,10 +96,9 @@ class CheckoutBasketHandler(
                 raise BasketNotFoundException(command.basket_checkout.user_name)
 
             # Convert basket items to event items
-            from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
-                BasketCheckoutItem,
-            )
-            
+            from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import \
+                BasketCheckoutItem
+
             event_items = [
                 BasketCheckoutItem(
                     product_id=item.product_id,
@@ -144,11 +145,18 @@ class CheckoutBasketHandler(
                 "Checkout basket failed",
                 error=e,
                 context={
-                    "user_name": command.basket_checkout.user_name if command.basket_checkout else None,
+                    "user_name": (
+                        command.basket_checkout.user_name
+                        if command.basket_checkout
+                        else None
+                    ),
                     "exception_type": type(e).__name__,
                     "exception_module": type(e).__module__,
                 },
             )
-            logger.error(f"Checkout failed for user {command.basket_checkout.user_name if command.basket_checkout else 'unknown'}: {e}", exc_info=True)
+            logger.error(
+                f"Checkout failed for user {command.basket_checkout.user_name if command.basket_checkout else 'unknown'}: {e}",
+                exc_info=True,
+            )
             # Rollback is handled by the unit of work
             return CheckoutBasketResult(is_success=False)

@@ -1,12 +1,8 @@
 """Wire DI into FastAPI lifespan."""
 
-
+from app.core.initialization import (cleanup_dependency_injection,
+                                     get_app_container)
 from fastapi import FastAPI
-
-from app.core.initialization import (
-    cleanup_dependency_injection,
-    get_app_container,
-)
 
 
 def wire_di_to_fastapi(app: FastAPI) -> None:

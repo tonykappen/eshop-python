@@ -4,15 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.ordering.application.features.orders.command.delete_order.delete_order_command import (
-    DeleteOrderCommand,
-    DeleteOrderResult,
-)
-from app.modules.ordering.application.features.orders.command.delete_order.delete_order_handler import (
-    DeleteOrderHandler,
-)
+    DeleteOrderCommand, DeleteOrderResult)
+from app.modules.ordering.application.features.orders.command.delete_order.delete_order_handler import \
+    DeleteOrderHandler
 from app.modules.ordering.domain.exceptions.order import OrderNotFoundException
 
 
@@ -66,9 +62,8 @@ class TestDeleteOrderHandler:
     async def test_handle_missing_order_id_raises_error(self) -> None:
         """Test that missing order ID raises validation error."""
         # Note: DeleteOrderCommand requires UUID, so we test the validator directly
-        from app.modules.ordering.application.features.orders.command.delete_order.delete_order_handler import (
-            DeleteOrderCommandValidator,
-        )
+        from app.modules.ordering.application.features.orders.command.delete_order.delete_order_handler import \
+            DeleteOrderCommandValidator
 
         validator = DeleteOrderCommandValidator()
         # Create a command with None order_id using type ignore for testing

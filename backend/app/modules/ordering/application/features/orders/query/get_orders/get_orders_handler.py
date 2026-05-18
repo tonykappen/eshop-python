@@ -3,7 +3,6 @@
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.core.pagination.models import PaginatedResult
-from app.modules.ordering.application.dtos.order_dto import OrderDto
 from app.modules.ordering.application.mappers.order_mapper import OrderMapper
 from app.modules.ordering.domain.repositories.order import IOrderRepository
 

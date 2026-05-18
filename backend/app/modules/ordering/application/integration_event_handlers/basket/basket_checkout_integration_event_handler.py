@@ -5,17 +5,16 @@ from uuid import uuid4
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.mediator import IMediator
-from app.core.messaging.integration_event import IIntegrationEventHandler, IntegrationEvent
-from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
-    BasketCheckoutIntegrationEvent,
-)
+from app.core.messaging.integration_event import (IIntegrationEventHandler,
+                                                  IntegrationEvent)
+from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import \
+    BasketCheckoutIntegrationEvent
 from app.modules.ordering.application.dtos.address_dto import AddressDto
 from app.modules.ordering.application.dtos.order_dto import OrderDto
 from app.modules.ordering.application.dtos.order_item_dto import OrderItemDto
 from app.modules.ordering.application.dtos.payment_dto import PaymentDto
-from app.modules.ordering.application.features.orders.command.create_order.create_order_command import (
-    CreateOrderCommand,
-)
+from app.modules.ordering.application.features.orders.command.create_order.create_order_command import \
+    CreateOrderCommand
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,9 @@ class BasketCheckoutIntegrationEventHandler(IIntegrationEventHandler):
             # Send command through mediator (matching .NET sender.Send)
             await self._mediator.send(create_order_command, CancellationToken())
         except Exception as e:
-            logger.error(f"Error handling BasketCheckoutIntegrationEvent: {e}", exc_info=True)
+            logger.error(
+                f"Error handling BasketCheckoutIntegrationEvent: {e}", exc_info=True
+            )
             raise
 
     def _map_to_create_order_command(

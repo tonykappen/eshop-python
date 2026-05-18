@@ -2,11 +2,10 @@
 
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from app.core.auth.keycloak import KeycloakUser, keycloak_service
 from app.core.logging.base_logger import BaseLogger
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 logger = BaseLogger(__name__)
 

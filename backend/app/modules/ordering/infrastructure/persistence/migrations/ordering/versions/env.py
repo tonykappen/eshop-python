@@ -4,14 +4,13 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+from alembic import context
+# Import your models here to ensure they're registered with Base
+from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
+    Base
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
-
-# Import your models here to ensure they're registered with Base
-from app.modules.ordering.infrastructure.persistence.orm.orders.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -44,10 +43,11 @@ def get_url():
     # Try to get from settings first (for consistency with app)
     try:
         from app.config.settings import settings
+
         return settings.database_connection_string
     except Exception:
         pass
-    
+
     # Fallback to environment variable or config
     if config is None:
         # Fallback to environment variable if config not available

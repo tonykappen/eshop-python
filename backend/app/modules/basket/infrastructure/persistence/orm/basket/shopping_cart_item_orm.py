@@ -4,11 +4,10 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+from app.modules.basket.infrastructure.persistence.orm.basket.base import Base
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.modules.basket.infrastructure.persistence.orm.basket.base import Base
 
 
 class ShoppingCartItemORM(Base):
@@ -30,9 +29,7 @@ class ShoppingCartItemORM(Base):
     )
 
     # Product information
-    product_id: Mapped[UUID] = mapped_column(
-        PostgresUUID(as_uuid=True), nullable=False
-    )
+    product_id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), nullable=False)
 
     # Item details
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)

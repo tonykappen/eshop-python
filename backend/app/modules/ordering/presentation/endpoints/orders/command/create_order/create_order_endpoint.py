@@ -2,16 +2,13 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request, status
-from fastapi.responses import JSONResponse
-
 from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.ordering.application.features.orders.command.create_order.create_order_command import (
-    CreateOrderCommand,
-    CreateOrderResult,
-)
+    CreateOrderCommand, CreateOrderResult)
 from app.modules.ordering.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Request, status
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 

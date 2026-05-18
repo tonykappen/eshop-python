@@ -10,10 +10,9 @@ table and indexes only when they are missing.
 """
 
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
-
-from alembic import op
 
 revision = "b5c2a8d3e1f4"
 down_revision = "ab74ed489aa6"

@@ -6,11 +6,10 @@ from typing import Any
 
 import asyncpg
 import redis.asyncio as redis
-from faststream.rabbit import RabbitBroker
-
 from app.config.settings import settings
 from app.core.auth.keycloak import keycloak_service
 from app.core.logging.base_logger import BaseLogger
+from faststream.rabbit import RabbitBroker
 
 logger = BaseLogger(__name__)
 
@@ -59,8 +58,8 @@ class HealthService:
                 context={
                     "service": "database",
                     "host": settings.db_host,
-                    "port": settings.db_port
-                }
+                    "port": settings.db_port,
+                },
             )
             return {
                 "status": "unhealthy",
@@ -100,8 +99,8 @@ class HealthService:
                 context={
                     "service": "redis",
                     "host": settings.redis_host,
-                    "port": settings.redis_port
-                }
+                    "port": settings.redis_port,
+                },
             )
             return {
                 "status": "unhealthy",
@@ -136,8 +135,8 @@ class HealthService:
                 context={
                     "service": "rabbitmq",
                     "host": settings.rabbitmq_host,
-                    "port": settings.rabbitmq_port
-                }
+                    "port": settings.rabbitmq_port,
+                },
             )
             return {
                 "status": "unhealthy",
@@ -172,7 +171,7 @@ class HealthService:
             logger.log_error_with_context(
                 "Seq health check failed",
                 error=e,
-                context={"service": "seq", "url": settings.seq_url}
+                context={"service": "seq", "url": settings.seq_url},
             )
             return {
                 "status": "unhealthy",
@@ -227,10 +226,7 @@ class HealthService:
                 "services": services,
             }
         except Exception as e:
-            logger.log_error_with_context(
-                "Health check failed",
-                error=e
-            )
+            logger.log_error_with_context("Health check failed", error=e)
             return {
                 "status": "unhealthy",
                 "error": str(e),

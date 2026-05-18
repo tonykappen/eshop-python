@@ -6,10 +6,9 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
+from app.config.settings import settings
 from fastapi import APIRouter, Form, HTTPException
 from pydantic import BaseModel
-
-from app.config.settings import settings
 
 router = APIRouter(prefix="/auth-proxy", tags=["auth-proxy"])
 

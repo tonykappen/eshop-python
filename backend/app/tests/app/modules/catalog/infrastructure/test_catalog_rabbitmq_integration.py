@@ -4,11 +4,8 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-
-from app.core.messaging.event_publisher import (
-    CatalogEventPublisher,
-    CatalogEventPublisherFactory,
-)
+from app.core.messaging.event_publisher import (CatalogEventPublisher,
+                                                CatalogEventPublisherFactory)
 
 
 class TestCatalogEventPublisher:
@@ -235,9 +232,8 @@ class TestIntegrationEventData:
 
     def test_product_created_event_structure(self):
         """Test ProductCreatedIntegrationEvent data structure."""
-        from app.modules.catalog.domain.integration_events import (
-            ProductCreatedIntegrationEvent,
-        )
+        from app.modules.catalog.domain.integration_events import \
+            ProductCreatedIntegrationEvent
 
         product_id = uuid4()
         event = ProductCreatedIntegrationEvent(
@@ -260,9 +256,8 @@ class TestIntegrationEventData:
 
     def test_product_price_changed_event_structure(self):
         """Test ProductPriceChangedIntegrationEvent data structure."""
-        from app.modules.catalog.domain.integration_events import (
-            ProductPriceChangedIntegrationEvent,
-        )
+        from app.modules.catalog.domain.integration_events import \
+            ProductPriceChangedIntegrationEvent
 
         product_id = uuid4()
         event = ProductPriceChangedIntegrationEvent(

@@ -4,13 +4,9 @@ import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from app.core.database.migrations import (
-    create_module_migration,
-    ensure_schemas_exist,
-    run_migrations,
-    wait_for_database,
-)
+from app.core.database.migrations import (create_module_migration,
+                                          ensure_schemas_exist, run_migrations,
+                                          wait_for_database)
 
 
 class TestDatabaseMigrations:

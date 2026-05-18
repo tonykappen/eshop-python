@@ -5,10 +5,12 @@ from decimal import Decimal
 from typing import Any
 
 from app.core.mapping.profiles.base_mapping_profile import BaseMappingProfile
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import SKU, Money
-from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import \
+    ProductORM
 
 
 class CatalogProductProfile(BaseMappingProfile):

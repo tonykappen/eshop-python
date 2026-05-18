@@ -2,14 +2,12 @@
 
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool, text
-
 from alembic import context
 from app.config.settings import settings
-
 # Import the Base and ORM models for this module
 from app.core.database.base import Base
 from app.modules.ordering.infrastructure.orm_models import *  # noqa: F401, F403
+from sqlalchemy import engine_from_config, pool, text
 
 # this is the Alembic Config object
 # Only access config when Alembic is actually running (context is available)

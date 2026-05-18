@@ -5,10 +5,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.logging.base_logger import BaseLogger
 
 
 class CancellationToken:

@@ -55,7 +55,9 @@ class TracingProvider:
         """
         if cls._tracer_provider:
             return cls._tracer_provider.get_tracer(name)
-        logger.log_warning_with_context("Tracer provider not initialized, returning None")
+        logger.log_warning_with_context(
+            "Tracer provider not initialized, returning None"
+        )
         return None
 
     @classmethod

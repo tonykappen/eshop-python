@@ -8,11 +8,12 @@ from contextlib import asynccontextmanager
 
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox import create_outbox_worker
-from app.modules.catalog.infrastructure.persistence.db_context import get_session_maker
-from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import OutboxORM
-from app.modules.catalog.module_interface.di.products.products_providers import (
-    get_catalog_message_bus,
-)
+from app.modules.catalog.infrastructure.persistence.db_context import \
+    get_session_maker
+from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+    OutboxORM
+from app.modules.catalog.module_interface.di.products.products_providers import \
+    get_catalog_message_bus
 
 logger = BaseLogger(__name__)
 

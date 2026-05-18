@@ -4,19 +4,14 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from app.core.lifecycle.handlers import (
-    AuthenticationLifecycleHandler,
-    CacheLifecycleHandler,
-    DatabaseLifecycleHandler,
-    HealthCheckLifecycleHandler,
-    MessagingLifecycleHandler,
-    auth_handler,
-    cache_handler,
-    database_handler,
-    health_handler,
-    messaging_handler,
-)
+from app.core.lifecycle.handlers import (AuthenticationLifecycleHandler,
+                                         CacheLifecycleHandler,
+                                         DatabaseLifecycleHandler,
+                                         HealthCheckLifecycleHandler,
+                                         MessagingLifecycleHandler,
+                                         auth_handler, cache_handler,
+                                         database_handler, health_handler,
+                                         messaging_handler)
 
 
 class TestDatabaseLifecycleHandler:

@@ -3,15 +3,12 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Request
-
 from app.core.auth.rbac import require_query_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.ordering.application.features.orders.query.get_order_by_id.get_order_by_id_query import (
-    GetOrderByIdQuery,
-    GetOrderByIdResult,
-)
+    GetOrderByIdQuery, GetOrderByIdResult)
 from app.modules.ordering.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Path, Request
 
 router = APIRouter()
 

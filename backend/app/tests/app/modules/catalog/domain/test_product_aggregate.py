@@ -4,16 +4,12 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-
-from app.modules.catalog.domain.domain_events.products.product_created_domain_event import (
-    ProductCreatedDomainEvent,
-)
-from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
-    ProductDeletedDomainEvent,
-)
-from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-    ProductPriceChangedDomainEvent,
-)
+from app.modules.catalog.domain.domain_events.products.product_created_domain_event import \
+    ProductCreatedDomainEvent
+from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import \
+    ProductDeletedDomainEvent
+from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+    ProductPriceChangedDomainEvent
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import Money
 
@@ -178,7 +174,9 @@ class TestProductUpdate:
         assert product.description == "Updated description"
         assert product.image_file == "updated.jpg"
         assert product.price == new_price
-        assert product.version == old_version  # Version is managed by the repository, not the domain
+        assert (
+            product.version == old_version
+        )  # Version is managed by the repository, not the domain
 
         # Check price change domain event was added
         domain_events = product.domain_events_copy

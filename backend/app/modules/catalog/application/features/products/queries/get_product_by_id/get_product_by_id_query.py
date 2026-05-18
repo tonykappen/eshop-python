@@ -2,9 +2,9 @@
 
 from uuid import UUID
 
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from pydantic import BaseModel
-
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
 
 
 class GetProductByIdQuery(BaseModel):

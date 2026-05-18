@@ -5,9 +5,8 @@ from typing import TypeVar
 
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
 
 T = TypeVar("T")
 

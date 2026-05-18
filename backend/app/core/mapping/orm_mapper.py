@@ -5,11 +5,10 @@ from inspect import signature
 from typing import Any, TypeVar, get_type_hints
 from uuid import UUID
 
-from pydantic import BaseModel
-from sqlalchemy.orm import DeclarativeBase
-
 from app.core.domain.entity import Entity
 from app.core.logging.base_logger import BaseLogger
+from pydantic import BaseModel
+from sqlalchemy.orm import DeclarativeBase
 
 logger = BaseLogger(__name__)
 
@@ -124,8 +123,8 @@ class ORMMapper:
                 "Converted domain entity to ORM model",
                 context={
                     "domain_entity_type": type(domain_entity).__name__,
-                    "orm_model_type": orm_model_class.__name__
-                }
+                    "orm_model_type": orm_model_class.__name__,
+                },
             )
             return orm_instance
 
@@ -135,8 +134,8 @@ class ORMMapper:
                 error=e,
                 context={
                     "domain_entity_type": type(domain_entity).__name__,
-                    "orm_model_type": orm_model_class.__name__
-                }
+                    "orm_model_type": orm_model_class.__name__,
+                },
             )
             raise ValueError(
                 f"Failed to convert {type(domain_entity).__name__} to {orm_model_class.__name__}: {e}"
@@ -169,8 +168,8 @@ class ORMMapper:
                 "Converted ORM model to domain entity",
                 context={
                     "orm_model_type": type(orm_model).__name__,
-                    "domain_entity_type": domain_entity_class.__name__
-                }
+                    "domain_entity_type": domain_entity_class.__name__,
+                },
             )
             return domain_entity
 
@@ -180,8 +179,8 @@ class ORMMapper:
                 error=e,
                 context={
                     "orm_model_type": type(orm_model).__name__,
-                    "domain_entity_type": domain_entity_class.__name__
-                }
+                    "domain_entity_type": domain_entity_class.__name__,
+                },
             )
             raise ValueError(
                 f"Failed to convert {type(orm_model).__name__} to {domain_entity_class.__name__}: {e}"
@@ -285,8 +284,8 @@ class ORMMapper:
                 "Updated ORM model from domain entity",
                 context={
                     "orm_model_type": type(orm_model).__name__,
-                    "domain_entity_type": type(domain_entity).__name__
-                }
+                    "domain_entity_type": type(domain_entity).__name__,
+                },
             )
             return orm_model
 
@@ -296,8 +295,8 @@ class ORMMapper:
                 error=e,
                 context={
                     "orm_model_type": type(orm_model).__name__,
-                    "domain_entity_type": type(domain_entity).__name__
-                }
+                    "domain_entity_type": type(domain_entity).__name__,
+                },
             )
             raise ValueError(
                 f"Failed to update {type(orm_model).__name__} from {type(domain_entity).__name__}: {e}"
@@ -404,7 +403,7 @@ class ORMMapper:
                 except Exception as e:
                     logger.log_warning_with_context(
                         "Failed to convert sku to SKU value object",
-                        context={"error": str(e)}
+                        context={"error": str(e)},
                     )
                     # Fallback: try to use as-is, validation will catch it
                     converted["sku"] = data["sku"]
@@ -431,7 +430,7 @@ class ORMMapper:
                 except Exception as e:
                     logger.log_warning_with_context(
                         "Failed to convert price to Money value object",
-                        context={"error": str(e)}
+                        context={"error": str(e)},
                     )
                     # Don't add price if conversion fails - let validation catch it
 

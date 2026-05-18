@@ -3,12 +3,11 @@
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from app.config.settings import settings
+from app.core.logging.base_logger import BaseLogger
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-
-from app.config.settings import settings
-from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)
 
@@ -398,13 +397,13 @@ def add_keycloak_routes(app: Any) -> Any:
                 for attr in dir(keycloak_service.keycloak)
                 if not attr.startswith("_") or attr in ["router", "add_auth_routes"]
             ]
-            
+
             # Get detailed diagnostic information
             keycloak_type = type(keycloak_service.keycloak).__name__
             has_router = hasattr(keycloak_service.keycloak, "router")
             has_add_auth_routes = hasattr(keycloak_service.keycloak, "add_auth_routes")
             public_attrs = [a for a in available_attrs if not a.startswith("_")]
-            
+
             # This is expected behavior - FastAPIKeycloak instance was created via object.__new__()
             # to avoid admin token retrieval issues, so router/add_auth_routes were never initialized.
             # Authentication still works via middleware and dependencies, and we have auth_proxy routes.

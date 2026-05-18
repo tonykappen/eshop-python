@@ -5,12 +5,8 @@ from collections.abc import AsyncGenerator
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker, create_async_engine)
 
 logger = logging.getLogger(__name__)
 

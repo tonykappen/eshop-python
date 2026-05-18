@@ -8,13 +8,9 @@ This DTO is used for:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    pass
 
 
 class ProductDto(BaseModel):
@@ -41,10 +37,14 @@ class ProductDto(BaseModel):
 
     # Pricing information
     price: float = Field(..., description="Product price amount")
-    currency: str = Field(default="USD", description="Product price currency (ISO 4217)")
+    currency: str = Field(
+        default="USD", description="Product price currency (ISO 4217)"
+    )
 
     # Versioning
-    version: int = Field(..., description="Product version (for optimistic concurrency)")
+    version: int = Field(
+        ..., description="Product version (for optimistic concurrency)"
+    )
 
     # Timestamps (ISO 8601 strings)
     created_at: str = Field(..., description="Creation timestamp (ISO 8601)")

@@ -3,10 +3,9 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from app.main import app, lifespan
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from app.main import app, lifespan
 
 
 class TestMainApplication:

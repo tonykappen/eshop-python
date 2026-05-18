@@ -5,18 +5,16 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.exceptions.bad_request_exception import BadRequestException
 from app.core.mediator.cancellation import CancellationToken
-from app.modules.basket.application.dtos.basket_checkout_dto import BasketCheckoutDto
+from app.modules.basket.application.dtos.basket_checkout_dto import \
+    BasketCheckoutDto
 from app.modules.basket.application.features.basket.command.checkout_basket.checkout_basket_command import (
-    CheckoutBasketCommand,
-    CheckoutBasketResult,
-)
-from app.modules.basket.application.features.basket.command.checkout_basket.checkout_basket_handler import (
-    CheckoutBasketHandler,
-)
-from app.modules.basket.domain.entities.basket import ShoppingCart, ShoppingCartItem
+    CheckoutBasketCommand, CheckoutBasketResult)
+from app.modules.basket.application.features.basket.command.checkout_basket.checkout_basket_handler import \
+    CheckoutBasketHandler
+from app.modules.basket.domain.entities.basket import (ShoppingCart,
+                                                       ShoppingCartItem)
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
 
 

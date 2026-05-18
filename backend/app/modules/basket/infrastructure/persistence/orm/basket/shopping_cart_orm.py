@@ -3,11 +3,10 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String
+from app.modules.basket.infrastructure.persistence.orm.basket.base import Base
+from sqlalchemy import DateTime, String
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.modules.basket.infrastructure.persistence.orm.basket.base import Base
 
 
 class ShoppingCartORM(Base):

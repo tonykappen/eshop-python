@@ -4,16 +4,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.modules.basket.domain.entities.basket import ShoppingCart
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
-from app.modules.basket.infrastructure.persistence.orm.basket.shopping_cart_orm import (
-    ShoppingCartORM,
-)
-from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import (
-    SqlBasketRepository,
-)
+from app.modules.basket.infrastructure.persistence.orm.basket.shopping_cart_orm import \
+    ShoppingCartORM
+from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import \
+    SqlBasketRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestBasketRepositoryGetBasket:

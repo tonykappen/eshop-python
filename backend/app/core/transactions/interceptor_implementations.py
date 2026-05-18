@@ -1,6 +1,6 @@
 """Generic commit interceptor implementations."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.context.application_context import RequestContext
@@ -20,10 +20,9 @@ class AuditStampInterceptor(CommitInterceptor):
         self.request_context = request_context
 
     async def before_commit(self, session: AsyncSession, entities: list[Any]) -> None:
-        current_time = (
-            self.request_context.get_metadata("current_time")
-            or datetime.now(timezone.utc).replace(tzinfo=None)
-        )
+        current_time = self.request_context.get_metadata(
+            "current_time"
+        ) or datetime.now(UTC).replace(tzinfo=None)
         user_id = self.request_context.user_id
 
         for entity in entities:

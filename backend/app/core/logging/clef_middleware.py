@@ -8,15 +8,12 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-
 from app.core.logging.base_logger import BaseLogger
 from app.core.logging.clef_dispatcher import get_dispatcher
-from app.core.logging.w3c_trace import (
-    extract_or_generate_trace_context,
-    format_traceparent,
-)
+from app.core.logging.w3c_trace import (extract_or_generate_trace_context,
+                                        format_traceparent)
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = BaseLogger(__name__)
 
@@ -266,12 +263,10 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         request.state.trace_context = trace_ctx
 
         # Set trace context in contextvars for propagation to all logs
-        from app.core.logging.trace_context import (
-            set_http_request_context,
-            set_identity_context,
-            set_operation_context,
-            set_trace_context,
-        )
+        from app.core.logging.trace_context import (set_http_request_context,
+                                                    set_identity_context,
+                                                    set_operation_context,
+                                                    set_trace_context)
 
         set_trace_context(trace_ctx.trace_id, trace_ctx.span_id, request_id)
 

@@ -5,15 +5,11 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
-from app.modules.basket.application.features.basket.query.get_basket.get_basket_handler import (
-    GetBasketHandler,
-)
+from app.modules.basket.application.features.basket.query.get_basket.get_basket_handler import \
+    GetBasketHandler
 from app.modules.basket.application.features.basket.query.get_basket.get_basket_query import (
-    GetBasketQuery,
-    GetBasketResult,
-)
+    GetBasketQuery, GetBasketResult)
 
 
 class TestGetBasketHandler:

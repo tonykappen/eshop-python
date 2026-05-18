@@ -4,9 +4,8 @@ import os
 from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
-
 from app.config.settings import Settings
+from pydantic import ValidationError
 
 
 class TestSettings:

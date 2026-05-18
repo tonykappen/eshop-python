@@ -33,9 +33,7 @@ class IOrderRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all(
-        self, skip: int = 0, take: int = 10
-    ) -> tuple[list[Order], int]:
+    async def get_all(self, skip: int = 0, take: int = 10) -> tuple[list[Order], int]:
         """
         Get all orders with pagination.
 

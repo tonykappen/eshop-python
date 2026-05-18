@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.exceptions.bad_request_exception import BadRequestException
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.ordering.application.dtos.address_dto import AddressDto
@@ -13,12 +12,9 @@ from app.modules.ordering.application.dtos.order_dto import OrderDto
 from app.modules.ordering.application.dtos.order_item_dto import OrderItemDto
 from app.modules.ordering.application.dtos.payment_dto import PaymentDto
 from app.modules.ordering.application.features.orders.command.create_order.create_order_command import (
-    CreateOrderCommand,
-    CreateOrderResult,
-)
-from app.modules.ordering.application.features.orders.command.create_order.create_order_handler import (
-    CreateOrderHandler,
-)
+    CreateOrderCommand, CreateOrderResult)
+from app.modules.ordering.application.features.orders.command.create_order.create_order_handler import \
+    CreateOrderHandler
 
 
 class TestCreateOrderHandler:

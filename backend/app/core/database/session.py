@@ -6,12 +6,12 @@ import threading
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from sqlalchemy import event, text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.config.settings import settings
 from app.core.exceptions.common_exceptions import DatabaseError
 from app.core.logging.base_logger import BaseLogger
+from sqlalchemy import event, text
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
 
 logger = BaseLogger(__name__)
 
@@ -60,7 +60,9 @@ def _sync_pool_metrics(pool: Any) -> tuple[int, int, int] | None:
     return pool_size, checked_out, overflow
 
 
-def _on_pool_checkout(dbapi_conn: Any, connection_record: Any, connection_proxy: Any) -> None:
+def _on_pool_checkout(
+    dbapi_conn: Any, connection_record: Any, connection_proxy: Any
+) -> None:
     global _pool_checkout_event_count
     with _pool_event_lock:
         _pool_checkout_event_count += 1

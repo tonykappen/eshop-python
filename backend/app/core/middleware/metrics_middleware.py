@@ -3,11 +3,10 @@
 import time
 from typing import Any
 
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-
 from app.core.logging.base_logger import BaseLogger
 from app.core.observability.metrics import MetricsRegistry
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = BaseLogger(__name__)
 

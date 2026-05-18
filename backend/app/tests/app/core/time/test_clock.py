@@ -3,7 +3,6 @@
 from datetime import UTC, datetime
 
 import pytest
-
 from app.core.time.clock import Clock, FixedClock, IClock
 
 
@@ -23,7 +22,7 @@ class TestClock:
         """Test that now() returns a datetime object."""
         clock = Clock()
         now = clock.now()
-        
+
         assert isinstance(now, datetime)
         assert now.tzinfo == UTC
 
@@ -31,7 +30,7 @@ class TestClock:
         """Test that now_iso() returns an ISO format string."""
         clock = Clock()
         iso_string = clock.now_iso()
-        
+
         assert isinstance(iso_string, str)
         # Should be valid ISO format
         parsed = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
@@ -42,7 +41,7 @@ class TestClock:
         clock = Clock()
         now = clock.now()
         iso_string = clock.now_iso()
-        
+
         # Parse the ISO string and compare
         parsed = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
         # Allow small time difference (less than 1 second)
@@ -57,7 +56,7 @@ class TestFixedClock:
         """Test FixedClock with explicit time."""
         fixed_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         clock = FixedClock(fixed_time)
-        
+
         assert clock.now() == fixed_time
         assert clock.now_iso() == fixed_time.isoformat()
 
@@ -65,7 +64,7 @@ class TestFixedClock:
         """Test FixedClock with default time (current time)."""
         clock = FixedClock()
         now = clock.now()
-        
+
         assert isinstance(now, datetime)
         assert now.tzinfo == UTC
         # Should be recent (within last minute)
@@ -76,12 +75,12 @@ class TestFixedClock:
         """Test setting a new fixed time."""
         initial_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         clock = FixedClock(initial_time)
-        
+
         assert clock.now() == initial_time
-        
+
         new_time = datetime(2024, 2, 1, 15, 30, 0, tzinfo=UTC)
         clock.set_time(new_time)
-        
+
         assert clock.now() == new_time
         assert clock.now_iso() == new_time.isoformat()
 
@@ -89,12 +88,12 @@ class TestFixedClock:
         """Test that FixedClock returns the same time consistently."""
         fixed_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         clock = FixedClock(fixed_time)
-        
+
         # Call multiple times
         assert clock.now() == fixed_time
         assert clock.now() == fixed_time
         assert clock.now() == fixed_time
-        
+
         assert clock.now_iso() == fixed_time.isoformat()
         assert clock.now_iso() == fixed_time.isoformat()
 
@@ -102,7 +101,7 @@ class TestFixedClock:
         """Test that FixedClock ISO format is correct."""
         fixed_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
         clock = FixedClock(fixed_time)
-        
+
         iso_string = clock.now_iso()
         # Should be valid ISO format
         parsed = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))

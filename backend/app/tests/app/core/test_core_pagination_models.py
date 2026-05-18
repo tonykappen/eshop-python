@@ -3,15 +3,11 @@
 from unittest.mock import MagicMock
 
 import pytest
+from app.core.pagination.models import (PaginatedResult, PaginationRequest,
+                                        PaginationResponse,
+                                        create_paginated_response,
+                                        create_pagination_params)
 from fastapi_pagination import Params
-
-from app.core.pagination.models import (
-    PaginatedResult,
-    PaginationRequest,
-    PaginationResponse,
-    create_paginated_response,
-    create_pagination_params,
-)
 
 
 class TestPaginationRequest:

@@ -5,19 +5,13 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.basket.application.dtos.shopping_cart_dto import (
-    ShoppingCartDto,
-    ShoppingCartItemDto,
-)
+    ShoppingCartDto, ShoppingCartItemDto)
 from app.modules.basket.application.features.basket.command.create_basket.create_basket_command import (
-    CreateBasketCommand,
-    CreateBasketResult,
-)
-from app.modules.basket.application.features.basket.command.create_basket.create_basket_handler import (
-    CreateBasketHandler,
-)
+    CreateBasketCommand, CreateBasketResult)
+from app.modules.basket.application.features.basket.command.create_basket.create_basket_handler import \
+    CreateBasketHandler
 
 
 class TestCreateBasketHandler:
@@ -98,7 +92,8 @@ class TestCreateBasketHandler:
         command = CreateBasketCommand(shopping_cart=shopping_cart_dto)
         token = CancellationToken()
 
-        from app.core.exceptions.bad_request_exception import BadRequestException
+        from app.core.exceptions.bad_request_exception import \
+            BadRequestException
 
         with pytest.raises(BadRequestException):
             await handler.handle(command, token)

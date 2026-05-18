@@ -2,13 +2,13 @@
 
 from uuid import UUID
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.logging.base_logger import BaseLogger
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.entities.category import Category
-from app.modules.catalog.infrastructure.persistence.orm.category_orm import CategoryORM
+from app.modules.catalog.infrastructure.persistence.orm.category_orm import \
+    CategoryORM
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = BaseLogger(__name__)
 
@@ -50,7 +50,7 @@ class SqlCategoryRepository(CategoryRepository):
             logger.log_error_with_context(
                 "Error getting category by ID",
                 error=e,
-                context={"category_id": str(category_id)}
+                context={"category_id": str(category_id)},
             )
             raise
 
@@ -77,9 +77,7 @@ class SqlCategoryRepository(CategoryRepository):
 
         except Exception as e:
             logger.log_error_with_context(
-                "Error getting category by name",
-                error=e,
-                context={"name": name}
+                "Error getting category by name", error=e, context={"name": name}
             )
             raise
 
@@ -108,7 +106,7 @@ class SqlCategoryRepository(CategoryRepository):
             logger.log_error_with_context(
                 "Error getting categories by parent ID",
                 error=e,
-                context={"parent_id": str(parent_id)}
+                context={"parent_id": str(parent_id)},
             )
             raise
 
@@ -131,10 +129,7 @@ class SqlCategoryRepository(CategoryRepository):
             ]
 
         except Exception as e:
-            logger.log_error_with_context(
-                "Error getting active categories",
-                error=e
-            )
+            logger.log_error_with_context("Error getting active categories", error=e)
             raise
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[Category]:
@@ -163,10 +158,7 @@ class SqlCategoryRepository(CategoryRepository):
             ]
 
         except Exception as e:
-            logger.log_error_with_context(
-                "Error getting all categories",
-                error=e
-            )
+            logger.log_error_with_context("Error getting all categories", error=e)
             raise
 
     async def count(self) -> int:
@@ -186,10 +178,7 @@ class SqlCategoryRepository(CategoryRepository):
             return result.scalar() or 0
 
         except Exception as e:
-            logger.log_error_with_context(
-                "Error counting categories",
-                error=e
-            )
+            logger.log_error_with_context("Error counting categories", error=e)
             raise
 
     async def exists_by_name(self, name: str) -> bool:
@@ -213,7 +202,7 @@ class SqlCategoryRepository(CategoryRepository):
             logger.log_error_with_context(
                 "Error checking category existence by name",
                 error=e,
-                context={"name": name}
+                context={"name": name},
             )
             raise
 
@@ -230,10 +219,7 @@ class SqlCategoryRepository(CategoryRepository):
             await self.session.flush()
 
         except Exception as e:
-            logger.log_error_with_context(
-                "Error adding category",
-                error=e
-            )
+            logger.log_error_with_context("Error adding category", error=e)
             raise
 
     async def update(self, category: Category) -> None:
@@ -258,10 +244,7 @@ class SqlCategoryRepository(CategoryRepository):
             await self.session.execute(stmt)
 
         except Exception as e:
-            logger.log_error_with_context(
-                "Error updating category",
-                error=e
-            )
+            logger.log_error_with_context("Error updating category", error=e)
             raise
 
     async def delete(self, category_id: UUID) -> None:
@@ -283,7 +266,7 @@ class SqlCategoryRepository(CategoryRepository):
             logger.log_error_with_context(
                 "Error deleting category",
                 error=e,
-                context={"category_id": str(category_id)}
+                context={"category_id": str(category_id)},
             )
             raise
 

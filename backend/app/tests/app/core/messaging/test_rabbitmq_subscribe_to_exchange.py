@@ -10,7 +10,6 @@ with the supplied routing key, and start consuming.
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from app.core.messaging.bus import RabbitMQMessageBus
 
 
@@ -64,7 +63,9 @@ async def test_subscribe_to_exchange_declares_queue_and_binds_routing_key() -> N
 
 
 @pytest.mark.asyncio
-async def test_subscribe_to_exchange_falls_back_to_active_declare_when_passive_fails() -> None:
+async def test_subscribe_to_exchange_falls_back_to_active_declare_when_passive_fails() -> (
+    None
+):
     """When passive declare raises, we fall back to declaring the exchange ourselves."""
     bus = RabbitMQMessageBus("amqp://guest:guest@localhost:5672/")
 

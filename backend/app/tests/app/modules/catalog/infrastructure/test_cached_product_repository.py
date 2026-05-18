@@ -4,12 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-
 from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCachePatterns,
-    CatalogCacheService,
-    RedisCacheService,
-)
+    CatalogCachePatterns, CatalogCacheService, RedisCacheService)
 
 
 class TestRedisCacheService:
@@ -216,12 +212,8 @@ class TestCatalogCacheService:
         deleted_keys = [
             call.args[0] for call in catalog_cache_service.cache.delete.await_args_list
         ]
-        assert (
-            CatalogCachePatterns.products_list_key(1, 10, None) in deleted_keys
-        )
-        assert (
-            CatalogCachePatterns.products_list_key(10, 100, None) in deleted_keys
-        )
+        assert CatalogCachePatterns.products_list_key(1, 10, None) in deleted_keys
+        assert CatalogCachePatterns.products_list_key(10, 100, None) in deleted_keys
         catalog_cache_service.cache.invalidate_pattern.assert_not_called()
 
     @pytest.mark.asyncio

@@ -5,10 +5,9 @@ import os
 import subprocess
 from pathlib import Path
 
-from sqlalchemy import text
-
 from app.core.database.session import AsyncSessionLocal, engine
 from app.core.logging.base_logger import BaseLogger
+from sqlalchemy import text
 
 logger = BaseLogger(__name__)
 
@@ -132,12 +131,10 @@ async def ensure_outbox_tables_from_orm() -> None:
     Runs after Alembic so local/dev DBs self-heal when migrations were skipped or
     failed historically. Ordering has no outbox table in this codebase.
     """
-    from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
-        OutboxORM as BasketOutboxORM,
-    )
-    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-        OutboxORM as CatalogOutboxORM,
-    )
+    from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import \
+        OutboxORM as BasketOutboxORM
+    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+        OutboxORM as CatalogOutboxORM
 
     def _create_outbox_tables(sync_conn) -> None:
         CatalogOutboxORM.__table__.create(sync_conn, checkfirst=True)
@@ -226,7 +223,7 @@ async def run_module_migrations(module_config: dict) -> None:
             / blueprint_module_name
             / "versions"
         )
-        
+
         # Check if blueprint location exists (with nested versions/ directory)
         if (
             blueprint_versions_dir.exists()

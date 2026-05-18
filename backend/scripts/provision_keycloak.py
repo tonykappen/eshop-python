@@ -26,11 +26,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import argparse
 
-from app.core.auth.rbac import (
-    load_credentials_config,
-    provision_keycloak_sync,
-    validate_credentials_file,
-)
+from app.core.auth.rbac import (load_credentials_config,
+                                provision_keycloak_sync,
+                                validate_credentials_file)
 from app.core.logging.base_logger import BaseLogger
 
 logger = BaseLogger(__name__)

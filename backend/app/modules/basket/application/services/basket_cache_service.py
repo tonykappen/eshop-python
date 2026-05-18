@@ -1,13 +1,10 @@
 """Basket cache service - higher-level caching service for basket operations."""
 
-import json
-from typing import Any
-
 from app.core.cache.patterns import ICacheService
-from app.modules.basket.application.dtos.shopping_cart_dto import ShoppingCartDto
-from app.modules.basket.application.services.basket_cache_patterns import (
-    BasketCachePatterns,
-)
+from app.modules.basket.application.dtos.shopping_cart_dto import \
+    ShoppingCartDto
+from app.modules.basket.application.services.basket_cache_patterns import \
+    BasketCachePatterns
 
 
 class BasketCacheService:
@@ -45,9 +42,7 @@ class BasketCacheService:
 
         return None
 
-    async def set_basket(
-        self, basket: ShoppingCartDto, ttl: int | None = None
-    ) -> None:
+    async def set_basket(self, basket: ShoppingCartDto, ttl: int | None = None) -> None:
         """
         Set basket in cache.
 

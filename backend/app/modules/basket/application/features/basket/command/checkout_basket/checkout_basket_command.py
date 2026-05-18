@@ -1,8 +1,8 @@
 """CheckoutBasketCommand definition - matches .NET implementation."""
 
+from app.modules.basket.application.dtos.basket_checkout_dto import \
+    BasketCheckoutDto
 from pydantic import BaseModel, Field
-
-from app.modules.basket.application.dtos.basket_checkout_dto import BasketCheckoutDto
 
 
 class CheckoutBasketCommand(BaseModel):

@@ -4,10 +4,8 @@ from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
-from .remove_item_from_basket_command import (
-    RemoveItemFromBasketCommand,
-    RemoveItemFromBasketResult,
-)
+from .remove_item_from_basket_command import (RemoveItemFromBasketCommand,
+                                              RemoveItemFromBasketResult)
 
 
 class RemoveItemFromBasketCommandValidator:
@@ -67,7 +65,8 @@ class RemoveItemFromBasketHandler(
         validator = RemoveItemFromBasketCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.core.exceptions.bad_request_exception import BadRequestException
+            from app.core.exceptions.bad_request_exception import \
+                BadRequestException
 
             raise BadRequestException(message="; ".join(errors))
 
@@ -85,7 +84,7 @@ class RemoveItemFromBasketHandler(
 
         # Sync domain changes to tracked ORM object (matches .NET Entity Framework tracking)
         # Then save changes (matches .NET SaveChangesAsync)
-        if hasattr(self.repository, 'update_basket'):
+        if hasattr(self.repository, "update_basket"):
             shopping_cart = await self.repository.update_basket(shopping_cart)
 
         # Save changes - matches .NET repository.SaveChangesAsync(userName, cancellationToken)

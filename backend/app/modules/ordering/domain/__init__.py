@@ -1,8 +1,7 @@
 """Ordering domain module."""
 
-from app.modules.ordering.domain.domain_events.orders import (
-    OrderCreatedDomainEvent,
-)
+from app.modules.ordering.domain.domain_events.orders import \
+    OrderCreatedDomainEvent
 from app.modules.ordering.domain.entities.order import Order, OrderItem
 from app.modules.ordering.domain.exceptions.order import OrderNotFoundException
 from app.modules.ordering.domain.repositories.order import IOrderRepository

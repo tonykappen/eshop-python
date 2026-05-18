@@ -16,9 +16,7 @@ class CachedOrderRepository(IOrderRepository):
     Wraps an IOrderRepository and adds caching layer.
     """
 
-    def __init__(
-        self, repository: IOrderRepository, cache_service=None
-    ) -> None:
+    def __init__(self, repository: IOrderRepository, cache_service=None) -> None:
         """
         Initialize cached repository.
 
@@ -57,9 +55,7 @@ class CachedOrderRepository(IOrderRepository):
         # Fall back to repository
         return await self._repository.get_by_id(order_id)
 
-    async def get_all(
-        self, skip: int = 0, take: int = 10
-    ) -> tuple[list[Order], int]:
+    async def get_all(self, skip: int = 0, take: int = 10) -> tuple[list[Order], int]:
         """Get all orders - delegate to underlying repository."""
         return await self._repository.get_all(skip=skip, take=take)
 

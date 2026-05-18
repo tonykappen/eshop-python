@@ -8,11 +8,10 @@ from datetime import datetime
 from typing import Any, AsyncContextManager, TypeVar
 from uuid import UUID
 
-from sqlalchemy import func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox import OutboxMessage, OutboxMessageStatus
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = BaseLogger(__name__)
 
@@ -44,7 +43,9 @@ class OutboxPublisherWorker:
     async def start(self) -> None:
         """Start the outbox publisher worker."""
         if self.is_running:
-            logger.log_warning_with_context("Outbox publisher worker is already running")
+            logger.log_warning_with_context(
+                "Outbox publisher worker is already running"
+            )
             return
 
         self.is_running = True
@@ -99,9 +100,7 @@ class OutboxPublisherWorker:
                 await self._publish_single(message_id)
 
         except Exception as e:
-            logger.log_error_with_context(
-                "Error processing pending messages", error=e
-            )
+            logger.log_error_with_context("Error processing pending messages", error=e)
 
     async def _claim_batch(self, session: AsyncSession) -> list[UUID]:
         """
@@ -148,9 +147,7 @@ class OutboxPublisherWorker:
         try:
             async with self.session_factory() as session:
                 orm = self.outbox_orm_class
-                result = await session.execute(
-                    select(orm).where(orm.id == message_id)
-                )
+                result = await session.execute(select(orm).where(orm.id == message_id))
                 message_orm = result.scalar_one_or_none()
                 if message_orm is None:
                     return
@@ -184,9 +181,8 @@ class OutboxPublisherWorker:
                             "Failed to connect message bus", context={"error": str(e)}
                         )
 
-                from app.core.messaging.exchange_resolver import (
-                    get_exchange_for_event_type,
-                )
+                from app.core.messaging.exchange_resolver import \
+                    get_exchange_for_event_type
 
                 exchange = get_exchange_for_event_type(outbox_message.event_type)
 
@@ -249,10 +245,18 @@ class OutboxPublisherWorker:
         """Get outbox statistics."""
         try:
             async with self.session_factory() as session:
-                pending = await self._count_by_status(session, OutboxMessageStatus.PENDING)
-                processing = await self._count_by_status(session, OutboxMessageStatus.PROCESSING)
-                published = await self._count_by_status(session, OutboxMessageStatus.PUBLISHED)
-                failed = await self._count_by_status(session, OutboxMessageStatus.FAILED)
+                pending = await self._count_by_status(
+                    session, OutboxMessageStatus.PENDING
+                )
+                processing = await self._count_by_status(
+                    session, OutboxMessageStatus.PROCESSING
+                )
+                published = await self._count_by_status(
+                    session, OutboxMessageStatus.PUBLISHED
+                )
+                failed = await self._count_by_status(
+                    session, OutboxMessageStatus.FAILED
+                )
 
                 return {
                     "pending": pending,
@@ -265,7 +269,9 @@ class OutboxPublisherWorker:
             logger.log_error_with_context("Error getting outbox stats", error=e)
             return {}
 
-    async def _count_by_status(self, session: AsyncSession, status: OutboxMessageStatus) -> int:
+    async def _count_by_status(
+        self, session: AsyncSession, status: OutboxMessageStatus
+    ) -> int:
         result = await session.execute(
             select(func.count(self.outbox_orm_class.id)).where(
                 self.outbox_orm_class.status == status

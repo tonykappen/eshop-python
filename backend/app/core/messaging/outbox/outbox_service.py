@@ -11,10 +11,8 @@ from uuid import UUID, uuid4
 from app.core.context.request_context import get_baggage, get_trace_context
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.integration_event import IntegrationEvent
-from app.core.messaging.outbox.outbox_message_orm import (
-    OutboxMessage,
-    OutboxMessageStatus,
-)
+from app.core.messaging.outbox.outbox_message_orm import (OutboxMessage,
+                                                          OutboxMessageStatus)
 
 logger = BaseLogger(__name__)
 
@@ -103,12 +101,12 @@ class OutboxService(IOutboxService):
             # Convert event to dict if it's an IntegrationEvent or Pydantic model
             # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
             if isinstance(event, IntegrationEvent):
-                event_data = event.model_dump(mode='json')
+                event_data = event.model_dump(mode="json")
                 event_type = event.event_type
             elif hasattr(event, "model_dump") and hasattr(event, "event_type"):
                 # Handle Pydantic models that have event_type (like ProductDeletedIntegrationEvent)
                 # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
-                event_data = event.model_dump(mode='json')
+                event_data = event.model_dump(mode="json")
                 event_type = event.event_type
             elif isinstance(event, dict):
                 event_data = event
@@ -116,10 +114,14 @@ class OutboxService(IOutboxService):
             else:
                 # Fallback: try to get event_type attribute or use class name
                 if hasattr(event, "model_dump"):
-                    event_data = event.model_dump(mode='json')
+                    event_data = event.model_dump(mode="json")
                 else:
                     event_data = str(event)
-                event_type = getattr(event, "event_type", getattr(event, "__class__", type(event)).__name__)
+                event_type = getattr(
+                    event,
+                    "event_type",
+                    getattr(event, "__class__", type(event)).__name__,
+                )
 
             # Create outbox message
             message = OutboxMessage(
@@ -137,13 +139,12 @@ class OutboxService(IOutboxService):
 
             logger.log_debug_with_context(
                 "Written integration event to outbox",
-                context={"message_id": str(message.id), "event_type": event_type}
+                context={"message_id": str(message.id), "event_type": event_type},
             )
 
         except Exception as e:
             logger.log_error_with_context(
-                "Error writing integration event to outbox",
-                error=e
+                "Error writing integration event to outbox", error=e
             )
             raise
 
@@ -156,9 +157,8 @@ class OutboxService(IOutboxService):
         """
         try:
             # Try catalog module first (most common)
-            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-                OutboxORM,
-            )
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+                OutboxORM
 
             return OutboxORM
         except ImportError:
@@ -166,7 +166,8 @@ class OutboxService(IOutboxService):
 
         try:
             # Try ordering module
-            from app.modules.ordering.infrastructure.orm_models import OutboxORM
+            from app.modules.ordering.infrastructure.orm_models import \
+                OutboxORM
 
             return OutboxORM
         except ImportError:
@@ -281,7 +282,6 @@ class OutboxService(IOutboxService):
 
         except Exception as e:
             logger.log_exception_detailed(
-                "Error writing outbox message to database",
-                exception=e
+                "Error writing outbox message to database", exception=e
             )
             raise

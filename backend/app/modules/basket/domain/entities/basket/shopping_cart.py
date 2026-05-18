@@ -3,9 +3,8 @@
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import Aggregate
+from pydantic import Field, field_validator
 
 from .shopping_cart_item import ShoppingCartItem
 

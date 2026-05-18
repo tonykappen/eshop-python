@@ -3,20 +3,19 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Request
-
 from app.core.auth.rbac import require_user_or_higher
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.basket.application.features.basket.command.remove_item_from_basket.remove_item_from_basket_command import (
-    RemoveItemFromBasketCommand,
-    RemoveItemFromBasketResult,
-)
+    RemoveItemFromBasketCommand, RemoveItemFromBasketResult)
 from app.modules.basket.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Path, Request
 
 router = APIRouter()
 
 
-@router.delete("/{user_name}/items/{product_id}", response_model=RemoveItemFromBasketResult)
+@router.delete(
+    "/{user_name}/items/{product_id}", response_model=RemoveItemFromBasketResult
+)
 async def remove_item_from_basket(
     user_name: str = Path(..., description="User name"),
     product_id: UUID = Path(..., description="Product ID to remove"),

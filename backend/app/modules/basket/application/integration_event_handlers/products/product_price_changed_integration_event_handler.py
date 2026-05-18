@@ -1,17 +1,15 @@
 """ProductPriceChangedIntegrationEventHandler - handles price changes from Catalog module."""
 
 import logging
-from typing import Any
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.mediator import IMediator
-from app.core.messaging.integration_event import IIntegrationEventHandler, IntegrationEvent
-from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_command import (
-    UpdateItemPriceInBasketCommand,
-)
-from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
-    ProductPriceChangedIntegrationEventV1,
-)
+from app.core.messaging.integration_event import (IIntegrationEventHandler,
+                                                  IntegrationEvent)
+from app.modules.basket.application.features.basket.command.update_item_price_in_basket.update_item_price_in_basket_command import \
+    UpdateItemPriceInBasketCommand
+from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import \
+    ProductPriceChangedIntegrationEventV1
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +59,4 @@ class ProductPriceChangedIntegrationEventHandler(IIntegrationEventHandler):
                 event.product_id,
             )
         else:
-            logger.info(
-                "Price for product id: %s updated in basket", event.product_id
-            )
+            logger.info("Price for product id: %s updated in basket", event.product_id)

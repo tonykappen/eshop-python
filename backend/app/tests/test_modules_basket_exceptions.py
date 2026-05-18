@@ -3,15 +3,13 @@
 from uuid import uuid4
 
 from app.core.exceptions.common_exceptions import NotFoundError
-from app.modules.basket.domain.exceptions import (
-    BasketCreationError,
-    BasketDeletionError,
-    BasketItemNotFoundError,
-    BasketNotFoundError,
-    BasketUpdateError,
-    BasketValidationError,
-    InsufficientStockError,
-)
+from app.modules.basket.domain.exceptions import (BasketCreationError,
+                                                  BasketDeletionError,
+                                                  BasketItemNotFoundError,
+                                                  BasketNotFoundError,
+                                                  BasketUpdateError,
+                                                  BasketValidationError,
+                                                  InsufficientStockError)
 
 
 class TestBasketNotFoundError:

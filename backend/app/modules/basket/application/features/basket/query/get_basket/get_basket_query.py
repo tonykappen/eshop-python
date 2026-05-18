@@ -1,8 +1,8 @@
 """GetBasketQuery definition - matches .NET implementation."""
 
+from app.modules.basket.application.dtos.shopping_cart_dto import \
+    ShoppingCartDto
 from pydantic import BaseModel, Field
-
-from app.modules.basket.application.dtos.shopping_cart_dto import ShoppingCartDto
 
 
 class GetBasketQuery(BaseModel):

@@ -9,10 +9,9 @@ partial applies). Matches catalog OutboxORM / initial migration shape.
 """
 
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
-
-from alembic import op
 
 revision = "c4e8a1b9d2f3"
 down_revision = "86bbeb18ee91"

@@ -4,12 +4,12 @@ from contextlib import asynccontextmanager
 
 from app.config.settings import settings
 from app.core.logging.base_logger import BaseLogger
-from app.core.messaging.outbox import create_outbox_worker
 from app.core.messaging.bus import RabbitMQMessageBus
-from app.modules.catalog.infrastructure.persistence.db_context import (
-    get_session_maker,
-)
-from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import OutboxORM
+from app.core.messaging.outbox import create_outbox_worker
+from app.modules.catalog.infrastructure.persistence.db_context import \
+    get_session_maker
+from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+    OutboxORM
 
 logger = BaseLogger(__name__)
 
@@ -23,10 +23,7 @@ async def get_session_context():
             yield session
         except Exception as e:
             await session.rollback()
-            logger.log_error_with_context(
-                "Database session error",
-                error=e
-            )
+            logger.log_error_with_context("Database session error", error=e)
             raise
         finally:
             await session.close()

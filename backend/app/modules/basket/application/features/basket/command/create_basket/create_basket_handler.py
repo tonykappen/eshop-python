@@ -26,7 +26,10 @@ class CreateBasketCommandValidator:
         """
         errors = []
 
-        if not command.shopping_cart.user_name or not command.shopping_cart.user_name.strip():
+        if (
+            not command.shopping_cart.user_name
+            or not command.shopping_cart.user_name.strip()
+        ):
             errors.append("UserName is required")
 
         return errors
@@ -61,7 +64,8 @@ class CreateBasketHandler(IRequestHandler[CreateBasketCommand, CreateBasketResul
         validator = CreateBasketCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.core.exceptions.bad_request_exception import BadRequestException
+            from app.core.exceptions.bad_request_exception import \
+                BadRequestException
 
             raise BadRequestException(message="; ".join(errors))
 

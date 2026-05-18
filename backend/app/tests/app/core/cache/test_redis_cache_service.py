@@ -5,13 +5,9 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
-from app.core.cache.patterns import (
-    CacheAsidePattern,
-    CacheInvalidationPattern,
-    CacheKeyBuilder,
-    ICacheService,
-)
+from app.core.cache.patterns import (CacheAsidePattern,
+                                     CacheInvalidationPattern, CacheKeyBuilder,
+                                     ICacheService)
 
 
 class MockCacheService(ICacheService):
@@ -456,11 +452,13 @@ class TestCachePatternsIntegration:
         test_key = "test:key"
         test_value = {"data": "value"}
         test_ttl = 300
-        
+
         fetch_func = AsyncMock(return_value=test_value)
-        
-        result = await cache_aside_pattern.invalidate_and_refetch(test_key, fetch_func, test_ttl)
-        
+
+        result = await cache_aside_pattern.invalidate_and_refetch(
+            test_key, fetch_func, test_ttl
+        )
+
         assert result == test_value
         assert mock_cache_service.set_calls[0][2] == test_ttl
 
@@ -473,11 +471,11 @@ class TestCachePatternsIntegration:
         """Test get_or_set with empty string value (should cache it)."""
         test_key = "test:key"
         test_value = ""  # Empty string is not None, so should be cached
-        
+
         fetch_func = AsyncMock(return_value=test_value)
-        
+
         result = await cache_aside_pattern.get_or_set(test_key, fetch_func)
-        
+
         assert result == test_value
         assert len(mock_cache_service.set_calls) == 1  # Should cache empty string
 
@@ -489,9 +487,11 @@ class TestCachePatternsIntegration:
     ) -> None:
         """Test invalidate_related_data with empty related_types list."""
         entity_id = uuid4()
-        
-        await cache_invalidation_pattern.invalidate_related_data("product", entity_id, [])
-        
+
+        await cache_invalidation_pattern.invalidate_related_data(
+            "product", entity_id, []
+        )
+
         # Should only invalidate the main entity
         assert len(mock_cache_service.invalidate_pattern_calls) == 1
         assert f"product:{entity_id}:*" in mock_cache_service.invalidate_pattern_calls

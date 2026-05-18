@@ -3,21 +3,14 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from app.core.auth.keycloak import (KeycloakUser, get_current_user,
+                                    get_current_user_optional, require_role,
+                                    security)
+from app.core.middleware.auth_middleware import (
+    add_auth_middleware, get_current_user_optional_from_request)
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.testclient import TestClient
-
-from app.core.auth.keycloak import (
-    KeycloakUser,
-    get_current_user,
-    get_current_user_optional,
-    require_role,
-    security,
-)
-from app.core.middleware.auth_middleware import (
-    add_auth_middleware,
-    get_current_user_optional_from_request,
-)
 
 # Alias get_current_user as get_current_user_required for tests
 get_current_user_required = get_current_user

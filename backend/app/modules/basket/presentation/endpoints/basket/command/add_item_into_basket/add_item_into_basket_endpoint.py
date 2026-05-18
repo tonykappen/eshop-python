@@ -2,24 +2,22 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Path, Request, Response, status
-from pydantic import BaseModel
-
 from app.core.auth.rbac import require_user_or_higher
 from app.core.repr.base import CQRSEndpointFactory
-from app.modules.basket.application.dtos.shopping_cart_dto import ShoppingCartItemDto
+from app.modules.basket.application.dtos.shopping_cart_dto import \
+    ShoppingCartItemDto
 from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_command import (
-    AddItemIntoBasketCommand,
-    AddItemIntoBasketResult,
-)
+    AddItemIntoBasketCommand, AddItemIntoBasketResult)
 from app.modules.basket.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Path, Request, Response, status
+from pydantic import BaseModel
 
 router = APIRouter()
 
 
 class AddItemIntoBasketRequest(BaseModel):
     """Request model for adding item to basket - matches Postman collection format."""
-    
+
     shopping_cart_item: ShoppingCartItemDto
 
 
@@ -59,8 +57,8 @@ async def add_item_into_basket(
 
     # Extract the result and return AddItemIntoBasketResult
     result = response.data  # This will be AddItemIntoBasketResult
-    
+
     # Set Location header for 201 Created response
     http_response.headers["Location"] = f"/api/v1/basket/{user_name}"
-    
+
     return result

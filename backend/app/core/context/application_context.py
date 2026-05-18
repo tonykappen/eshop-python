@@ -20,9 +20,7 @@ class RequestContext(BaseModel):
 
     # Request information
     request_id: str | None = Field(None, description="Request ID for tracing")
-    correlation_id: str | None = Field(
-        None, description="Correlation ID for tracing"
-    )
+    correlation_id: str | None = Field(None, description="Correlation ID for tracing")
 
     # Additional context
     metadata: dict[str, Any] = Field(

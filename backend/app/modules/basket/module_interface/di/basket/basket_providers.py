@@ -4,42 +4,31 @@ import logging
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-
 from app.core.cache.patterns import ICacheService
 from app.core.cache.redis_cache_service import RedisCacheService
 from app.core.mediator.mediator import IMediator, Mediator
-from app.core.messaging.outbox.outbox_service import IOutboxService, OutboxService
-from app.modules.basket.application.services.basket_cache_patterns import (
-    BasketCachePatterns,
-)
-from app.modules.basket.application.services.basket_cache_service import (
-    BasketCacheService,
-)
-from app.modules.basket.application.unit_of_work.basket_unit_of_work import (
-    IBasketUnitOfWork,
-)
+from app.core.messaging.outbox.outbox_service import (IOutboxService,
+                                                      OutboxService)
+from app.modules.basket.application.services.basket_cache_service import \
+    BasketCacheService
+from app.modules.basket.application.unit_of_work.basket_unit_of_work import \
+    IBasketUnitOfWork
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 from app.modules.basket.infrastructure.persistence.db_context import (
-    get_engine,
-    get_session_maker,
-)
-from app.modules.basket.infrastructure.persistence.repositories.basket.cached_basket_repository import (
-    CachedBasketRepository,
-)
-from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import (
-    SqlBasketRepository,
-)
-from app.modules.basket.infrastructure.persistence.unit_of_work.sql_basket_unit_of_work import (
-    SqlBasketUnitOfWork,
-)
-from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
-    OutboxORM as BasketOutboxORM,
-)
-from app.modules.basket.module_interface.di.basket.basket_containers import (
-    get_basket_container,
-)
+    get_engine, get_session_maker)
+from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import \
+    OutboxORM as BasketOutboxORM
+from app.modules.basket.infrastructure.persistence.repositories.basket.cached_basket_repository import \
+    CachedBasketRepository
+from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import \
+    SqlBasketRepository
+from app.modules.basket.infrastructure.persistence.unit_of_work.sql_basket_unit_of_work import \
+    SqlBasketUnitOfWork
+from app.modules.basket.module_interface.di.basket.basket_containers import \
+    get_basket_container
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker)
 
 logger = logging.getLogger(__name__)
 
@@ -75,15 +64,18 @@ async def get_basket_session() -> AsyncGenerator[AsyncSession, None]:
         AsyncSession: Database session
     """
     from app.core.logging.base_logger import BaseLogger
-    
+
     logger = BaseLogger(__name__)
     session_maker = get_basket_session_maker()
-    
+
     # Validate session_maker is not a mock
     session_maker_is_mock = (
-        hasattr(session_maker, '_mock_name') or 
-        hasattr(session_maker, '_spec_class') or
-        (hasattr(session_maker, '__class__') and 'Mock' in str(session_maker.__class__.__name__))
+        hasattr(session_maker, "_mock_name")
+        or hasattr(session_maker, "_spec_class")
+        or (
+            hasattr(session_maker, "__class__")
+            and "Mock" in str(session_maker.__class__.__name__)
+        )
     )
     if session_maker_is_mock:
         error_msg = (
@@ -92,13 +84,16 @@ async def get_basket_session() -> AsyncGenerator[AsyncSession, None]:
         )
         logger.error(error_msg)
         raise ValueError(error_msg)
-    
+
     async with session_maker() as session:
         # Validate session is not a mock
         session_is_mock = (
-            hasattr(session, '_mock_name') or 
-            hasattr(session, '_spec_class') or
-            (hasattr(session, '__class__') and 'Mock' in str(session.__class__.__name__))
+            hasattr(session, "_mock_name")
+            or hasattr(session, "_spec_class")
+            or (
+                hasattr(session, "__class__")
+                and "Mock" in str(session.__class__.__name__)
+            )
         )
         if session_is_mock:
             error_msg = (
@@ -107,7 +102,7 @@ async def get_basket_session() -> AsyncGenerator[AsyncSession, None]:
             )
             logger.error(error_msg)
             raise ValueError(error_msg)
-        
+
         try:
             yield session
             # Note: save_changes_async commits the transaction (matching .NET SaveChangesAsync)
@@ -116,18 +111,25 @@ async def get_basket_session() -> AsyncGenerator[AsyncSession, None]:
             if session.in_transaction():
                 try:
                     # Check if there are any pending changes
-                    has_changes = len(session.new) + len(session.dirty) + len(session.deleted) > 0
+                    has_changes = (
+                        len(session.new) + len(session.dirty) + len(session.deleted) > 0
+                    )
                     if has_changes:
                         await session.commit()
                 except Exception as commit_error:
                     # If commit fails (e.g., already committed or no transaction), that's okay
                     # This can happen if save_changes_async already committed
-                    error_msg = str(commit_error) if commit_error else "Unknown commit error"
-                    if "already been committed" not in error_msg.lower() and "no transaction" not in error_msg.lower():
+                    error_msg = (
+                        str(commit_error) if commit_error else "Unknown commit error"
+                    )
+                    if (
+                        "already been committed" not in error_msg.lower()
+                        and "no transaction" not in error_msg.lower()
+                    ):
                         # Only log if it's not an expected error
                         logger.log_warning_with_context(
                             "Session commit in context manager failed",
-                            context={"error": error_msg}
+                            context={"error": error_msg},
                         )
         except Exception as e:
             # Rollback on exception

@@ -1,20 +1,13 @@
 """Order aggregate root for ordering domain."""
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
 from uuid import UUID
-
-from pydantic import Field, field_validator
 
 from app.core.domain.entity import Aggregate
 from app.modules.ordering.domain.value_objects import Address, Payment
+from pydantic import Field
 
 from .order_item import OrderItem
-
-if TYPE_CHECKING:
-    from app.modules.ordering.domain.domain_events.orders.order_created_domain_event import (
-        OrderCreatedDomainEvent,
-    )
 
 
 class Order(Aggregate):
@@ -25,9 +18,7 @@ class Order(Aggregate):
     shipping_address: Address = Field(..., description="Shipping address")
     billing_address: Address = Field(..., description="Billing address")
     payment: Payment = Field(..., description="Payment information")
-    items: list[OrderItem] = Field(
-        default_factory=list, description="Order items"
-    )
+    items: list[OrderItem] = Field(default_factory=list, description="Order items")
 
     @property
     def total_price(self) -> Decimal:
@@ -74,9 +65,8 @@ class Order(Aggregate):
         )
 
         # Lazy import to avoid circular dependency
-        from app.modules.ordering.domain.domain_events.orders.order_created_domain_event import (
-            OrderCreatedDomainEvent,
-        )
+        from app.modules.ordering.domain.domain_events.orders.order_created_domain_event import \
+            OrderCreatedDomainEvent
 
         order.add_domain_event(OrderCreatedDomainEvent(order))
 

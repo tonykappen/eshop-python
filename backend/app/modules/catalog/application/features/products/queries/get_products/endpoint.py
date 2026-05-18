@@ -3,11 +3,11 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
-
 from app.core.auth.rbac import require_query_access
-from app.core.repr.base import CQRSEndpointFactory, PaginatedResultToResponseMapper
+from app.core.repr.base import (CQRSEndpointFactory,
+                                PaginatedResultToResponseMapper)
 from app.modules.catalog.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Query, Request
 
 from .get_products_query import GetProductsQuery, GetProductsResult
 

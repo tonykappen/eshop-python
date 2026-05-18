@@ -3,19 +3,14 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import Request
-
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.fastapi_integration import (
-    configure_mediator,
-    get_cancellation_token_dependency,
-    get_handler_registry,
-    get_handler_registry_dependency,
-    get_mediator,
-    get_mediator_dependency,
-)
+    configure_mediator, get_cancellation_token_dependency,
+    get_handler_registry, get_handler_registry_dependency, get_mediator,
+    get_mediator_dependency)
 from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
+from fastapi import Request
 
 
 class TestConfigureMediator:

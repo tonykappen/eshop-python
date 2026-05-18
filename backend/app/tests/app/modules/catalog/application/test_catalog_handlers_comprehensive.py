@@ -5,53 +5,34 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.catalog.application.features.products.commands.create_product.create_product_command import (
-    CreateProductCommand,
-    CreateProductResult,
-)
-from app.modules.catalog.application.features.products.commands.create_product.create_product_handler import (
-    CreateProductHandler,
-)
+    CreateProductCommand, CreateProductResult)
+from app.modules.catalog.application.features.products.commands.create_product.create_product_handler import \
+    CreateProductHandler
 from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import (
-    DeleteProductCommand,
-    DeleteProductResult,
-)
-from app.modules.catalog.application.features.products.commands.delete_product.delete_product_handler import (
-    DeleteProductHandler,
-)
+    DeleteProductCommand, DeleteProductResult)
+from app.modules.catalog.application.features.products.commands.delete_product.delete_product_handler import \
+    DeleteProductHandler
 from app.modules.catalog.application.features.products.commands.update_product.update_product_command import (
-    UpdateProductCommand,
-    UpdateProductResult,
-)
-from app.modules.catalog.application.features.products.commands.update_product.update_product_handler import (
-    UpdateProductHandler,
-)
-from app.modules.catalog.application.features.products.queries.get_product_by_id.handler import (
-    GetProductByIdHandler,
-)
+    UpdateProductCommand, UpdateProductResult)
+from app.modules.catalog.application.features.products.commands.update_product.update_product_handler import \
+    UpdateProductHandler
 from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
-    GetProductByIdQuery,
-    GetProductByIdResult,
-)
-from app.modules.catalog.application.features.products.queries.get_products.handler import (
-    GetProductsHandler,
-)
-from app.modules.catalog.application.features.products.queries.get_products_by_category.handler import (
-    GetProductsByCategoryHandler,
-)
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+    GetProductByIdQuery, GetProductByIdResult)
+from app.modules.catalog.application.features.products.queries.get_product_by_id.handler import \
+    GetProductByIdHandler
+from app.modules.catalog.application.features.products.queries.get_products.handler import \
+    GetProductsHandler
+from app.modules.catalog.application.features.products.queries.get_products_by_category.handler import \
+    GetProductsByCategoryHandler
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from app.modules.catalog.domain.exceptions.product import (
-    ProductCreationError,
-    ProductDeleteError,
-    ProductNotFoundError,
-    ProductUpdateError,
-    ProductValidationError,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository as ProductRepository,
-)
+    ProductCreationError, ProductDeleteError, ProductNotFoundError,
+    ProductUpdateError, ProductValidationError)
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import \
+    SqlProductRepository as ProductRepository
 
 
 class TestCreateProductHandler:
@@ -114,7 +95,8 @@ class TestCreateProductHandler:
                 "app.modules.catalog.application.features.products.commands.create_product.handler.ProductRepository"
             ) as mock_repo_class:
                 mock_repo_class.return_value = mock_repository
-                from app.modules.catalog.domain.entities.product.product import Product
+                from app.modules.catalog.domain.entities.product.product import \
+                    Product
 
                 created_product = Product(
                     id=uuid4(),
@@ -558,9 +540,8 @@ class TestGetProductsHandler:
         self, handler, sample_products, mock_repository, mock_session
     ):
         """Test successful products retrieval."""
-        from app.modules.catalog.application.features.products.queries.get_products.get_products_query import (
-            GetProductsQuery,
-        )
+        from app.modules.catalog.application.features.products.queries.get_products.get_products_query import \
+            GetProductsQuery
 
         query = GetProductsQuery(page=1, page_size=10)
 
@@ -635,9 +616,8 @@ class TestGetProductsByCategoryHandler:
         self, handler, sample_products, mock_repository, mock_session
     ):
         """Test successful products retrieval by category."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
-            GetProductsByCategoryQuery,
-        )
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import \
+            GetProductsByCategoryQuery
 
         query = GetProductsByCategoryQuery(category="Electronics", page=1, page_size=10)
 
@@ -670,9 +650,8 @@ class TestGetProductsByCategoryHandler:
     @pytest.mark.asyncio
     async def test_handle_empty_results(self, handler, mock_repository, mock_session):
         """Test handler with empty results for category."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
-            GetProductsByCategoryQuery,
-        )
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import \
+            GetProductsByCategoryQuery
 
         query = GetProductsByCategoryQuery(category="NonExistent", page=1, page_size=10)
 
@@ -705,9 +684,8 @@ class TestGetProductsByCategoryHandler:
         self, handler, sample_products, mock_repository, mock_session
     ):
         """Test handler with pagination."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
-            GetProductsByCategoryQuery,
-        )
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import \
+            GetProductsByCategoryQuery
 
         query = GetProductsByCategoryQuery(category="Electronics", page=2, page_size=5)
 
@@ -741,9 +719,8 @@ class TestGetProductsByCategoryHandler:
     @pytest.mark.asyncio
     async def test_handle_database_error(self, handler, mock_repository, mock_session):
         """Test handler with database error."""
-        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import (
-            GetProductsByCategoryQuery,
-        )
+        from app.modules.catalog.application.features.products.queries.get_products_by_category.get_products_by_category_query import \
+            GetProductsByCategoryQuery
 
         query = GetProductsByCategoryQuery(category="Electronics", page=1, page_size=10)
 

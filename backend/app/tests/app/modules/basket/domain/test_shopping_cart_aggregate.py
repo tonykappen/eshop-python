@@ -4,8 +4,8 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-
-from app.modules.basket.domain.entities.basket.shopping_cart import ShoppingCart
+from app.modules.basket.domain.entities.basket.shopping_cart import \
+    ShoppingCart
 
 
 class TestShoppingCartCreation:

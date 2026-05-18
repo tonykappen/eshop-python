@@ -1,11 +1,9 @@
 """Basket module health check endpoints."""
 
+from app.modules.basket.module_interface.di.basket.basket_providers import \
+    get_basket_session
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.modules.basket.module_interface.di.basket.basket_providers import (
-    get_basket_session,
-)
 
 router = APIRouter(prefix="/health", tags=["basket-health"])
 

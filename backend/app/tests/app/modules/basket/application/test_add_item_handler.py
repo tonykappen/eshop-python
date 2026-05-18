@@ -6,23 +6,20 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.exceptions.bad_request_exception import BadRequestException
 from app.core.exceptions.not_found_exception import NotFoundError
 from app.core.mediator.cancellation import CancellationToken
-from app.modules.basket.application.dtos.shopping_cart_dto import ShoppingCartItemDto
+from app.modules.basket.application.dtos.shopping_cart_dto import \
+    ShoppingCartItemDto
 from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_command import (
-    AddItemIntoBasketCommand,
-    AddItemIntoBasketResult,
-)
-from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_handler import (
-    AddItemIntoBasketHandler,
-)
+    AddItemIntoBasketCommand, AddItemIntoBasketResult)
+from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_handler import \
+    AddItemIntoBasketHandler
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
-from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
-    GetProductByIdResult,
-)
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import \
+    GetProductByIdResult
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 
 
 class TestAddItemIntoBasketHandler:

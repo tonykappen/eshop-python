@@ -1,15 +1,11 @@
 """SQL-based unit of work implementation for ordering module."""
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database.unit_of_work import IUnitOfWork
-from app.modules.ordering.application.unit_of_work.ordering_unit_of_work import (
-    IOrderingUnitOfWork,
-)
+from app.modules.ordering.application.unit_of_work.ordering_unit_of_work import \
+    IOrderingUnitOfWork
 from app.modules.ordering.domain.repositories.order import IOrderRepository
-from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import (
-    SqlOrderRepository,
-)
+from app.modules.ordering.infrastructure.persistence.repositories.orders.sql_order_repository import \
+    SqlOrderRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlOrderingUnitOfWork(IOrderingUnitOfWork):

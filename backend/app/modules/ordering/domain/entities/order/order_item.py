@@ -3,9 +3,8 @@
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import Field
-
 from app.core.domain.entity import Entity
+from pydantic import Field
 
 
 class OrderItem(Entity):

@@ -3,30 +3,22 @@
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.logging.base_logger import BaseLogger
-from app.core.transactions.commit_interceptors import commit_interceptor_registry
+from app.core.transactions.commit_interceptors import \
+    commit_interceptor_registry
 from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-    RedisCacheService,
-)
-from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import (
-    ICatalogUnitOfWork,
-)
+    CatalogCacheService, RedisCacheService)
+from app.modules.catalog.application.unit_of_work.catalog_unit_of_work import \
+    ICatalogUnitOfWork
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
-    CachedProductRepository,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import \
+    CachedProductRepository
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlCategoryRepository,
-    SqlInventoryRepository,
-    SqlProductRepository,
-)
+    SqlCategoryRepository, SqlInventoryRepository, SqlProductRepository)
+from sqlalchemy.ext.asyncio import AsyncSession
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -108,7 +100,11 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
         unwanted secondary UPDATEs.
         """
         entities: list[object] = list(self._tracked)
-        for obj in list(self._session.new) + list(self._session.dirty) + list(self._session.deleted):
+        for obj in (
+            list(self._session.new)
+            + list(self._session.dirty)
+            + list(self._session.deleted)
+        ):
             if obj not in entities:
                 entities.append(obj)
         return entities
@@ -152,15 +148,12 @@ class SqlCatalogUnitOfWork(ICatalogUnitOfWork):
         if self._cache_service is None:
             return
         try:
-            from app.modules.catalog.domain.entities.product.product import (
-                Product as ProductEntity,
-            )
-            from app.modules.catalog.infrastructure.persistence.orm.product_orm import (
-                ProductORM,
-            )
-            from app.modules.catalog.infrastructure.persistence.repositories.products.sql.sql_product_repository import (
-                SESSION_INFO_CACHE_INVALIDATION_KEY,
-            )
+            from app.modules.catalog.domain.entities.product.product import \
+                Product as ProductEntity
+            from app.modules.catalog.infrastructure.persistence.orm.product_orm import \
+                ProductORM
+            from app.modules.catalog.infrastructure.persistence.repositories.products.sql.sql_product_repository import \
+                SESSION_INFO_CACHE_INVALIDATION_KEY
 
             product_ids: set[UUID] = set()
             for raw in list(

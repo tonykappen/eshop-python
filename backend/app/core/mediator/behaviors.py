@@ -42,6 +42,7 @@ class BehaviorWrapper:
         async def next_callable() -> Any:
             # Check if next_handler is a class (not an instance)
             import inspect
+
             if inspect.isclass(self.next_handler):
                 # If it's a class, we cannot call handle() directly because:
                 # 1. Handlers need dependencies (e.g., repositories) injected via __init__

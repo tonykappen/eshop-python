@@ -3,9 +3,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import Aggregate
+from pydantic import Field, field_validator
 
 
 class InventoryItem(Aggregate):

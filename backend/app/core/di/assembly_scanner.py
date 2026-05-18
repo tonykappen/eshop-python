@@ -6,9 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from dependency_injector import containers, providers
-
 from app.core.logging.base_logger import BaseLogger
+from dependency_injector import containers, providers
 
 logger = BaseLogger(__name__)
 

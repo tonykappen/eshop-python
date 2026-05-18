@@ -5,20 +5,16 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter
-
 from app.core.di.container import Container
 from app.core.mediator.mediator import Mediator
+from fastapi import APIRouter
 
 logger = logging.getLogger(__name__)
 
 # Import DI components
 from app.modules.ordering.module_interface.di.orders import (
-    get_ordering_container,
-    get_ordering_message_bus,
-    register_ordering_handlers_with_mediator,
-    wire_ordering_dependencies,
-)
+    get_ordering_container, get_ordering_message_bus,
+    register_ordering_handlers_with_mediator, wire_ordering_dependencies)
 
 # Queue name owned by the ordering module's basket-checkout consumer. Mirrors
 # the MassTransit endpoint-per-consumer convention from the .NET reference.
@@ -26,10 +22,10 @@ _BASKET_CHECKOUT_QUEUE = "basket-checkout-queue"
 _BASKET_EVENTS_EXCHANGE = "basket.events"
 
 # Import order router
-from app.modules.ordering.router.order_router import router as order_router
-
 # Import health router
-from app.modules.ordering.module_interface.health.health import router as health_router
+from app.modules.ordering.module_interface.health.health import \
+    router as health_router
+from app.modules.ordering.router.order_router import router as order_router
 
 
 def register_ordering_module(container: Container, mediator: Mediator) -> APIRouter:
@@ -120,12 +116,10 @@ async def subscribe_ordering_handlers_to_message_bus() -> None:
     visible in the RabbitMQ Management UI even before any messages flow.
     """
     from app.core.mediator.fastapi_integration import get_mediator
-    from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
-        BasketCheckoutIntegrationEvent,
-    )
-    from app.modules.ordering.application.integration_event_handlers.basket.basket_checkout_integration_event_handler import (
-        BasketCheckoutIntegrationEventHandler,
-    )
+    from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import \
+        BasketCheckoutIntegrationEvent
+    from app.modules.ordering.application.integration_event_handlers.basket.basket_checkout_integration_event_handler import \
+        BasketCheckoutIntegrationEventHandler
 
     main_mediator = get_mediator()
     checkout_handler = BasketCheckoutIntegrationEventHandler(main_mediator)

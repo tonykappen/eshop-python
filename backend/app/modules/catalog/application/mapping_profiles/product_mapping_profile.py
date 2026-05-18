@@ -4,7 +4,8 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.modules.catalog.application.dvos.product_dvo import ProductDVO
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
 from app.modules.catalog.domain.value_objects import SKU, Money
 

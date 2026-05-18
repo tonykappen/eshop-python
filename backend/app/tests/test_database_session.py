@@ -4,17 +4,12 @@ import contextlib
 from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
+from app.core.database.session import (AsyncSessionLocal, close_db_engine,
+                                       create_db_engine, engine,
+                                       get_db_session)
+from app.core.exceptions.common_exceptions import DatabaseError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database.session import (
-    AsyncSessionLocal,
-    close_db_engine,
-    create_db_engine,
-    engine,
-    get_db_session,
-)
-from app.core.exceptions.common_exceptions import DatabaseError
 
 
 class TestDatabaseSession:

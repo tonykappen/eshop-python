@@ -55,7 +55,9 @@ class MetricsRegistry:
         """
         if cls._meter_provider:
             return cls._meter_provider.get_meter(name)
-        logger.log_warning_with_context("Meter provider not initialized, returning None")
+        logger.log_warning_with_context(
+            "Meter provider not initialized, returning None"
+        )
         return None
 
     @classmethod

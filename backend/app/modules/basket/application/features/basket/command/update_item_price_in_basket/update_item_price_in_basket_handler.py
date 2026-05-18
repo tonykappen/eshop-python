@@ -5,9 +5,7 @@ from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
 from .update_item_price_in_basket_command import (
-    UpdateItemPriceInBasketCommand,
-    UpdateItemPriceInBasketResult,
-)
+    UpdateItemPriceInBasketCommand, UpdateItemPriceInBasketResult)
 
 
 class UpdateItemPriceInBasketCommandValidator:
@@ -67,7 +65,8 @@ class UpdateItemPriceInBasketHandler(
         validator = UpdateItemPriceInBasketCommandValidator()
         errors = validator.validate(command)
         if errors:
-            from app.core.exceptions.bad_request_exception import BadRequestException
+            from app.core.exceptions.bad_request_exception import \
+                BadRequestException
 
             raise BadRequestException(message="; ".join(errors))
 
@@ -76,7 +75,9 @@ class UpdateItemPriceInBasketHandler(
 
         # Find Shopping Cart Items with given ProductId and update their price
         # The repository implements update_items_price which queries items directly
-        updated = await self.repository.update_items_price(command.product_id, command.price)
+        updated = await self.repository.update_items_price(
+            command.product_id, command.price
+        )
 
         if not updated:
             return UpdateItemPriceInBasketResult(is_success=False)

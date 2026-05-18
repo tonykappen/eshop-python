@@ -14,7 +14,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from app.modules.catalog.application.public_interface.dto.product import ProductDto
+    from app.modules.catalog.application.public_interface.dto.product import \
+        ProductDto
 
 
 class ProductPublicDto(BaseModel):
@@ -66,9 +67,7 @@ class ProductPublicDto(BaseModel):
 
     # Timestamps (ISO 8601 strings for cross-BC compatibility)
     created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
-    updated_at: str | None = Field(
-        None, description="Last update timestamp (ISO 8601)"
-    )
+    updated_at: str | None = Field(None, description="Last update timestamp (ISO 8601)")
 
     # Optional metadata for cross-BC context
     metadata: dict | None = Field(
@@ -133,7 +132,6 @@ class ProductPublicDto(BaseModel):
             ProductPublicDto instance
         """
         # Type checking only - import here to avoid circular dependency
-
 
         return cls(
             id=product_dto.id,

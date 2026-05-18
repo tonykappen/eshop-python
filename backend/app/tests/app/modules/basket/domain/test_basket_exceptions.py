@@ -1,8 +1,7 @@
 """Tests for basket domain exceptions."""
 
-from app.modules.basket.domain.exceptions.basket.basket_not_found import (
-    BasketNotFoundException,
-)
+from app.modules.basket.domain.exceptions.basket.basket_not_found import \
+    BasketNotFoundException
 
 
 class TestBasketNotFoundException:

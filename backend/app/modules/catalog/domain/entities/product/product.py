@@ -2,10 +2,9 @@
 
 from uuid import UUID
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import Aggregate
 from app.modules.catalog.domain.value_objects import SKU, Money
+from pydantic import Field, field_validator
 
 
 class Product(Aggregate):
@@ -105,9 +104,8 @@ class Product(Aggregate):
         )
 
         # Add domain event
-        from app.modules.catalog.domain.domain_events.products.product_created_domain_event import (
-            ProductCreatedDomainEvent,
-        )
+        from app.modules.catalog.domain.domain_events.products.product_created_domain_event import \
+            ProductCreatedDomainEvent
 
         product.add_domain_event(ProductCreatedDomainEvent(product=product))
 
@@ -149,11 +147,12 @@ class Product(Aggregate):
 
         # If price changed, add domain event
         if old_price != price:
-            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-                ProductPriceChangedDomainEvent,
-            )
+            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+                ProductPriceChangedDomainEvent
 
-            self.add_domain_event(ProductPriceChangedDomainEvent(product=self, old_price=old_price))
+            self.add_domain_event(
+                ProductPriceChangedDomainEvent(product=self, old_price=old_price)
+            )
 
     def change_price(self, new_price: Money) -> None:
         """
@@ -173,9 +172,8 @@ class Product(Aggregate):
 
         # Add domain event for price change
         if old_price != new_price:
-            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-                ProductPriceChangedDomainEvent,
-            )
+            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+                ProductPriceChangedDomainEvent
 
             self.add_domain_event(ProductPriceChangedDomainEvent(product=self))
 
@@ -243,8 +241,7 @@ class Product(Aggregate):
             ValueError: If product is already deactivated
         """
         # Add domain event for deletion
-        from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
-            ProductDeletedDomainEvent,
-        )
+        from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import \
+            ProductDeletedDomainEvent
 
         self.add_domain_event(ProductDeletedDomainEvent(product=self))

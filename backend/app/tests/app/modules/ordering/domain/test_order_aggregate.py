@@ -4,7 +4,6 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-
 from app.modules.ordering.domain.entities.order.order import Order
 from app.modules.ordering.domain.value_objects import Address, Payment
 

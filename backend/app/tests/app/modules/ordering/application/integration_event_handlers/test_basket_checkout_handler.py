@@ -5,15 +5,11 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.messaging.integration_event import IntegrationEvent
 from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
-    BasketCheckoutIntegrationEvent,
-    BasketCheckoutItem,
-)
-from app.modules.ordering.application.integration_event_handlers.basket.basket_checkout_integration_event_handler import (
-    BasketCheckoutIntegrationEventHandler,
-)
+    BasketCheckoutIntegrationEvent, BasketCheckoutItem)
+from app.modules.ordering.application.integration_event_handlers.basket.basket_checkout_integration_event_handler import \
+    BasketCheckoutIntegrationEventHandler
 
 
 class TestBasketCheckoutIntegrationEventHandler:

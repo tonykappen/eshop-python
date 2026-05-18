@@ -5,11 +5,10 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request, status
-from pydantic import BaseModel
-
 from app.core.auth.keycloak import KeycloakUser, get_current_user_optional
 from app.core.logging.base_logger import BaseLogger
+from fastapi import Depends, HTTPException, Request, status
+from pydantic import BaseModel
 
 logger = BaseLogger(__name__)
 

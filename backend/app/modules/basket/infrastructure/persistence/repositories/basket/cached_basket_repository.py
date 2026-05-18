@@ -1,16 +1,14 @@
 """Redis + JSON decorator for basket repository."""
 
-import json
 import logging
 from uuid import UUID
 
-from app.modules.basket.application.dtos.shopping_cart_dto import ShoppingCartDto
-from app.modules.basket.application.services.basket_cache_patterns import (
-    BasketCachePatterns,
-)
-from app.modules.basket.application.services.basket_cache_service import (
-    BasketCacheService,
-)
+from app.modules.basket.application.dtos.shopping_cart_dto import \
+    ShoppingCartDto
+from app.modules.basket.application.services.basket_cache_patterns import \
+    BasketCachePatterns
+from app.modules.basket.application.services.basket_cache_service import \
+    BasketCacheService
 from app.modules.basket.domain.entities.basket import ShoppingCart
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
@@ -114,9 +112,8 @@ class CachedBasketRepository(IBasketRepository):
 
     def _domain_to_dto(self, basket: ShoppingCart) -> ShoppingCartDto:
         """Convert domain model to DTO for caching."""
-        from app.modules.basket.application.dtos.shopping_cart_dto import (
-            ShoppingCartItemDto,
-        )
+        from app.modules.basket.application.dtos.shopping_cart_dto import \
+            ShoppingCartItemDto
 
         items_dto = [
             ShoppingCartItemDto(
@@ -141,7 +138,7 @@ class CachedBasketRepository(IBasketRepository):
         """Convert DTO to domain model."""
         from decimal import Decimal
 
-        from app.modules.basket.domain.entities.basket import ShoppingCart, ShoppingCartItem
+        from app.modules.basket.domain.entities.basket import ShoppingCart
 
         basket = ShoppingCart.create(cart_id=dto.id, user_name=dto.user_name)
 

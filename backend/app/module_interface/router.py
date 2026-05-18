@@ -1,8 +1,7 @@
 """Root API router that mounts modules + health."""
 
-from fastapi import APIRouter
-
 from app.module_interface.health import health_router
+from fastapi import APIRouter
 
 
 def create_root_router() -> APIRouter:

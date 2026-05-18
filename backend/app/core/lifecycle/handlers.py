@@ -9,14 +9,16 @@ from typing import Any
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-# Import after path modification - noqa: E402
-from infra.keycloak.keycloak_setup import setup_keycloak_async  # noqa: E402
-
-from app.core.database.migrations import run_migrations, wait_for_database  # noqa: E402
+from app.core.database.migrations import (run_migrations,  # noqa: E402
+                                          wait_for_database)
 from app.core.database.seeding import run_seeding  # noqa: E402
-from app.core.database.session import close_db_engine, create_db_engine  # noqa: E402
+from app.core.database.session import (close_db_engine,  # noqa: E402
+                                       create_db_engine)
 from app.core.health.health_service import health_service  # noqa: E402
 from app.core.logging.base_logger import BaseLogger  # noqa: E402
+
+# Import after path modification - noqa: E402
+from infra.keycloak.keycloak_setup import setup_keycloak_async  # noqa: E402
 
 logger = BaseLogger(__name__)
 
@@ -174,9 +176,7 @@ class MessagingLifecycleHandler:
             from app.core.messaging.outbox import outbox_worker_registry
 
             await outbox_worker_registry.start_all()
-            logger.log_with_context(
-                "[OK] Outbox publisher workers started", "info"
-            )
+            logger.log_with_context("[OK] Outbox publisher workers started", "info")
 
             await self._verify_messaging_connectivity()
             self.is_connected = True
@@ -197,9 +197,7 @@ class MessagingLifecycleHandler:
                 from app.core.messaging.outbox import outbox_worker_registry
 
                 await outbox_worker_registry.stop_all()
-                logger.log_with_context(
-                    "[OK] Outbox publisher workers stopped", "info"
-                )
+                logger.log_with_context("[OK] Outbox publisher workers stopped", "info")
             except Exception as e:
                 logger.log_warning_with_context(
                     "Failed to stop outbox publisher workers", context={"error": str(e)}

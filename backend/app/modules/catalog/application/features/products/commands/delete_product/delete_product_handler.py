@@ -7,10 +7,7 @@ from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.modules.catalog.domain.exceptions.product import (
-    ProductDeleteError,
-    ProductNotFoundError,
-    ProductValidationError,
-)
+    ProductDeleteError, ProductNotFoundError, ProductValidationError)
 
 from .delete_product_command import DeleteProductCommand, DeleteProductResult
 

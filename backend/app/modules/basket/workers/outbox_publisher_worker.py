@@ -5,18 +5,17 @@ import json
 import logging
 from datetime import datetime
 
-from sqlalchemy import func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.config.settings import settings
 from app.core.messaging.bus import RabbitMQMessageBus
 from app.core.messaging.exchange_resolver import get_exchange_for_event_type
-from app.core.messaging.outbox import OutboxMessage, OutboxMessageStatus
-from app.modules.basket.infrastructure.persistence.db_context import get_session_maker
-from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import (
-    OutboxORM,
-    OutboxMessageStatus as BasketOutboxMessageStatus,
-)
+from app.modules.basket.infrastructure.persistence.db_context import \
+    get_session_maker
+from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import \
+    OutboxMessageStatus as BasketOutboxMessageStatus
+from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import \
+    OutboxORM
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +119,7 @@ class BasketOutboxPublisherWorker:
                     except Exception as e:
                         logger.error(
                             f"Error processing message {message_orm.id}: {e}",
-                            exc_info=True
+                            exc_info=True,
                         )
                         # Continue with next message
                         continue
@@ -130,8 +129,7 @@ class BasketOutboxPublisherWorker:
 
         except Exception as e:
             logger.error(
-                f"Error processing pending basket outbox messages: {e}",
-                exc_info=True
+                f"Error processing pending basket outbox messages: {e}", exc_info=True
             )
 
     async def _get_pending_messages(self, session: AsyncSession) -> list[OutboxORM]:
@@ -179,7 +177,9 @@ class BasketOutboxPublisherWorker:
                 else:
                     event_data = message_orm.event_data
             except (json.JSONDecodeError, TypeError) as e:
-                logger.error(f"Failed to parse event_data for message {message_orm.id}: {e}")
+                logger.error(
+                    f"Failed to parse event_data for message {message_orm.id}: {e}"
+                )
                 await self._mark_as_failed(
                     session, message_orm.id, f"Failed to parse event_data: {e}"
                 )
@@ -190,27 +190,33 @@ class BasketOutboxPublisherWorker:
             try:
                 from decimal import Decimal
                 from uuid import UUID
-                from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import (
-                    BasketCheckoutIntegrationEvent,
-                )
-                
+
+                from app.modules.basket.application.integration_events.basket.basket_checkout_integration_event import \
+                    BasketCheckoutIntegrationEvent
+
                 # Convert string UUIDs and Decimals back to proper types
                 if isinstance(event_data, dict):
-                    if 'customer_id' in event_data and isinstance(event_data['customer_id'], str):
+                    if "customer_id" in event_data and isinstance(
+                        event_data["customer_id"], str
+                    ):
                         try:
-                            event_data['customer_id'] = UUID(event_data['customer_id'])
+                            event_data["customer_id"] = UUID(event_data["customer_id"])
                         except (ValueError, AttributeError):
                             pass
-                    
-                    if 'total_price' in event_data:
-                        if isinstance(event_data['total_price'], str):
+
+                    if "total_price" in event_data:
+                        if isinstance(event_data["total_price"], str):
                             try:
-                                event_data['total_price'] = Decimal(event_data['total_price'])
+                                event_data["total_price"] = Decimal(
+                                    event_data["total_price"]
+                                )
                             except (ValueError, AttributeError):
                                 pass
-                        elif isinstance(event_data['total_price'], (int, float)):
-                            event_data['total_price'] = Decimal(str(event_data['total_price']))
-                
+                        elif isinstance(event_data["total_price"], (int, float)):
+                            event_data["total_price"] = Decimal(
+                                str(event_data["total_price"])
+                            )
+
                 # Create event instance from parsed data
                 event = BasketCheckoutIntegrationEvent(**event_data)
 
@@ -224,7 +230,7 @@ class BasketOutboxPublisherWorker:
             except Exception as e:
                 logger.error(
                     f"Failed to reconstruct/publish event for message {message_orm.id}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 # Fallback: publish raw event_data dict on the same exchange
                 fallback_exchange = get_exchange_for_event_type(message_orm.event_type)
@@ -242,7 +248,7 @@ class BasketOutboxPublisherWorker:
             await session.flush()
             logger.error(
                 f"Failed to publish basket outbox message {message_orm.id}: {e}",
-                exc_info=True
+                exc_info=True,
             )
 
     async def _mark_as_processing(self, session: AsyncSession, message_id) -> None:

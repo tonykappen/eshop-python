@@ -2,16 +2,13 @@
 
 from typing import Any
 
-from fastapi import Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.mediator.cancellation import (
-    CancellationToken,
-    get_cancellation_token,
-    get_cancellation_token_with_session,
-)
+    CancellationToken, get_cancellation_token,
+    get_cancellation_token_with_session)
 from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
+from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 _services: dict[str, Any] = {}
 
@@ -49,9 +46,9 @@ def store_mediator_on_app(app) -> None:
 
 
 def _register_module_handlers(handler_registry: HandlerRegistry) -> None:
-    from app.modules.catalog.module_interface.catalog_handler_registration import (
-        register_catalog_handlers,
-    )
+    from app.modules.catalog.module_interface.catalog_handler_registration import \
+        register_catalog_handlers
+
     register_catalog_handlers(handler_registry)
 
 
@@ -66,11 +63,17 @@ def get_mediator(app=None) -> Mediator:
 
 
 def get_handler_registry(app=None) -> HandlerRegistry:
-    if app is not None and hasattr(app, "state") and hasattr(app.state, "handler_registry"):
+    if (
+        app is not None
+        and hasattr(app, "state")
+        and hasattr(app.state, "handler_registry")
+    ):
         return app.state.handler_registry
     registry = _services.get("handler_registry")
     if not registry:
-        raise RuntimeError("Handler registry not configured. Call configure_mediator() first.")
+        raise RuntimeError(
+            "Handler registry not configured. Call configure_mediator() first."
+        )
     return registry
 
 

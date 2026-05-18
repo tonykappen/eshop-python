@@ -3,17 +3,11 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from sqlalchemy.exc import SQLAlchemyError
-
-from app.core.database.session import (
-    AsyncSessionLocal,
-    close_db_engine,
-    create_db_engine,
-    engine,
-    get_db_session,
-    get_pool_status,
-)
+from app.core.database.session import (AsyncSessionLocal, close_db_engine,
+                                       create_db_engine, engine,
+                                       get_db_session, get_pool_status)
 from app.core.exceptions.common_exceptions import DatabaseError
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class TestDatabaseSession:

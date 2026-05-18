@@ -1,26 +1,16 @@
 """Tests for custom exception handling system."""
 
+from app.core.exceptions import (BadRequestError, BaseError,
+                                 ConfigurationError, ConflictError,
+                                 ConnectionError, DatabaseError,
+                                 ForbiddenError, InternalServerError,
+                                 NotFoundError, UnauthorizedError)
+from app.core.exceptions import ValidationError as CustomValidationError
+from app.core.exceptions.handler import CustomExceptionHandler
+from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, ValidationError
-
-from app.core.exceptions import (
-    BadRequestError,
-    BaseError,
-    ConfigurationError,
-    ConflictError,
-    ConnectionError,
-    DatabaseError,
-    ForbiddenError,
-    InternalServerError,
-    NotFoundError,
-    UnauthorizedError,
-)
-from app.core.exceptions import (
-    ValidationError as CustomValidationError,
-)
-from app.core.exceptions.handler import CustomExceptionHandler
-from app.modules.catalog.domain.exceptions.product import ProductNotFoundError
 
 
 class TestBaseExceptions:

@@ -3,11 +3,8 @@
 from uuid import uuid4
 
 from app.modules.catalog.domain.exceptions.product import (
-    ProductCreationError,
-    ProductDeleteError,
-    ProductNotFoundError,
-    ProductUpdateError,
-)
+    ProductCreationError, ProductDeleteError, ProductNotFoundError,
+    ProductUpdateError)
 
 
 class TestProductNotFoundError:

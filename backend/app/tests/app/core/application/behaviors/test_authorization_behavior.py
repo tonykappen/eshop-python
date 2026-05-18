@@ -11,7 +11,14 @@ import pytest
 # Test file is at: backend/app/tests/app/core/application/behaviors/test_authorization_behavior.py
 # Target file is at: backend/app/core/application/behaviors/authorization_behavior.py
 # Need to go up 7 levels to get to backend/, then add app/core/...
-auth_behavior_path = Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent / "app" / "core" / "application" / "behaviors" / "authorization_behavior.py"
+auth_behavior_path = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent
+    / "app"
+    / "core"
+    / "application"
+    / "behaviors"
+    / "authorization_behavior.py"
+)
 
 spec = importlib.util.spec_from_file_location(
     "authorization_behavior",
@@ -43,14 +50,14 @@ class TestAuthorizationBehavior:
         # Create a mock request
         mock_request = MagicMock()
         mock_request.__class__.__name__ = "TestCommand"
-        
+
         # Create a mock next handler
         mock_response = MagicMock()
         next_handler = AsyncMock(return_value=mock_response)
-        
+
         # Execute
         result = await authorization_behavior.handle(mock_request, next_handler)
-        
+
         # Assert
         assert result == mock_response
         next_handler.assert_called_once()
@@ -62,16 +69,14 @@ class TestAuthorizationBehavior:
         mock_logger: MagicMock,
     ) -> None:
         """Test that handle logs authorization check."""
-        with patch.object(
-            authorization_behavior, "logger", mock_logger
-        ):
+        with patch.object(authorization_behavior, "logger", mock_logger):
             mock_request = MagicMock()
             mock_request.__class__.__name__ = "TestCommand"
-            
+
             next_handler = AsyncMock(return_value=MagicMock())
-            
+
             await authorization_behavior.handle(mock_request, next_handler)
-            
+
             # Verify log was called
             mock_logger.log_debug_with_context.assert_called_once()
             call_args = mock_logger.log_debug_with_context.call_args
@@ -83,16 +88,20 @@ class TestAuthorizationBehavior:
         self, authorization_behavior: AuthorizationBehavior
     ) -> None:
         """Test handle with different request types."""
-        request_types = ["CreateProductCommand", "GetProductQuery", "UpdateOrderCommand"]
-        
+        request_types = [
+            "CreateProductCommand",
+            "GetProductQuery",
+            "UpdateOrderCommand",
+        ]
+
         for request_type in request_types:
             mock_request = MagicMock()
             mock_request.__class__.__name__ = request_type
-            
+
             next_handler = AsyncMock(return_value=MagicMock())
-            
+
             result = await authorization_behavior.handle(mock_request, next_handler)
-            
+
             assert result is not None
             next_handler.assert_called_once()
 
@@ -103,13 +112,13 @@ class TestAuthorizationBehavior:
         """Test that handle propagates exceptions from next handler."""
         mock_request = MagicMock()
         mock_request.__class__.__name__ = "TestCommand"
-        
+
         test_exception = ValueError("Test error")
         next_handler = AsyncMock(side_effect=test_exception)
-        
+
         with pytest.raises(ValueError, match="Test error"):
             await authorization_behavior.handle(mock_request, next_handler)
-        
+
         next_handler.assert_called_once()
 
     @pytest.mark.asyncio
@@ -119,11 +128,11 @@ class TestAuthorizationBehavior:
         """Test handle with a response value."""
         mock_request = MagicMock()
         mock_request.__class__.__name__ = "TestCommand"
-        
+
         expected_response = {"id": 123, "name": "Test"}
         next_handler = AsyncMock(return_value=expected_response)
-        
+
         result = await authorization_behavior.handle(mock_request, next_handler)
-        
+
         assert result == expected_response
         next_handler.assert_called_once()

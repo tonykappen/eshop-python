@@ -6,25 +6,19 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.core.mediator.cancellation import CancellationToken
 from app.modules.basket.application.dtos.shopping_cart_dto import (
-    ShoppingCartDto,
-    ShoppingCartItemDto,
-)
-from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_command import (
-    AddItemIntoBasketCommand,
-)
-from app.modules.basket.application.features.basket.command.create_basket.create_basket_command import (
-    CreateBasketCommand,
-)
-from app.modules.basket.application.features.basket.query.get_basket.get_basket_query import (
-    GetBasketQuery,
-)
-from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
-    GetProductByIdResult,
-)
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+    ShoppingCartDto, ShoppingCartItemDto)
+from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_command import \
+    AddItemIntoBasketCommand
+from app.modules.basket.application.features.basket.command.create_basket.create_basket_command import \
+    CreateBasketCommand
+from app.modules.basket.application.features.basket.query.get_basket.get_basket_query import \
+    GetBasketQuery
+from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import \
+    GetProductByIdResult
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 
 
 class TestBasketIntegration:
@@ -40,21 +34,16 @@ class TestBasketIntegration:
         # 4. Remove item
         # 5. Get basket again
 
-        from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_handler import (
-            AddItemIntoBasketHandler,
-        )
-        from app.modules.basket.application.features.basket.command.create_basket.create_basket_handler import (
-            CreateBasketHandler,
-        )
-        from app.modules.basket.application.features.basket.command.remove_item_from_basket.remove_item_from_basket_command import (
-            RemoveItemFromBasketCommand,
-        )
-        from app.modules.basket.application.features.basket.command.remove_item_from_basket.remove_item_from_basket_handler import (
-            RemoveItemFromBasketHandler,
-        )
-        from app.modules.basket.application.features.basket.query.get_basket.get_basket_handler import (
-            GetBasketHandler,
-        )
+        from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_handler import \
+            AddItemIntoBasketHandler
+        from app.modules.basket.application.features.basket.command.create_basket.create_basket_handler import \
+            CreateBasketHandler
+        from app.modules.basket.application.features.basket.command.remove_item_from_basket.remove_item_from_basket_command import \
+            RemoveItemFromBasketCommand
+        from app.modules.basket.application.features.basket.command.remove_item_from_basket.remove_item_from_basket_handler import \
+            RemoveItemFromBasketHandler
+        from app.modules.basket.application.features.basket.query.get_basket.get_basket_handler import \
+            GetBasketHandler
 
         # Setup mocks
         mock_repository = AsyncMock()
@@ -148,9 +137,8 @@ class TestBasketIntegration:
         # This test verifies that basket module correctly integrates with catalog module
         # when adding items to basket
 
-        from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_handler import (
-            AddItemIntoBasketHandler,
-        )
+        from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_handler import \
+            AddItemIntoBasketHandler
 
         mock_repository = AsyncMock()
         mock_mediator = AsyncMock()

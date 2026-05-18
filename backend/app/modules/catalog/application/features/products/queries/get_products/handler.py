@@ -6,7 +6,8 @@ from typing import Any
 from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
 from app.modules.catalog.domain.entities.product.product import Product
 
 from .get_products_query import GetProductsQuery, GetProductsResult
@@ -37,7 +38,9 @@ class GetProductsHandler(IRequestHandler[GetProductsQuery, GetProductsResult]):
                     "page": query.page,
                     "page_size": query.page_size,
                     "search_term": query.search_term,
-                    "category_id": str(query.category_id) if query.category_id else None,
+                    "category_id": (
+                        str(query.category_id) if query.category_id else None
+                    ),
                 },
             )
 

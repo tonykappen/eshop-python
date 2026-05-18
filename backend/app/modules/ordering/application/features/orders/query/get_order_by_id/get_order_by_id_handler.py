@@ -51,9 +51,8 @@ class GetOrderByIdHandler(IRequestHandler[GetOrderByIdQuery, GetOrderByIdResult]
             raise OrderNotFoundException(query.id)
 
         # Map order to DTO (matching .NET Adapt<OrderDto> pattern)
-        from app.modules.ordering.application.mappers.order_mapper import (
-            OrderMapper,
-        )
+        from app.modules.ordering.application.mappers.order_mapper import \
+            OrderMapper
 
         order_dto = OrderMapper.to_dto(order)
 

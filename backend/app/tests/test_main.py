@@ -51,7 +51,7 @@ class TestMainApplication:
 
     @patch("app.main.settings")
     @patch("app.core.initialization.BaseLogger")
-    @patch("app.main.configure_logging")
+    @patch("app.core.initialization.configure_logging")
     @pytest.mark.asyncio
     async def test_configure_application_startup(
         self,
@@ -351,13 +351,13 @@ class TestMainApplication:
         from app.main import app
 
         # Test that the endpoint exists and has the correct structure
-        routes = [route.path for route in app.routes]
+        routes = [getattr(route, "path", None) for route in app.routes]
         assert "/api/v1/auth/me" in routes
 
         # Test that the endpoint is properly configured
         for route in app.routes:
-            if route.path == "/api/v1/auth/me":
-                assert route.methods == {"GET"}
+            if getattr(route, "path", None) == "/api/v1/auth/me":
+                assert getattr(route, "methods", None) == {"GET"}
                 break
 
     @patch("app.main.settings")
@@ -484,7 +484,7 @@ class TestMainIntegration:
         TestClient(app)
 
         # Get all registered routes
-        routes = [route.path for route in app.routes]
+        routes = [getattr(route, "path", None) for route in app.routes]
 
         expected_routes = [
             "/",
@@ -620,7 +620,7 @@ class TestMainIntegration:
         from app.main import app
 
         # Test that pagination routes are available
-        routes = [route.path for route in app.routes]
+        routes = [getattr(route, "path", None) for route in app.routes]
 
         # FastAPI pagination adds some utility endpoints
         # The exact endpoints depend on the fastapi-pagination version
@@ -631,7 +631,7 @@ class TestMainIntegration:
         from app.main import app
 
         # Test that Keycloak routes are registered
-        routes = [route.path for route in app.routes]
+        routes = [getattr(route, "path", "") for route in app.routes]
 
         # Look for auth-related routes
         auth_routes = [route for route in routes if "auth" in route]
@@ -642,7 +642,7 @@ class TestMainIntegration:
         from app.main import app
 
         # Test that health endpoints are registered
-        routes = [route.path for route in app.routes]
+        routes = [getattr(route, "path", "") for route in app.routes]
 
         health_routes = [route for route in routes if "health" in route]
         assert len(health_routes) >= 7, "Should have multiple health endpoints"
@@ -766,7 +766,7 @@ class TestMainIntegration:
         from app.main import app
 
         # Test that routes are registered
-        routes = [route.path for route in app.routes]
+        routes = [getattr(route, "path", None) for route in app.routes]
         assert len(routes) > 0
 
         # Test that essential routes are present

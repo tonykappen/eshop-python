@@ -6,6 +6,7 @@ from functools import lru_cache
 from app.config.settings import settings
 from app.core.context.application_context import RequestContext
 from app.core.logging.base_logger import BaseLogger
+from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
 from app.core.messaging.bus import IMessageBus, RabbitMQMessageBus
 from app.core.messaging.domain_dispatcher import DomainEventDispatcher
@@ -219,8 +220,7 @@ async def get_catalog_mediator() -> Mediator:
     container = get_catalog_container()
     mediator = container.get_optional(Mediator)
     if mediator is None:
-        # Create a new mediator instance
-        mediator = Mediator()
+        mediator = Mediator(HandlerRegistry())
         container.register(Mediator, mediator)
     return mediator
 

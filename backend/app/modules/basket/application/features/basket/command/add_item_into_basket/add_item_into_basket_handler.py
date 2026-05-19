@@ -1,6 +1,7 @@
 """AddItemIntoBasketHandler with 1-1 parity to .NET implementation."""
 
 from decimal import Decimal
+from typing import Any
 from uuid import uuid4
 
 from app.core.logging.base_logger import BaseLogger
@@ -92,7 +93,7 @@ class AddItemIntoBasketHandler(
             product_query = GetProductByIdQuery(
                 id=command.shopping_cart_item.product_id
             )
-            product_result = await self.mediator.send(product_query, cancellation_token)
+            product_result: Any = await self.mediator.send(product_query, cancellation_token)
 
             # Validate product result
             if not product_result or not product_result.product:

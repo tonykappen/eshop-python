@@ -28,7 +28,10 @@ class Order(Aggregate):
         Returns:
             Total price as Decimal
         """
-        return sum(item.price * Decimal(item.quantity) for item in self.items)
+        return sum(
+            (item.price * Decimal(item.quantity) for item in self.items),
+            Decimal(0),
+        )
 
     @classmethod
     def create(

@@ -32,7 +32,7 @@ class KeycloakService:
 
     def __init__(self) -> None:
         """Initialize Keycloak service."""
-        self.keycloak = None
+        self.keycloak: Any = None
         self._initialized = False
 
     def _initialize_keycloak(self) -> None:

@@ -253,7 +253,7 @@ class TestICommandHandlerNoResponse:
         handler = TestCommandHandlerNoResponse()
         command = TestCommandNoResponse(name="test", value=42)
 
-        result = await handler.handle(command)
+        result: Any = await handler.handle(command)
 
         assert result is None
 
@@ -368,7 +368,7 @@ class TestCQRSContractsIntegration:
         handler = TestCommandHandlerNoResponse()
 
         # Execute command
-        result = await handler.handle(command)
+        result: Any = await handler.handle(command)
 
         # Verify result is None
         assert result is None

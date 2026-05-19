@@ -22,7 +22,7 @@ async def create_basket(
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Allow user, manager, and admin roles (users should be able to create their own basket)
     _: Any = Depends(require_user_or_higher()),
-) -> CreateBasketResult:
+) -> JSONResponse:
     """
     Create a new basket.
 

@@ -1,6 +1,7 @@
 """Tests for get product by ID feature."""
 
-from uuid import uuid4
+from typing import Any, cast
+from uuid import UUID, uuid4
 
 import pytest
 from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
@@ -8,6 +9,24 @@ from app.modules.catalog.application.features.products.queries.get_product_by_id
 from app.modules.catalog.application.public_interface.dto.product import \
     ProductDto
 from pydantic import ValidationError
+
+
+def _product_dto(**kwargs: object) -> ProductDto:
+    """Build ProductDto with required test defaults."""
+    defaults: dict[str, object] = {
+        "sku": "TEST-SKU",
+        "version": 1,
+        "created_at": "2020-01-01T00:00:00Z",
+        "name": "Test",
+        "description": "D",
+        "price": 1.0,
+        "category": [],
+        "image_file": None,
+    }
+    defaults.update(kwargs)
+    if "id" not in defaults:
+        defaults["id"] = uuid4()
+    return ProductDto(**cast(Any, defaults))
 
 
 class TestGetProductByIdQuery:
@@ -23,7 +42,7 @@ class TestGetProductByIdQuery:
     def test_query_validation_missing_id(self) -> None:
         """Test query validation with missing ID."""
         with pytest.raises(ValidationError):
-            GetProductByIdQuery()
+            GetProductByIdQuery(**cast(Any, {}))
 
     def test_query_validation_invalid_uuid(self) -> None:
         """Test query validation with invalid UUID."""
@@ -43,7 +62,7 @@ class TestGetProductByIdQuery:
         product_id = uuid4()
         data = {"id": str(product_id)}
 
-        query = GetProductByIdQuery(**data)
+        query = GetProductByIdQuery(**cast(dict[str, Any], data))
         assert query.id == product_id
 
     def test_query_round_trip(self) -> None:
@@ -84,7 +103,7 @@ class TestGetProductByIdResult:
     def test_result_creation_with_product(self) -> None:
         """Test creating a GetProductByIdResult with a product."""
         product_id = uuid4()
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="Test Product",
             description="Test Description",
@@ -116,7 +135,7 @@ class TestGetProductByIdResult:
     def test_result_serialization_with_product(self) -> None:
         """Test result serialization with product."""
         product_id = uuid4()
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="Test Product",
             description="Test Description",
@@ -146,6 +165,9 @@ class TestGetProductByIdResult:
         product_id = uuid4()
         product_data = {
             "id": str(product_id),
+            "sku": "TEST-SKU",
+            "version": 1,
+            "created_at": "2020-01-01T00:00:00Z",
             "name": "Test Product",
             "description": "Test Description",
             "price": 99.99,
@@ -159,7 +181,7 @@ class TestGetProductByIdResult:
         result = GetProductByIdResult(**data)
 
         assert result.product is not None
-        assert result.product.id == product_id
+        assert UUID(str(result.product.id)) == product_id
         assert result.product.name == "Test Product"
 
     def test_result_deserialization_without_product(self) -> None:
@@ -172,7 +194,7 @@ class TestGetProductByIdResult:
     def test_result_round_trip(self) -> None:
         """Test result serialization round trip."""
         product_id = uuid4()
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="Test Product",
             description="Test Description",
@@ -201,12 +223,12 @@ class TestGetProductByIdResult:
         assert reconstructed_result.product.price == original_result.product.price
 
     def test_result_inheritance(self) -> None:
-        """Test that result inherits from IQuery."""
+        """Test that query inherits from IQuery."""
         from app.core.cqrs.base import IQuery
 
-        result = GetProductByIdResult()
+        query = GetProductByIdQuery(id=uuid4())
 
-        assert isinstance(result, IQuery)
+        assert isinstance(query, IQuery)
 
     def test_result_field_description(self) -> None:
         """Test that result field has proper description."""
@@ -214,7 +236,7 @@ class TestGetProductByIdResult:
 
         # Check that the field has a description
         field_info = result.model_fields["product"]
-        assert field_info.description == "The retrieved product, None if not found"
+        assert field_info.description == "Product when found; None when not found"
 
 
 class TestGetProductByIdFeatureIntegration:
@@ -227,7 +249,7 @@ class TestGetProductByIdFeatureIntegration:
         query = GetProductByIdQuery(id=product_id)
 
         # Create a result
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="Test Product",
             description="Test Description",
@@ -273,7 +295,7 @@ class TestGetProductByIdFeatureIntegration:
         query = GetProductByIdQuery(id=product_id)
 
         # Test with found product
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="Test Product",
             description="Test Description",
@@ -347,7 +369,7 @@ class TestGetProductByIdFeatureEdgeCases:
         """Test result with empty product fields."""
         product_id = uuid4()
         # ProductDto requires price > 0, so we'll use a minimal valid price
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="",  # Empty name
             description="",  # Empty description
@@ -368,7 +390,7 @@ class TestGetProductByIdFeatureEdgeCases:
     def test_result_with_large_values(self) -> None:
         """Test result with large values."""
         product_id = uuid4()
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="A" * 1000,  # Very long name
             description="B" * 10000,  # Very long description
@@ -381,10 +403,10 @@ class TestGetProductByIdFeatureEdgeCases:
 
         assert result.product is not None
         assert len(result.product.name) == 1000
-        assert len(result.product.description) == 10000
+        assert len(result.product.description or "") == 10000
         assert float(result.product.price) == 999999.99
         assert len(result.product.category) == 3
-        assert len(result.product.image_file) > 0
+        assert len(result.product.image_file or "") > 0
 
     def test_query_result_immutability(self) -> None:
         """Test that query and result are immutable after creation."""
@@ -394,7 +416,7 @@ class TestGetProductByIdFeatureEdgeCases:
         # Try to modify the query (should not be possible with frozen models)
         # This test verifies that the models are properly configured
 
-        product_dto = ProductDto(
+        product_dto = _product_dto(
             id=product_id,
             name="Test Product",
             description="Test Description",

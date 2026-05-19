@@ -105,11 +105,11 @@ class CatalogInitialSeed(Seed):
             },
         ]
 
-        category_ids = {}
+        category_ids: dict[str, str] = {}
 
         for category_data in categories_data:
             await session.execute(insert(CategoryORM).values(**category_data))
-            category_ids[category_data["name"]] = category_data["id"]
+            category_ids[str(category_data["name"])] = str(category_data["id"])
 
         logger.log_with_context(
             "Created categories", context={"category_count": len(categories_data)}
@@ -204,11 +204,11 @@ class CatalogInitialSeed(Seed):
             },
         ]
 
-        product_ids = {}
+        product_ids: dict[str, str] = {}
 
         for product_data in products_data:
             await session.execute(insert(ProductORM).values(**product_data))
-            product_ids[product_data["sku"]] = product_data["id"]
+            product_ids[str(product_data["sku"])] = str(product_data["id"])
 
         logger.log_with_context(
             "Created products", context={"product_count": len(products_data)}

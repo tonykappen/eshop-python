@@ -364,8 +364,8 @@ class CachedProductRepository(ProductRepository):
             name=data["name"],
             sku=SKU(value=data["sku"]),
             category=data["category"],
-            description=data.get("description"),
-            image_file=data.get("image_file"),
+            description=data.get("description") or "",
+            image_file=data.get("image_file") or "",
             price=Money(
                 amount=Decimal(data["price_amount"]),
                 currency=data["price_currency"],

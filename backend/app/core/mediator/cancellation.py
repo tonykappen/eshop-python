@@ -1,7 +1,7 @@
 """Cancellation token support for FastAPI with 1-1 parity to .NET CancellationToken."""
 
 import asyncio
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
 
@@ -24,7 +24,7 @@ class CancellationToken:
         self._cleaning_up = False  # Track if cleanup is in progress
         self._logger = BaseLogger(__name__)
         self._monitor_task: asyncio.Task[None] | None = None
-        self._rollback_callbacks: list[callable] = []
+        self._rollback_callbacks: list[Callable[..., Any]] = []
 
         # Create a task to monitor request disconnection
         if request:
@@ -104,7 +104,7 @@ class CancellationToken:
             with suppress(asyncio.CancelledError):
                 await self._monitor_task
 
-    def register_rollback_callback(self, callback: callable) -> None:
+    def register_rollback_callback(self, callback: Callable[..., Any]) -> None:
         """Register a callback to be executed on cancellation for rollback."""
         self._rollback_callbacks.append(callback)
 
@@ -123,7 +123,7 @@ class CancellationToken:
                     context={"callback": str(callback)},
                 )
 
-    async def execute_with_rollback(self, operation: callable) -> Any:
+    async def execute_with_rollback(self, operation: Callable[..., Any]) -> Any:
         """Execute an operation with automatic rollback on cancellation."""
         try:
             # Register session rollback if session is available

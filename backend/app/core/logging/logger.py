@@ -150,7 +150,7 @@ class DailyRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
         """Perform the actual rollover (rename current file to dated name)."""
         if self.stream:
             self.stream.close()
-            self.stream = None
+            setattr(self, "stream", None)
 
         # Get yesterday's date for the filename
         yesterday = self.current_date
@@ -223,7 +223,7 @@ def configure_logging(
             raise
 
     # Configure structlog processors
-    processors = [
+    processors: list[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
@@ -366,6 +366,8 @@ def _add_source_info(_logger: Any, _method_name: str, event_dict: dict) -> dict:
         if frame:
             # Go up the call stack to find the actual caller
             for _ in range(10):  # Limit stack depth
+                if frame is None:
+                    break
                 frame = frame.f_back
                 if frame and frame.f_code.co_name != "_add_source_info":
                     break

@@ -438,7 +438,7 @@ jobs:
 
       - name: Run MyPy Type Checker
         run: |
-          poetry run mypy app --ignore-missing-imports --show-error-codes > mypy_output.txt 2>&1 || true
+          poetry run mypy app --show-error-codes > mypy_output.txt 2>&1 || true
           cat mypy_output.txt
         continue-on-error: true
 

@@ -36,7 +36,7 @@ class StockAdjustedDomainEventHandler(DomainEventHandler[StockAdjustedDomainEven
         # 3. Update metrics
 
         # Check if stock is low after adjustment
-        if event.inventory_item.is_low_stock:
+        if event.inventory_item.needs_reorder:
             logger.log_warning_with_context(
                 "Low stock alert for product",
                 context={"product_id": str(event.product_id)},

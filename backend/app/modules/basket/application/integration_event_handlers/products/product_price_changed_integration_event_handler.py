@@ -1,6 +1,7 @@
 """ProductPriceChangedIntegrationEventHandler - handles price changes from Catalog module."""
 
 import logging
+from typing import Any
 
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.mediator import IMediator
@@ -48,10 +49,12 @@ class ProductPriceChangedIntegrationEventHandler(IIntegrationEventHandler):
             event.product_id,
         )
 
+        from decimal import Decimal
+
         command = UpdateItemPriceInBasketCommand(
-            product_id=event.product_id, price=event.new_price_amount
+            product_id=event.product_id, price=Decimal(str(event.new_price_amount))
         )
-        result = await self._mediator.send(command, CancellationToken())
+        result: Any = await self._mediator.send(command, CancellationToken())
 
         if not result.is_success:
             logger.error(

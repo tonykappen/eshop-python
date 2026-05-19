@@ -114,9 +114,6 @@ class DomainException(BaseError):
         super().__init__(message, details)
 
 
-# Import NotFoundError for backward compatibility
-from app.core.exceptions.not_found_exception import NotFoundError
-
 __all__ = [
     "BaseError",
     "ValidationError",

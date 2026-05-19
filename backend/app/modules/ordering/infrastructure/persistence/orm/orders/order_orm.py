@@ -1,6 +1,7 @@
 """Order ORM model for ordering module - matches .NET OrderConfiguration exactly."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
@@ -8,6 +9,10 @@ from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
 from sqlalchemy import DateTime, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.modules.ordering.infrastructure.persistence.orm.orders.order_item_orm import \
+        OrderItemORM
 
 
 class OrderORM(Base):

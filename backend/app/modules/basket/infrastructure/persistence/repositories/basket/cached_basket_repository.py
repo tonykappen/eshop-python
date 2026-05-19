@@ -140,6 +140,8 @@ class CachedBasketRepository(IBasketRepository):
 
         from app.modules.basket.domain.entities.basket import ShoppingCart
 
+        if dto.id is None:
+            raise ValueError("ShoppingCartDto.id is required for cache hydration")
         basket = ShoppingCart.create(cart_id=dto.id, user_name=dto.user_name)
 
         for item_dto in dto.items:

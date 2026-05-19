@@ -18,7 +18,7 @@ class BasketContainer:
         self._services: dict[type[Any], Any] = {}
         self._factories: dict[type[Any], Callable[[], Any]] = {}
         self._singletons: dict[type[Any], Any] = {}
-        self._scoped: dict[type[Any], Any] = {}
+        self._scoped: dict[str, dict[type[Any], Any]] = {}
         self._current_scope: str | None = None
 
     def register_singleton(self, service_type: type[T], instance: T) -> None:

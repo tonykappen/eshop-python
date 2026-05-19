@@ -69,7 +69,7 @@ class Product(Aggregate):
         category: list[str],
         description: str,
         image_file: str = "",
-        price: Money = ...,
+        price: Money | None = None,
     ) -> "Product":
         """
         Create a new product, matching .NET Product.Create static method.
@@ -89,6 +89,9 @@ class Product(Aggregate):
         Raises:
             ValueError: If any validation fails
         """
+        if price is None:
+            raise ValueError("price is required")
+
         # Validation happens in Pydantic validators
         # Use empty string if image_file is None or not provided
         image_file_value = image_file if image_file is not None else ""
@@ -117,7 +120,7 @@ class Product(Aggregate):
         category: list[str],
         description: str,
         image_file: str = "",
-        price: Money = ...,
+        price: Money | None = None,
     ) -> None:
         """
         Update product details, matching .NET Product.Update method.
@@ -132,6 +135,9 @@ class Product(Aggregate):
         Raises:
             ValueError: If any validation fails
         """
+        if price is None:
+            raise ValueError("price is required")
+
         # Store old price for comparison
         old_price = self.price
 

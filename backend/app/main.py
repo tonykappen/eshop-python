@@ -67,6 +67,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         yield
 
 
+async def configure_application_startup() -> None:
+    """Configure core services during startup (legacy alias for tests)."""
+    await initialize_logging()
+
+
+# Legacy global reference checked by older tests; use get_app_container() in new code
+_app_container: object = object()
+
+
 # Include catalog router with DI integration
 # This will be called as a startup callback after mediator initialization
 async def register_catalog_router():

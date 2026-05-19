@@ -21,7 +21,7 @@ async def update_item_price_in_basket(
     user_name: str = Path(..., description="User name"),
     product_id: UUID = Path(..., description="Product ID"),
     price: float = Body(..., description="New price"),
-    http_request: Request = ...,
+    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Command access required (admin, manager)
     _: Any = Depends(require_command_access()),

@@ -24,7 +24,7 @@ async def create_order(
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Command access required (admin, manager)
     _: Any = Depends(require_command_access()),
-) -> CreateOrderResult:
+) -> JSONResponse:
     """
     Create a new order - matches .NET CreateOrderEndpoint.
 

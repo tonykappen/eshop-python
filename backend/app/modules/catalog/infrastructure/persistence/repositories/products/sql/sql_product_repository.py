@@ -441,7 +441,12 @@ class SqlProductRepository(ProductRepository):
                 )
 
             schedule_catalog_product_cache_invalidation(self.session, product.id)
-            return await self.get_by_id(product.id)
+            updated = await self.get_by_id(product.id)
+            if updated is None:
+                raise RuntimeError(
+                    f"Product {product.id} missing after successful update"
+                )
+            return updated
 
         except OptimisticLockException:
             raise

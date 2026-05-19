@@ -25,7 +25,7 @@ def initialize_di() -> None:
     pass
 
 
-def cleanup_di() -> None:
+async def cleanup_di() -> None:
     """Cleanup dependency injection (called during shutdown)."""
     # This is handled by the lifecycle manager in main.py
-    cleanup_dependency_injection()
+    await cleanup_dependency_injection()

@@ -3,6 +3,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 from app.core.mapping.profiles.base_mapping_profile import BaseMappingProfile
 from app.modules.catalog.application.public_interface.dto.product import \
@@ -148,7 +149,7 @@ class CatalogProductProfile(BaseMappingProfile):
             category=categories,
             description=product.description,
             image_file=product.image_file or None,
-            price=float(price_amount),
+            price=float(str(price_amount)),
             currency=price_currency,
             version=product.version,
             created_at=created_at,
@@ -166,11 +167,11 @@ class CatalogProductProfile(BaseMappingProfile):
             Product domain entity
         """
         return Product(
-            id=dto.id,
+            id=UUID(str(dto.id)) if not isinstance(dto.id, UUID) else dto.id,
             name=dto.name,
             sku=SKU(value=dto.sku),
             category=dto.category,
-            description=dto.description,
+            description=dto.description or "",
             price=Money(amount=Decimal(str(dto.price)), currency=dto.currency),
             image_file=dto.image_file or "",
             version=dto.version,

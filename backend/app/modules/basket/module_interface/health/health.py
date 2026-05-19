@@ -3,6 +3,7 @@
 from app.modules.basket.module_interface.di.basket.basket_providers import \
     get_basket_session
 from fastapi import APIRouter, Depends
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/health", tags=["basket-health"])
@@ -20,7 +21,7 @@ async def basket_health(
     """
     try:
         # Simple health check - try to execute a query
-        await session.execute("SELECT 1")
+        await session.execute(text("SELECT 1"))
         return {"status": "healthy", "module": "basket"}
     except Exception as e:
         return {"status": "unhealthy", "module": "basket", "error": str(e)}
@@ -38,7 +39,7 @@ async def basket_ready(
     """
     try:
         # Check database connectivity
-        await session.execute("SELECT 1")
+        await session.execute(text("SELECT 1"))
         return {"status": "ready", "module": "basket"}
     except Exception as e:
         return {"status": "not_ready", "module": "basket", "error": str(e)}

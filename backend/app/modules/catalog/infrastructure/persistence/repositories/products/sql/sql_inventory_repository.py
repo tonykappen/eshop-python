@@ -132,6 +132,10 @@ class SqlInventoryRepository(InventoryRepository):
             logger.log_error_with_context("Error getting out of stock items", error=e)
             raise
 
+    async def get_items_needing_reorder(self) -> list[InventoryItem]:
+        """Return items at or below reorder threshold (same criteria as low stock)."""
+        return await self.get_low_stock_items()
+
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[InventoryItem]:
         """
         Get all inventory items with pagination.

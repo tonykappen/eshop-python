@@ -5,11 +5,16 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from app.core.mapping.orm_mapper import (ORMMapper, from_orm, from_orm_list,
-                                         to_orm, to_orm_list,
-                                         update_orm_from_domain)
+from app.core.mapping import orm_mapper as _orm_mapper_module
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
+
+ORMMapper: Any = _orm_mapper_module.ORMMapper
+from_orm: Any = _orm_mapper_module.from_orm
+from_orm_list: Any = _orm_mapper_module.from_orm_list
+to_orm: Any = _orm_mapper_module.to_orm
+to_orm_list: Any = _orm_mapper_module.to_orm_list
+update_orm_from_domain: Any = _orm_mapper_module.update_orm_from_domain
 
 
 class MockDeclarativeBase(DeclarativeBase):
@@ -21,12 +26,12 @@ class MockORMModel:
 
     def __init__(
         self,
-        id: int = None,
-        name: str = None,
-        description: str = None,
-        created_at: datetime = None,
-        uuid_field: str = None,
-        uuid_list: list[str] = None,
+        id: int | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        created_at: datetime | None = None,
+        uuid_field: str | None = None,
+        uuid_list: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize mock ORM model."""
@@ -52,7 +57,11 @@ class MockORMModelWithTable:
     __tablename__ = "mock_table_with_table"
 
     def __init__(
-        self, id: int = None, name: str = None, email: str = None, **kwargs: Any
+        self,
+        id: int | None = None,
+        name: str | None = None,
+        email: str | None = None,
+        **kwargs: Any,
     ) -> None:
         """Initialize mock ORM model with table."""
         self.id = id
@@ -737,11 +746,11 @@ class TestORMMapperErrorHandling:
         class ErrorORMModel:
             def __init__(
                 self,
-                id: int = None,
-                name: str = None,
-                description: str = None,
-                created_at: datetime = None,
-                uuid_field: str = None,
+                id: int | None = None,
+                name: str | None = None,
+                description: str | None = None,
+                created_at: datetime | None = None,
+                uuid_field: str | None = None,
                 **kwargs: Any,
             ) -> None:
                 # Use direct dict assignment to avoid __setattr__ during construction

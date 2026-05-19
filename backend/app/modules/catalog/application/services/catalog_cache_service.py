@@ -92,7 +92,7 @@ class RedisCacheService(ICacheService):
         """
         try:
             deleted = 0
-            cursor: int | bytes = 0
+            cursor: int = 0
             while True:
                 cursor, keys = await self.redis_client.scan(
                     cursor=cursor, match=pattern, count=100

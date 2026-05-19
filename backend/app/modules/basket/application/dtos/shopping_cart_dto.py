@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class ShoppingCartItemDto(BaseModel):
     """Shopping cart item DTO - matches .NET ShoppingCartItemDto."""
 
-    id: UUID | None = Field(None, description="Item ID (optional for creation)")
+    id: UUID | None = Field(default=None, description="Item ID (optional for creation)")
     shopping_cart_id: UUID | None = Field(
         None, description="Shopping cart ID (optional, will be set from user_name)"
     )

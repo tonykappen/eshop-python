@@ -1,7 +1,9 @@
 """Main Mediator implementation with 1-1 parity to .NET MediatR."""
 
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
+
+from pydantic import BaseModel
 
 from app.core.application.behaviors import (AuthorizationBehavior,
                                             LoggingBehavior,
@@ -15,7 +17,7 @@ TResponse = TypeVar("TResponse")
 
 # Type alias for IRequest (union of ICommand and IQuery)
 # Used in behaviors where we don't care about the specific response type
-IRequest = Union[ICommand[Any], IQuery[Any]]
+IRequest = ICommand[Any] | IQuery[Any]
 
 
 class IMediator(ABC):
@@ -24,9 +26,9 @@ class IMediator(ABC):
     @abstractmethod
     async def send(
         self,
-        request: ICommand[TResponse] | IQuery[TResponse],
+        request: BaseModel,
         cancellation_token: CancellationToken,
-    ) -> TResponse:
+    ) -> Any:
         """Send a command or query and get result - matches .NET ISender.Send()."""
         pass
 
@@ -48,9 +50,9 @@ class Mediator(IMediator):
 
     async def send(
         self,
-        request: ICommand[TResponse] | IQuery[TResponse],
+        request: BaseModel,
         cancellation_token: CancellationToken,
-    ) -> TResponse:
+    ) -> Any:
         """
         Send a command or query through the mediator pipeline.
 
@@ -76,17 +78,17 @@ class Mediator(IMediator):
             "Mediator completed request",
             context={"request_type": request_type.__name__},
         )
-        return result  # type: ignore
+        return result
 
     async def send_command(
-        self, command: ICommand[TResponse], cancellation_token: CancellationToken
-    ) -> TResponse:
+        self, command: BaseModel, cancellation_token: CancellationToken
+    ) -> Any:
         """Send a command - matches .NET ISender.Send(ICommand<TResponse>)."""
         return await self.send(command, cancellation_token)
 
     async def send_query(
-        self, query: IQuery[TResponse], cancellation_token: CancellationToken
-    ) -> TResponse:
+        self, query: BaseModel, cancellation_token: CancellationToken
+    ) -> Any:
         """Send a query - matches .NET ISender.Send(IQuery<TResponse>)."""
         return await self.send(query, cancellation_token)
 

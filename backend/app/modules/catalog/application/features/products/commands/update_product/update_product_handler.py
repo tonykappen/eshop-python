@@ -61,6 +61,8 @@ class UpdateProductHandler(IRequestHandler[UpdateProductCommand, UpdateProductRe
             )
 
         async with self._uow_factory() as uow:
+            if command.id is None:
+                raise ProductUpdateError(message="Product id is required")
             product = await uow.products.get_by_id(command.id)
             if product is None:
                 raise ProductNotFoundError(command.id)

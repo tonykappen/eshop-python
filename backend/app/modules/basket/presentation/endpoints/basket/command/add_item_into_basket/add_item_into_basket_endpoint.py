@@ -9,7 +9,7 @@ from app.modules.basket.application.dtos.shopping_cart_dto import \
 from app.modules.basket.application.features.basket.command.add_item_into_basket.add_item_into_basket_command import (
     AddItemIntoBasketCommand, AddItemIntoBasketResult)
 from app.modules.basket.utils import get_endpoint_factory
-from fastapi import APIRouter, Depends, Path, Request, Response, status
+from fastapi import APIRouter, Body, Depends, Path, Request, Response, status
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -27,10 +27,10 @@ class AddItemIntoBasketRequest(BaseModel):
     status_code=status.HTTP_201_CREATED,
 )
 async def add_item_into_basket(
+    http_request: Request,
+    http_response: Response,
     user_name: str = Path(..., description="User name"),
-    request: AddItemIntoBasketRequest = ...,
-    http_request: Request = ...,
-    http_response: Response = ...,
+    request: AddItemIntoBasketRequest = Body(...),
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Allow user, manager, and admin roles (users should be able to add items to their cart)
     _: Any = Depends(require_user_or_higher()),

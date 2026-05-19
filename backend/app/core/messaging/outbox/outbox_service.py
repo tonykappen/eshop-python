@@ -8,6 +8,8 @@ from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
+from pydantic import BaseModel
+
 from app.core.context.request_context import get_baggage, get_trace_context
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.integration_event import IntegrationEvent
@@ -22,7 +24,7 @@ class IOutboxService(ABC):
 
     @abstractmethod
     async def write_integration_event(
-        self, event: IntegrationEvent | dict[str, Any]
+        self, event: IntegrationEvent | dict[str, Any] | BaseModel
     ) -> None:
         """
         Write integration event to outbox within the same transaction.
@@ -85,7 +87,7 @@ class OutboxService(IOutboxService):
         )
 
     async def write_integration_event(
-        self, event: IntegrationEvent | dict[str, Any]
+        self, event: IntegrationEvent | dict[str, Any] | BaseModel
     ) -> None:
         """
         Write integration event to outbox within the same transaction.
@@ -98,7 +100,7 @@ class OutboxService(IOutboxService):
             trace_context = get_trace_context()
             baggage = get_baggage()
 
-            # Convert event to dict if it's an IntegrationEvent or Pydantic model
+            event_data: dict[str, Any]
             # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
             if isinstance(event, IntegrationEvent):
                 event_data = event.model_dump(mode="json")
@@ -116,7 +118,7 @@ class OutboxService(IOutboxService):
                 if hasattr(event, "model_dump"):
                     event_data = event.model_dump(mode="json")
                 else:
-                    event_data = str(event)
+                    event_data = {"payload": str(event)}
                 event_type = getattr(
                     event,
                     "event_type",
@@ -158,27 +160,32 @@ class OutboxService(IOutboxService):
         try:
             # Try catalog module first (most common)
             from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
-                OutboxORM
+                OutboxORM as CatalogOutboxORM
 
-            return OutboxORM
+            return CatalogOutboxORM
         except ImportError:
             pass
 
         try:
             # Try ordering module
-            from app.modules.ordering.infrastructure.orm_models import \
-                OutboxORM
+            import importlib
 
-            return OutboxORM
-        except ImportError:
+            ordering_mod = importlib.import_module(
+                "app.modules.ordering.infrastructure.orm_models"
+            )
+            return getattr(ordering_mod, "OutboxORM")
+        except (ImportError, AttributeError):
             pass
 
         try:
             # Try basket module
-            from app.modules.basket.infrastructure.orm_models import OutboxORM
+            import importlib
 
-            return OutboxORM
-        except ImportError:
+            basket_mod = importlib.import_module(
+                "app.modules.basket.infrastructure.orm_models"
+            )
+            return getattr(basket_mod, "OutboxORM")
+        except (ImportError, AttributeError):
             pass
 
         logger.log_warning_with_context(

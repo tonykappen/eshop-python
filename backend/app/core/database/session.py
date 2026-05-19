@@ -143,7 +143,7 @@ async def log_pool_health() -> None:
 async def get_pool_status() -> dict[str, Any]:
     """Get connection pool status for monitoring."""
     try:
-        pool = engine.sync_engine.pool
+        pool: Any = engine.sync_engine.pool
         status = {
             "pool_size": pool.size(),
             "checked_in": pool.checkedin(),

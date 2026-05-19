@@ -1,6 +1,6 @@
 """In-memory domain event dispatcher."""
 
-from collections.abc import Callable
+from typing import Any
 
 from app.core.domain.events import DomainEvent
 from app.core.logging.base_logger import BaseLogger
@@ -13,10 +13,10 @@ class DomainEventDispatcher:
 
     def __init__(self):
         """Initialize the domain event dispatcher."""
-        self._handlers: dict[type[DomainEvent], list[Callable]] = {}
+        self._handlers: dict[type[DomainEvent], list[Any]] = {}
 
     def register_handler(
-        self, event_type: type[DomainEvent], handler: Callable
+        self, event_type: type[DomainEvent], handler: Any
     ) -> None:
         """
         Register a handler for a domain event type.
@@ -35,7 +35,7 @@ class DomainEventDispatcher:
         )
 
     def unregister_handler(
-        self, event_type: type[DomainEvent], handler: Callable
+        self, event_type: type[DomainEvent], handler: Any
     ) -> None:
         """
         Unregister a handler for a domain event type.
@@ -97,7 +97,7 @@ class DomainEventDispatcher:
         for event in events:
             await self.dispatch(event)
 
-    def get_handlers(self, event_type: type[DomainEvent]) -> list[Callable]:
+    def get_handlers(self, event_type: type[DomainEvent]) -> list[Any]:
         """
         Get all handlers for an event type.
 

@@ -110,6 +110,24 @@ class SqlCategoryRepository(CategoryRepository):
             )
             raise
 
+    async def get_root_categories(self) -> list[Category]:
+        """Get root categories (no parent)."""
+        try:
+            stmt = select(CategoryORM).where(
+                CategoryORM.parent_id.is_(None),
+                CategoryORM.is_deleted == False,
+            )
+            result = await self.session.execute(stmt)
+            categories_orm = result.scalars().all()
+            return [
+                self._orm_to_domain(category_orm) for category_orm in categories_orm
+            ]
+        except Exception as e:
+            logger.log_error_with_context(
+                "Error getting root categories", error=e
+            )
+            raise
+
     async def get_active_categories(self) -> list[Category]:
         """
         Get all active categories.

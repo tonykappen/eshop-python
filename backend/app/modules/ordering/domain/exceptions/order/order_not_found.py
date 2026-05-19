@@ -2,10 +2,10 @@
 
 from uuid import UUID
 
-from app.core.exceptions.not_found_exception import NotFoundException
+from app.core.exceptions.common_exceptions import NotFoundError
 
 
-class OrderNotFoundException(NotFoundException):
+class OrderNotFoundException(NotFoundError):
     """Exception raised when an order is not found."""
 
     def __init__(self, order_id: UUID):

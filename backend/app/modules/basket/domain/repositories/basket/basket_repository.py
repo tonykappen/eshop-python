@@ -1,6 +1,7 @@
 """Basket repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from app.modules.basket.domain.entities.basket import ShoppingCart
 
@@ -69,7 +70,33 @@ class IBasketRepository(ABC):
         """
         pass
 
-    async def update_items_price(self, product_id, new_price) -> bool:
+    @abstractmethod
+    async def add_items_to_basket(self, basket: ShoppingCart) -> ShoppingCart:
+        """
+        Add items to an existing basket.
+
+        Args:
+            basket: ShoppingCart containing items to add
+
+        Returns:
+            Updated ShoppingCart instance
+        """
+        pass
+
+    @abstractmethod
+    async def update_basket(self, basket: ShoppingCart) -> ShoppingCart:
+        """
+        Update an existing basket.
+
+        Args:
+            basket: ShoppingCart to update
+
+        Returns:
+            Updated ShoppingCart instance
+        """
+        pass
+
+    async def update_items_price(self, product_id: Any, new_price: Any) -> bool:
         """
         Update price for all items with given product_id.
 
@@ -80,5 +107,4 @@ class IBasketRepository(ABC):
         Returns:
             True if any items were updated, False otherwise
         """
-        # Default implementation - can be overridden
-        pass
+        return False

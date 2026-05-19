@@ -29,11 +29,11 @@ class ProductDto(BaseModel):
 
     # Product information
     name: str = Field(..., description="Product name")
-    description: str | None = Field(None, description="Product description")
+    description: str | None = Field(default=None, description="Product description")
     category: list[str] = Field(default_factory=list, description="Product categories")
 
     # Media
-    image_file: str | None = Field(None, description="Product image file path/URL")
+    image_file: str | None = Field(default=None, description="Product image file path/URL")
 
     # Pricing information
     price: float = Field(..., description="Product price amount")
@@ -48,7 +48,15 @@ class ProductDto(BaseModel):
 
     # Timestamps (ISO 8601 strings)
     created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
-    updated_at: str | None = Field(None, description="Last update timestamp (ISO 8601)")
+    updated_at: str | None = Field(default=None, description="Last update timestamp (ISO 8601)")
+
+    # Deprecated / test-only fields (ignored by handlers)
+    stock_quantity: int | None = Field(
+        default=None, description="Deprecated; inventory is separate"
+    )
+    is_available: bool | None = Field(
+        default=None, description="Deprecated; availability is separate"
+    )
 
     class Config:
         """Pydantic configuration."""

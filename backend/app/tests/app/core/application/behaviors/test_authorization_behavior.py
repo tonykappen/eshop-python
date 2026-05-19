@@ -2,6 +2,7 @@
 
 import importlib.util
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,16 +25,17 @@ spec = importlib.util.spec_from_file_location(
     "authorization_behavior",
     auth_behavior_path,
 )
+assert spec is not None and spec.loader is not None
 authorization_behavior_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(authorization_behavior_module)  # type: ignore[union-attr]
-AuthorizationBehavior = authorization_behavior_module.AuthorizationBehavior
+spec.loader.exec_module(authorization_behavior_module)
+AuthorizationBehavior: Any = authorization_behavior_module.AuthorizationBehavior
 
 
 class TestAuthorizationBehavior:
     """Test AuthorizationBehavior."""
 
     @pytest.fixture
-    def authorization_behavior(self) -> AuthorizationBehavior:
+    def authorization_behavior(self) -> Any:
         """Provide AuthorizationBehavior instance."""
         return AuthorizationBehavior()
 
@@ -44,7 +46,7 @@ class TestAuthorizationBehavior:
 
     @pytest.mark.asyncio
     async def test_handle_allows_request(
-        self, authorization_behavior: AuthorizationBehavior
+        self, authorization_behavior: Any
     ) -> None:
         """Test that handle allows requests through."""
         # Create a mock request
@@ -65,7 +67,7 @@ class TestAuthorizationBehavior:
     @pytest.mark.asyncio
     async def test_handle_logs_authorization_check(
         self,
-        authorization_behavior: AuthorizationBehavior,
+        authorization_behavior: Any,
         mock_logger: MagicMock,
     ) -> None:
         """Test that handle logs authorization check."""
@@ -85,7 +87,7 @@ class TestAuthorizationBehavior:
 
     @pytest.mark.asyncio
     async def test_handle_with_different_request_types(
-        self, authorization_behavior: AuthorizationBehavior
+        self, authorization_behavior: Any
     ) -> None:
         """Test handle with different request types."""
         request_types = [
@@ -107,7 +109,7 @@ class TestAuthorizationBehavior:
 
     @pytest.mark.asyncio
     async def test_handle_propagates_exceptions(
-        self, authorization_behavior: AuthorizationBehavior
+        self, authorization_behavior: Any
     ) -> None:
         """Test that handle propagates exceptions from next handler."""
         mock_request = MagicMock()
@@ -123,7 +125,7 @@ class TestAuthorizationBehavior:
 
     @pytest.mark.asyncio
     async def test_handle_with_response(
-        self, authorization_behavior: AuthorizationBehavior
+        self, authorization_behavior: Any
     ) -> None:
         """Test handle with a response value."""
         mock_request = MagicMock()

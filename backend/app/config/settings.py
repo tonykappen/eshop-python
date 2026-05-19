@@ -176,7 +176,7 @@ class Settings(BaseSettings):
         default_factory=lambda: get_env("KEYCLOAK_GRANT_TYPE", "password")
     )
     keycloak_jwt_algorithms: list[str] = Field(
-        default_factory=lambda: get_env_list("KEYCLOAK_JWT_ALGORITHMS", "RS256")
+        default_factory=lambda: get_env_list("KEYCLOAK_JWT_ALGORITHMS", ["RS256"])
     )
 
     # Keycloak Credentials File

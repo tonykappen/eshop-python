@@ -118,6 +118,24 @@ class IMessageBus(ABC):
         """
         pass
 
+    async def subscribe_to_exchange(
+        self,
+        exchange: str,
+        routing_key: str,
+        queue_name: str,
+        handler: Any,
+        durable: bool = True,
+    ) -> None:
+        """
+        Subscribe to a named exchange via a dedicated queue + binding.
+
+        Default implementation raises NotImplementedError; concrete
+        message bus implementations (e.g. RabbitMQ) should override.
+        """
+        raise NotImplementedError(
+            "subscribe_to_exchange is not supported by this message bus"
+        )
+
 
 class InMemoryMessageBus(IMessageBus):
     """In-memory message bus implementation."""
@@ -232,8 +250,8 @@ class RabbitMQMessageBus(IMessageBus):
             connection_string: RabbitMQ connection string
         """
         self.connection_string = connection_string
-        self._connection = None
-        self._channel = None
+        self._connection: Any = None
+        self._channel: Any = None
 
     async def _log_connection_event(
         self,

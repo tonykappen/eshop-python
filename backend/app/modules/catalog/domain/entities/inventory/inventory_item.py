@@ -18,13 +18,13 @@ class InventoryItem(Aggregate):
         default=1000, ge=0, description="Maximum stock threshold"
     )
     version: int = Field(default=1, description="Inventory item version")
-    created_at: datetime | None = Field(None, description="Creation timestamp")
-    updated_at: datetime | None = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
     created_by: UUID | None = Field(
-        None, description="User who created the inventory item"
+        default=None, description="User who created the inventory item"
     )
     updated_by: UUID | None = Field(
-        None, description="User who last updated the inventory item"
+        default=None, description="User who last updated the inventory item"
     )
     is_deleted: bool = Field(default=False, description="Soft delete flag")
 

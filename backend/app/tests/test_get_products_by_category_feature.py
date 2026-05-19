@@ -1,5 +1,6 @@
 """Tests for get products by category feature."""
 
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -8,6 +9,24 @@ from app.modules.catalog.application.features.products.queries.get_products_by_c
 from app.modules.catalog.application.public_interface.dto.product import \
     ProductDto
 from pydantic import ValidationError
+
+
+def _product_dto(**kwargs: object) -> ProductDto:
+    """Build ProductDto with required test defaults."""
+    defaults: dict[str, object] = {
+        "sku": "TEST-SKU",
+        "version": 1,
+        "created_at": "2020-01-01T00:00:00Z",
+        "name": "Test",
+        "description": "D",
+        "price": 1.0,
+        "category": [],
+        "image_file": None,
+    }
+    defaults.update(kwargs)
+    if "id" not in defaults:
+        defaults["id"] = uuid4()
+    return ProductDto(**cast(Any, defaults))
 
 
 class TestGetProductsByCategoryQuery:
@@ -32,7 +51,7 @@ class TestGetProductsByCategoryQuery:
     def test_query_validation_missing_category(self) -> None:
         """Test query validation with missing category."""
         with pytest.raises(ValidationError):
-            GetProductsByCategoryQuery()
+            GetProductsByCategoryQuery(**cast(Any, {}))
 
     def test_query_validation_empty_category(self) -> None:
         """Test query validation with empty category."""
@@ -69,7 +88,7 @@ class TestGetProductsByCategoryQuery:
             "page_size": 20,
         }
 
-        query = GetProductsByCategoryQuery(**data)
+        query = GetProductsByCategoryQuery(**cast(dict[str, Any], data))
         assert query.category == "Electronics"
         assert query.page == 2
         assert query.page_size == 20
@@ -107,14 +126,14 @@ class TestGetProductsByCategoryResult:
     def test_result_creation(self) -> None:
         """Test creating a GetProductsByCategoryResult."""
         products = [
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name="Product 1",
                 description="Description 1",
                 price=99.99,
                 category=["Electronics"],
             ),
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name="Product 2",
                 description="Description 2",
@@ -148,7 +167,7 @@ class TestGetProductsByCategoryResult:
     def test_result_pagination(self) -> None:
         """Test result with pagination."""
         products = [
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name=f"Product {i}",
                 description=f"Description {i}",
@@ -176,7 +195,7 @@ class TestGetProductsByCategoryResult:
     def test_result_serialization(self) -> None:
         """Test result serialization."""
         products = [
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name="Product 1",
                 description="Description 1",
@@ -197,7 +216,7 @@ class TestGetProductsByCategoryResult:
     def test_result_validation_missing_category(self) -> None:
         """Test result validation with missing category."""
         products = [
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name="Product 1",
                 description="Description 1",
@@ -206,10 +225,15 @@ class TestGetProductsByCategoryResult:
             )
         ]
 
+        incomplete: dict[str, Any] = {
+            "items": products,
+            "total": 1,
+            "page": 1,
+            "size": 10,
+            "pages": 1,
+        }
         with pytest.raises(ValidationError):
-            GetProductsByCategoryResult(
-                items=products, total=1, page=1, size=10, pages=1
-            )
+            GetProductsByCategoryResult(**incomplete)
 
 
 class TestGetProductsByCategoryFeatureIntegration:
@@ -222,14 +246,14 @@ class TestGetProductsByCategoryFeatureIntegration:
 
         # Create products
         products = [
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name="Product 1",
                 description="Description 1",
                 price=99.99,
                 category=["Electronics"],
             ),
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name="Product 2",
                 description="Description 2",
@@ -293,7 +317,7 @@ class TestGetProductsByCategoryFeatureIntegration:
         query = GetProductsByCategoryQuery(category="Electronics", page=2, page_size=20)
 
         products = [
-            ProductDto(
+            _product_dto(
                 id=uuid4(),
                 name=f"Product {i}",
                 description=f"Description {i}",

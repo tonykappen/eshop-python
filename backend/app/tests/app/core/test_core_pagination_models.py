@@ -1,5 +1,6 @@
 """Comprehensive tests for pagination models."""
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -97,7 +98,7 @@ class TestPaginatedResult:
         page.size = 2
         page.pages = 3
 
-        result = PaginatedResult.from_page(page)
+        result: Any = PaginatedResult.from_page(page)
 
         assert result.items == items
         assert result.total == 5
@@ -116,7 +117,7 @@ class TestPaginatedResult:
         page.size = None
         page.pages = None
 
-        result = PaginatedResult.from_page(page)
+        result: Any = PaginatedResult.from_page(page)
 
         assert result.items == items
         assert result.total == 0
@@ -144,7 +145,7 @@ class TestPaginatedResult:
 
     def test_paginated_result_create_empty_items(self) -> None:
         """Test PaginatedResult.create with empty items."""
-        result = PaginatedResult.create(items=[], total=0, page=1, size=10)
+        result: Any = PaginatedResult.create(items=[], total=0, page=1, size=10)
 
         assert result.items == []
         assert result.total == 0
@@ -194,7 +195,7 @@ class TestPaginationResponse:
 
     def test_pagination_response_default_values(self) -> None:
         """Test PaginationResponse with default values."""
-        paginated_data = PaginatedResult.create(items=[], total=0, page=1, size=10)
+        paginated_data: Any = PaginatedResult.create(items=[], total=0, page=1, size=10)
         response = PaginationResponse(data=paginated_data)
 
         assert response.success is True
@@ -211,7 +212,7 @@ class TestPaginationResponse:
         page.size = 2
         page.pages = 3
 
-        response = PaginationResponse.from_page(page, "Items retrieved successfully")
+        response: Any = PaginationResponse.from_page(page, "Items retrieved successfully")
 
         assert response.data.items == items
         assert response.data.total == 5
@@ -232,7 +233,7 @@ class TestPaginationResponse:
         page.size = 1
         page.pages = 1
 
-        response = PaginationResponse.from_page(page)
+        response: Any = PaginationResponse.from_page(page)
 
         assert response.data.items == items
         assert response.message is None
@@ -352,10 +353,10 @@ class TestPaginationIntegration:
         page.pages = 4
 
         # Step 3: Convert to our PaginatedResult
-        paginated_result = PaginatedResult.from_page(page)
+        paginated_result: Any = PaginatedResult.from_page(page)
 
         # Step 4: Create final response
-        response = PaginationResponse.from_page(page, "Page 2 of 4")
+        response: Any = PaginationResponse.from_page(page, "Page 2 of 4")
 
         # Assertions
         assert params.page == 2
@@ -372,7 +373,7 @@ class TestPaginationIntegration:
     def test_pagination_edge_cases(self) -> None:
         """Test pagination edge cases."""
         # Empty result set
-        empty_response = PaginationResponse.create(items=[], total=0, page=1, size=10)
+        empty_response: Any = PaginationResponse.create(items=[], total=0, page=1, size=10)
         assert empty_response.data.items == []
         assert empty_response.data.pages == 0
 

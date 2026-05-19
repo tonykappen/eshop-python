@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
@@ -9,6 +10,10 @@ from app.modules.ordering.infrastructure.persistence.orm.orders.base import \
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.modules.ordering.infrastructure.persistence.orm.orders.order_orm import \
+        OrderORM
 
 
 class OrderItemORM(Base):

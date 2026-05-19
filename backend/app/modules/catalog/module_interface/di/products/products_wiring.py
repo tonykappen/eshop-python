@@ -1,6 +1,6 @@
 """Dependency injection wiring for catalog module."""
 
-from typing import Any
+from typing import Any, cast
 
 from app.core.context.application_context import RequestContext
 from app.core.logging.base_logger import BaseLogger
@@ -28,12 +28,12 @@ from fastapi import FastAPI
 logger = BaseLogger(__name__)
 
 
-def wire_catalog_dependencies(app: FastAPI) -> None:
+def wire_catalog_dependencies(app: FastAPI | None = None) -> None:
     """
     Wire catalog dependencies to FastAPI app.
 
     Args:
-        app: FastAPI application instance
+        app: FastAPI application instance (optional; reserved for future use).
     """
     container = get_catalog_container()
 
@@ -113,44 +113,45 @@ def wire_catalog_dependencies_to_fastapi(app: FastAPI, main_container=None) -> N
     _register_application_services(catalog_container)
 
     # Override FastAPI dependency providers
-    app.dependency_overrides.update(
-        {
-            # Database dependencies
-            get_catalog_engine: lambda: catalog_container.get(
-                type(get_catalog_engine())
-            ),
-            get_catalog_session_maker: lambda: catalog_container.get(
-                type(get_catalog_session_maker())
-            ),
-            # Repository dependencies
-            # Wrap ProductRepository with CachedProductRepository for Redis caching
-            ProductRepository: lambda session: CachedProductRepository(
-                SqlProductRepository(session),
-                get_catalog_cache_service(),
-            ),
-            CategoryRepository: lambda session: SqlCategoryRepository(session),
-            InventoryRepository: lambda session: SqlInventoryRepository(session),
-            # Application dependencies
-            ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(
-                session, get_catalog_cache_service()
-            ),
-            RequestContext: lambda: RequestContext(),
-            # Messaging dependencies
-            IMessageBus: lambda: catalog_container.get(IMessageBus),
-            DomainEventDispatcher: lambda: catalog_container.get(DomainEventDispatcher),
-            # Mediator dependency - use main container if available
-            Mediator: lambda: (
-                main_container.get(Mediator)
-                if main_container
-                else catalog_container.get(Mediator)
-            ),
-        }
+    dependency_overrides: dict[Any, Any] = {
+        # Database dependencies
+        get_catalog_engine: lambda: catalog_container.get(
+            type(get_catalog_engine())
+        ),
+        get_catalog_session_maker: lambda: catalog_container.get(
+            type(get_catalog_session_maker())
+        ),
+        # Repository dependencies
+        # Wrap ProductRepository with CachedProductRepository for Redis caching
+        ProductRepository: lambda session: CachedProductRepository(
+            SqlProductRepository(session),
+            get_catalog_cache_service(),
+        ),
+        CategoryRepository: lambda session: SqlCategoryRepository(session),
+        InventoryRepository: lambda session: SqlInventoryRepository(session),
+        # Application dependencies
+        ICatalogUnitOfWork: lambda session: SqlCatalogUnitOfWork(
+            session, get_catalog_cache_service()
+        ),
+        RequestContext: lambda: RequestContext(),
+    }
+    dependency_overrides[cast(Any, IMessageBus)] = (
+        lambda: catalog_container.get(cast(Any, IMessageBus))
     )
+    dependency_overrides[cast(Any, DomainEventDispatcher)] = (
+        lambda: catalog_container.get(cast(Any, DomainEventDispatcher))
+    )
+    dependency_overrides[Mediator] = lambda: (
+        main_container.get(Mediator)
+        if main_container
+        else catalog_container.get(Mediator)
+    )
+    app.dependency_overrides.update(dependency_overrides)
 
     logger.log_with_context("Wired catalog dependencies to FastAPI with overrides")
 
 
-def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
+def get_catalog_dependency_overrides() -> dict[Any, Any]:
     """
     Get catalog dependency overrides for FastAPI.
 
@@ -159,7 +160,7 @@ def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
     """
     container = get_catalog_container()
 
-    return {
+    overrides: dict[Any, Any] = {
         # Database dependencies
         get_catalog_engine: lambda: container.get(type(get_catalog_engine())),
         get_catalog_session_maker: lambda: container.get(
@@ -178,12 +179,13 @@ def get_catalog_dependency_overrides() -> dict[type[Any], Any]:
             session, get_catalog_cache_service()
         ),
         RequestContext: lambda: RequestContext(),
-        # Messaging dependencies
-        IMessageBus: lambda: container.get(IMessageBus),
-        DomainEventDispatcher: lambda: container.get(DomainEventDispatcher),
-        # Mediator dependency
-        Mediator: lambda: container.get(Mediator),
     }
+    overrides[cast(Any, IMessageBus)] = lambda: container.get(cast(Any, IMessageBus))
+    overrides[cast(Any, DomainEventDispatcher)] = lambda: container.get(
+        cast(Any, DomainEventDispatcher)
+    )
+    overrides[Mediator] = lambda: container.get(Mediator)
+    return overrides
 
 
 def register_catalog_handlers_with_mediator(mediator: Mediator) -> None:

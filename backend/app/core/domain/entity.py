@@ -15,6 +15,10 @@ class DomainEvent(BaseModel):
     occurred_on: str = Field(default_factory=lambda: str(uuid4().time))
     event_type: str = Field(default="")
 
+    def __init__(self, **data: Any) -> None:
+        """Accept subclass fields so static typing matches Pydantic runtime."""
+        super().__init__(**data)
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -24,10 +28,14 @@ class Entity(ABC, BaseModel):
 
     id: UUID = Field(default_factory=uuid4)
     created_at: datetime | None = Field(default=None)
-    created_by: str | None = Field(default=None)
+    created_by: str | UUID | None = Field(default=None)
     last_modified: datetime | None = Field(default=None)
-    last_modified_by: str | None = Field(default=None)
+    last_modified_by: str | UUID | None = Field(default=None)
     domain_events: list[DomainEvent] = Field(default_factory=list, exclude=True)
+
+    def __init__(self, **data: Any) -> None:
+        """Accept subclass fields so static typing matches Pydantic runtime."""
+        super().__init__(**data)
 
     def add_domain_event(self, event: DomainEvent) -> None:
         """Add a domain event to the entity."""

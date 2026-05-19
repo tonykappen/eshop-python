@@ -5,7 +5,7 @@ import json
 import uuid as uuid_mod
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, AsyncContextManager, TypeVar
+from typing import Any, AsyncContextManager
 from uuid import UUID
 
 from app.core.logging.base_logger import BaseLogger
@@ -15,8 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = BaseLogger(__name__)
 
-T = TypeVar("T")
-
 
 class OutboxPublisherWorker:
     """Background worker for publishing outbox messages with atomic claim."""
@@ -25,7 +23,7 @@ class OutboxPublisherWorker:
         self,
         session_factory: Callable[[], AsyncContextManager[AsyncSession]],
         message_bus: Any,
-        outbox_orm_class: type[T],
+        outbox_orm_class: type[Any],
         batch_size: int = 10,
         poll_interval: float = 5.0,
         max_retries: int = 3,

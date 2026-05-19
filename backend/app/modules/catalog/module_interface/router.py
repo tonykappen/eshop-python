@@ -20,7 +20,7 @@ def register_catalog_module(container: Container, mediator: Mediator) -> APIRout
     No handler wiring happens in this file.
     """
     catalog_container = get_catalog_container()
-    wire_catalog_dependencies(catalog_container)
+    wire_catalog_dependencies()
 
     register_catalog_handlers(mediator.handler_registry)
 

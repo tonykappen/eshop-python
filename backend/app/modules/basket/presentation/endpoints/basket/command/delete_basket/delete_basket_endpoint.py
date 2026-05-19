@@ -15,7 +15,7 @@ router = APIRouter()
 @router.delete("/{user_name}", response_model=DeleteBasketResult)
 async def delete_basket(
     user_name: str = Path(..., description="User name"),
-    http_request: Request = ...,
+    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Command access required (admin, manager, user)
     _: Any = Depends(require_command_access()),

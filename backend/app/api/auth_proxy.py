@@ -3,7 +3,7 @@
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, NoReturn
 
 import httpx
 from app.config.settings import settings
@@ -59,7 +59,7 @@ def _record_transport_failure_after_retries() -> None:
         _CIRCUIT_OPEN_UNTIL_MONO = time.monotonic() + _CIRCUIT_OPEN_SECONDS
 
 
-def _raise_for_last_transport_error(exc: Exception) -> None:
+def _raise_for_last_transport_error(exc: Exception) -> NoReturn:
     if isinstance(exc, httpx.ConnectError):
         raise HTTPException(
             status_code=502,

@@ -109,7 +109,7 @@ async def run_async_migrations() -> None:
                 "Alembic config is not available. Make sure migrations are run via Alembic CLI."
             )
 
-    configuration = config.get_section(config.config_ini_section)
+    configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = get_url()
 
     connectable = async_engine_from_config(

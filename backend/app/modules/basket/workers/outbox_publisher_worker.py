@@ -153,7 +153,7 @@ class BasketOutboxPublisherWorker:
         )
 
         result = await session.execute(stmt)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def _process_message(
         self, session: AsyncSession, message_orm: OutboxORM

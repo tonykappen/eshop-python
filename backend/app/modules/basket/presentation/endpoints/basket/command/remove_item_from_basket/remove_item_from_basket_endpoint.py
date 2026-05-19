@@ -19,7 +19,7 @@ router = APIRouter()
 async def remove_item_from_basket(
     user_name: str = Path(..., description="User name"),
     product_id: UUID = Path(..., description="Product ID to remove"),
-    http_request: Request = ...,
+    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Allow user, manager, and admin roles (users should be able to remove items from their cart)
     _: Any = Depends(require_user_or_higher()),

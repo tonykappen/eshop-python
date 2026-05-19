@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.core.exceptions.not_found_exception import NotFoundError
+from app.core.exceptions.common_exceptions import NotFoundError
 
 
 class BasketNotFoundError(NotFoundError):

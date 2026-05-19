@@ -2,6 +2,7 @@
 
 import importlib.util
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,16 +25,17 @@ spec = importlib.util.spec_from_file_location(
     "logging_behavior",
     logging_behavior_path,
 )
+assert spec is not None and spec.loader is not None
 logging_behavior_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(logging_behavior_module)  # type: ignore[union-attr]
-LoggingBehavior = logging_behavior_module.LoggingBehavior
+spec.loader.exec_module(logging_behavior_module)
+LoggingBehavior: Any = logging_behavior_module.LoggingBehavior
 
 
 class TestLoggingBehavior:
     """Test LoggingBehavior."""
 
     @pytest.fixture
-    def logging_behavior(self) -> LoggingBehavior:
+    def logging_behavior(self) -> Any:
         """Provide LoggingBehavior instance."""
         return LoggingBehavior()
 
@@ -45,7 +47,7 @@ class TestLoggingBehavior:
     @pytest.mark.asyncio
     async def test_handle_logs_start_and_completion(
         self,
-        logging_behavior: LoggingBehavior,
+        logging_behavior: Any,
         mock_logger: MagicMock,
     ) -> None:
         """Test that handle logs start and completion."""
@@ -81,7 +83,7 @@ class TestLoggingBehavior:
     @pytest.mark.asyncio
     async def test_handle_logs_performance_warning(
         self,
-        logging_behavior: LoggingBehavior,
+        logging_behavior: Any,
         mock_logger: MagicMock,
     ) -> None:
         """Test that handle logs performance warning for slow requests."""
@@ -110,7 +112,7 @@ class TestLoggingBehavior:
     @pytest.mark.asyncio
     async def test_handle_logs_errors(
         self,
-        logging_behavior: LoggingBehavior,
+        logging_behavior: Any,
         mock_logger: MagicMock,
     ) -> None:
         """Test that handle logs errors."""
@@ -139,7 +141,7 @@ class TestLoggingBehavior:
     @pytest.mark.asyncio
     async def test_handle_measures_elapsed_time(
         self,
-        logging_behavior: LoggingBehavior,
+        logging_behavior: Any,
         mock_logger: MagicMock,
     ) -> None:
         """Test that handle measures elapsed time."""
@@ -170,7 +172,7 @@ class TestLoggingBehavior:
             assert elapsed_time >= 0.1
 
     def test_get_response_type_from_query(
-        self, logging_behavior: LoggingBehavior
+        self, logging_behavior: Any
     ) -> None:
         """Test _get_response_type for Query requests."""
 
@@ -183,7 +185,7 @@ class TestLoggingBehavior:
         assert response_type == "TestResult"
 
     def test_get_response_type_from_command(
-        self, logging_behavior: LoggingBehavior
+        self, logging_behavior: Any
     ) -> None:
         """Test _get_response_type for Command requests."""
 
@@ -196,7 +198,7 @@ class TestLoggingBehavior:
         assert response_type == "TestResult"
 
     def test_get_response_type_fallback(
-        self, logging_behavior: LoggingBehavior
+        self, logging_behavior: Any
     ) -> None:
         """Test _get_response_type fallback."""
 
@@ -211,7 +213,7 @@ class TestLoggingBehavior:
     @pytest.mark.asyncio
     async def test_handle_with_none_trace_context(
         self,
-        logging_behavior: LoggingBehavior,
+        logging_behavior: Any,
         mock_logger: MagicMock,
     ) -> None:
         """Test handle with None trace context."""

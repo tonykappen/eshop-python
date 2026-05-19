@@ -32,7 +32,12 @@ class OrderingCacheService:
             OrderDto if found in cache, None otherwise
         """
         key = self._patterns.order_key(order_id)
-        return await self._cache_service.get(key, OrderDto)
+        raw = await self._cache_service.get(key)
+        if raw is None:
+            return None
+        if isinstance(raw, OrderDto):
+            return raw
+        return OrderDto.model_validate(raw)
 
     async def set_order(self, order: OrderDto, ttl: int = 3600) -> None:
         """

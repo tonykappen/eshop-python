@@ -1,5 +1,6 @@
 """Tests for FastAPI mediator integration."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -322,8 +323,8 @@ class TestFastAPIIntegrationIntegration:
     def test_services_isolation(self) -> None:
         """Test that services are properly isolated."""
         # Test with different service containers
-        services1 = {}
-        services2 = {}
+        services1: dict[Any, Any] = {}
+        services2: dict[Any, Any] = {}
 
         with patch("app.core.mediator.fastapi_integration._services", services1):
             configure_mediator()
@@ -369,7 +370,7 @@ class TestFastAPIIntegrationIntegration:
                 pass
 
             class TestResult(Result):
-                pass
+                success: bool = True
 
             class TestHandler:
                 async def handle(

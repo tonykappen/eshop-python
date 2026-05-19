@@ -2,12 +2,17 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from app.modules.basket.infrastructure.persistence.orm.basket.base import Base
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.modules.basket.infrastructure.persistence.orm.basket.shopping_cart_orm import \
+        ShoppingCartORM
 
 
 class ShoppingCartItemORM(Base):

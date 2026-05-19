@@ -109,7 +109,7 @@ class TestBasketRepositoryDeleteBasket:
 
         # Mock get_basket to return a basket
         mock_repo_get = AsyncMock(return_value=basket)
-        repo.get_basket = mock_repo_get
+        setattr(repo, "get_basket", mock_repo_get)
 
         # Mock session.get to return ORM
         mock_orm = MagicMock(spec=ShoppingCartORM)

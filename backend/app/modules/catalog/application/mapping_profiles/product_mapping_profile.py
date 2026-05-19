@@ -35,7 +35,7 @@ class ProductMapper:
             price_currency=product.price.currency,
             version=product.version,
             created_at=product.created_at.isoformat() if product.created_at else "",
-            updated_at=product.updated_at.isoformat() if product.updated_at else "",
+            updated_at=product.last_modified.isoformat() if product.last_modified else "",
         )
 
     @staticmethod
@@ -97,17 +97,17 @@ class ProductMapper:
             ProductDVO
         """
         return ProductDVO(
-            id=UUID(dto.id),
+            id=UUID(str(dto.id)) if not isinstance(dto.id, UUID) else dto.id,
             name=dto.name,
             sku=dto.sku,
             category=dto.category,
-            description=dto.description,
-            image_file=dto.image_file,
+            description=dto.description or "",
+            image_file=dto.image_file or "",
             price_amount=Decimal(str(dto.price)),
             price_currency=dto.currency,
             version=dto.version,
             created_at=dto.created_at,
-            updated_at=dto.updated_at,
+            updated_at=dto.updated_at or "",
         )
 
     @staticmethod

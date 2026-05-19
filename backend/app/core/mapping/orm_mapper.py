@@ -366,7 +366,7 @@ class ORMMapper:
         cls, data: dict[str, Any], domain_entity_class: type[Any]
     ) -> dict[str, Any]:
         """Convert ORM data types to domain entity types."""
-        converted = {}
+        converted: dict[str, Any] = {}
 
         # Get type hints from domain entity
         try:

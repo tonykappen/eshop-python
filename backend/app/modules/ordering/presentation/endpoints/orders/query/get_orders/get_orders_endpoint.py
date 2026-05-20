@@ -14,9 +14,9 @@ router = APIRouter()
 
 @router.get("/", response_model=GetOrdersResult)
 async def get_orders(
+    http_request: Request,
     page_index: int = Query(0, ge=0, description="Page index (0-based)"),
     page_size: int = Query(10, ge=1, le=100, description="Page size"),
-    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Query access required (admin, manager, user)
     _: Any = Depends(require_query_access()),

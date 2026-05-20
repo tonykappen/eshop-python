@@ -40,8 +40,8 @@ def require_command_access(
     """
 
     async def command_access_checker(
+        request: Request,
         current_user: KeycloakUser | None = Depends(get_current_user_optional),
-        request: Request | None = None,
     ) -> KeycloakUser:
         """Check if user has command access."""
         if not current_user:
@@ -126,8 +126,8 @@ def require_query_access(
     """
 
     async def query_access_checker(
+        request: Request,
         current_user: KeycloakUser | None = Depends(get_current_user_optional),
-        request: Request | None = None,
     ) -> KeycloakUser:
         """Check if user has query access."""
         if not current_user:

@@ -17,8 +17,8 @@ router = APIRouter()
     "/{order_id}", response_model=DeleteOrderResult, status_code=status.HTTP_200_OK
 )
 async def delete_order(
+    http_request: Request,
     order_id: UUID = Path(..., description="Order ID"),
-    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Command access required (admin, manager)
     _: Any = Depends(require_command_access()),

@@ -93,8 +93,7 @@ def subscribe_basket_integration_event_handlers(_mediator: Mediator) -> None:
 
     Wires the basket module for integration events from other modules (e.g., Catalog).
     This creates the handler instance used when events are dispatched; actual subscription
-    to the shared in-memory message bus happens in subscribe_basket_handlers_to_message_bus()
-    during application startup.
+    to RabbitMQ happens in subscribe_basket_handlers_to_message_bus() during startup.
 
     Args:
         mediator: Mediator instance for sending commands
@@ -111,31 +110,8 @@ def subscribe_basket_integration_event_handlers(_mediator: Mediator) -> None:
 
 
 async def subscribe_basket_handlers_to_message_bus() -> None:
-    """
-    Subscribe basket integration event handlers to the shared message bus.
+    """Subscribe basket integration event handlers to RabbitMQ."""
+    from app.modules.basket.module_interface.product_price_changed_subscription import \
+        subscribe_product_price_changed_consumer
 
-    This should be called during application startup after modules are registered.
-    """
-    from app.core.mediator.fastapi_integration import get_mediator
-    from app.core.messaging.shared_message_bus import get_shared_message_bus
-    from app.modules.basket.application.integration_event_handlers.products.product_price_changed_integration_event_handler import \
-        ProductPriceChangedIntegrationEventHandler
-    from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import \
-        ProductPriceChangedIntegrationEventV1
-
-    main_mediator = get_mediator()
-
-    price_changed_handler = ProductPriceChangedIntegrationEventHandler(main_mediator)
-
-    event_type = ProductPriceChangedIntegrationEventV1.model_fields[
-        "event_type"
-    ].default
-
-    message_bus = get_shared_message_bus()
-    await message_bus.subscribe(event_type, price_changed_handler)
-
-    logger.info(
-        "Subscribed ProductPriceChangedIntegrationEventHandler to message bus "
-        "for event type: '%s'",
-        event_type,
-    )
+    await subscribe_product_price_changed_consumer()

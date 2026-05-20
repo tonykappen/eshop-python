@@ -14,8 +14,8 @@ router = APIRouter()
 
 @router.get("/{user_name}", response_model=GetBasketResult)
 async def get_basket(
+    http_request: Request,
     user_name: str = Path(..., description="User name"),
-    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Query access required (admin, manager, user)
     _: Any = Depends(require_query_access()),

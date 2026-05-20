@@ -4,9 +4,11 @@ import logging
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
+from app.config.settings import settings
 from app.core.cache.patterns import ICacheService
 from app.core.cache.redis_cache_service import RedisCacheService
 from app.core.mediator.mediator import IMediator, Mediator
+from app.core.messaging.bus import IMessageBus, RabbitMQMessageBus
 from app.core.messaging.outbox.outbox_service import (IOutboxService,
                                                       OutboxService)
 from app.modules.basket.application.services.basket_cache_service import \
@@ -31,6 +33,18 @@ from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     async_sessionmaker)
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def get_basket_message_bus() -> IMessageBus:
+    """
+    Get the basket module RabbitMQ message bus singleton.
+
+    Used by the basket integration-event consumer to declare its queue
+    (e.g. ``basket-product-price-changed-queue``) and bind it to
+    ``catalog.events``.
+    """
+    return RabbitMQMessageBus(settings.rabbitmq_connection_string)
 
 
 # Database providers

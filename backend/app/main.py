@@ -128,7 +128,7 @@ async def register_basket_router():
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.info("🔧 Registering basket router...")
+    logger.info("[STARTUP] Registering basket router...")
     try:
         container = get_app_container()
         mediator = get_mediator()
@@ -138,19 +138,19 @@ async def register_basket_router():
         basket_router = register_basket_module_with_fastapi(app, container, mediator)
         logger.info(f"Basket router created with {len(basket_router.routes)} routes")
         app.include_router(basket_router)
-        logger.info("✅ Basket router included successfully!")
+        logger.info("[OK] Basket router included successfully!")
         # Log all routes for debugging
         for route in basket_router.routes:
             if hasattr(route, "path"):
                 methods = getattr(route, "methods", set())
                 logger.info(f"  - {methods} {route.path}")
         print(
-            f"✅ Successfully registered basket router with {len(basket_router.routes)} routes"
+            f"[OK] Successfully registered basket router with {len(basket_router.routes)} routes"
         )
     except Exception as e:
         import traceback
 
-        logger.error(f"❌ ERROR: Could not register basket router: {e}", exc_info=True)
+        logger.error(f"[FAILED] Could not register basket router: {e}", exc_info=True)
         print(f"ERROR: Could not register basket router: {e}")
         traceback.print_exc()
         raise  # Re-raise to ensure the error is visible
@@ -163,7 +163,7 @@ async def register_ordering_router():
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.info("🔧 Registering ordering router...")
+    logger.info("[STARTUP] Registering ordering router...")
     try:
         container = get_app_container()
         mediator = get_mediator()
@@ -173,20 +173,20 @@ async def register_ordering_router():
             f"Ordering router created with {len(ordering_router.routes)} routes"
         )
         app.include_router(ordering_router)
-        logger.info("✅ Ordering router included successfully!")
+        logger.info("[OK] Ordering router included successfully!")
         # Log all routes for debugging
         for route in ordering_router.routes:
             if hasattr(route, "path"):
                 methods = getattr(route, "methods", set())
                 logger.info(f"  - {methods} {route.path}")
         print(
-            f"✅ Successfully registered ordering router with {len(ordering_router.routes)} routes"
+            f"[OK] Successfully registered ordering router with {len(ordering_router.routes)} routes"
         )
     except Exception as e:
         import traceback
 
         logger.error(
-            f"❌ ERROR: Could not register ordering router: {e}", exc_info=True
+            f"[FAILED] Could not register ordering router: {e}", exc_info=True
         )
         print(f"ERROR: Could not register ordering router: {e}")
         traceback.print_exc()
@@ -211,50 +211,50 @@ print(
 )
 
 
-async def subscribe_basket_handlers():
-    """Subscribe basket integration event handlers to the shared message bus."""
-    from app.modules.basket.module_interface.router import \
-        subscribe_basket_handlers_to_message_bus
-
-    await subscribe_basket_handlers_to_message_bus()
-    print("✅ Subscribed basket handlers to message bus")
-
-
-register_startup_callback(subscribe_basket_handlers)
-
-
-# Subscribe ordering handlers to message bus after basket (both before outbox worker)
-async def subscribe_ordering_handlers():
-    """Subscribe ordering integration event handlers to message bus."""
-    from app.modules.ordering.module_interface.router import \
-        subscribe_ordering_handlers_to_message_bus
-
-    await subscribe_ordering_handlers_to_message_bus()
-    print("✅ Subscribed ordering handlers to message bus")
-
-
-register_startup_callback(subscribe_ordering_handlers)
-
-
-# Start basket outbox publisher worker after handlers are subscribed
-# (so handlers are ready before worker starts processing)
-async def start_basket_outbox_worker():
-    """Start the basket outbox publisher worker."""
-    from app.modules.basket.workers.outbox_publisher_worker import \
-        basket_outbox_publisher_worker
-
-    await basket_outbox_publisher_worker.start()
-    print("✅ Started basket outbox publisher worker")
-
-
-register_startup_callback(start_basket_outbox_worker)
-
+# Startup order: DB migrations -> outbox registration -> RabbitMQ connect ->
+# consumer queue bindings -> basket outbox worker -> auth/health
 register_startup_callback(database_handler.startup)
 register_startup_callback(
     register_outbox_workers
 )  # Before messaging so workers exist for start_all()
 register_startup_callback(cache_handler.startup)
 register_startup_callback(messaging_handler.startup)
+
+
+async def subscribe_basket_handlers():
+    """Subscribe basket integration event handlers to RabbitMQ."""
+    from app.modules.basket.module_interface.router import \
+        subscribe_basket_handlers_to_message_bus
+
+    await subscribe_basket_handlers_to_message_bus()
+    print("[OK] Subscribed basket handlers to message bus")
+
+
+register_startup_callback(subscribe_basket_handlers)
+
+
+async def subscribe_ordering_handlers():
+    """Subscribe ordering integration event handlers to message bus."""
+    from app.modules.ordering.module_interface.router import \
+        subscribe_ordering_handlers_to_message_bus
+
+    await subscribe_ordering_handlers_to_message_bus()
+    print("[OK] Subscribed ordering handlers to message bus")
+
+
+register_startup_callback(subscribe_ordering_handlers)
+
+
+async def start_basket_outbox_worker():
+    """Start the basket outbox publisher worker after DB and consumers are ready."""
+    from app.modules.basket.workers.outbox_publisher_worker import \
+        basket_outbox_publisher_worker
+
+    await basket_outbox_publisher_worker.start()
+    print("[OK] Started basket outbox publisher worker")
+
+
+register_startup_callback(start_basket_outbox_worker)
 register_startup_callback(auth_handler.startup)
 register_startup_callback(health_handler.startup)
 
@@ -266,7 +266,7 @@ async def stop_basket_outbox_worker():
         basket_outbox_publisher_worker
 
     await basket_outbox_publisher_worker.stop()
-    print("✅ Stopped basket outbox publisher worker")
+    print("[OK] Stopped basket outbox publisher worker")
 
 
 register_shutdown_callback(stop_basket_outbox_worker)
@@ -281,12 +281,29 @@ async def stop_ordering_message_bus():
     if hasattr(message_bus, "disconnect"):
         try:
             await message_bus.disconnect()
-            print("✅ Disconnected ordering message bus")
+            print("[OK] Disconnected ordering message bus")
         except Exception as exc:  # noqa: BLE001 - log + swallow on shutdown
-            print(f"⚠️ Failed to disconnect ordering message bus: {exc}")
+            print(f"[WARN] Failed to disconnect ordering message bus: {exc}")
 
 
 register_shutdown_callback(stop_ordering_message_bus)
+
+
+async def stop_basket_consumer_message_bus():
+    """Disconnect the basket RabbitMQ consumer message bus on shutdown."""
+    from app.modules.basket.module_interface.di.basket.basket_providers import \
+        get_basket_message_bus
+
+    message_bus = get_basket_message_bus()
+    if hasattr(message_bus, "disconnect"):
+        try:
+            await message_bus.disconnect()
+            print("[OK] Disconnected basket consumer message bus")
+        except Exception as exc:  # noqa: BLE001 - log + swallow on shutdown
+            print(f"[WARN] Failed to disconnect basket consumer message bus: {exc}")
+
+
+register_shutdown_callback(stop_basket_consumer_message_bus)
 
 
 async def stop_basket_message_bus():
@@ -298,9 +315,9 @@ async def stop_basket_message_bus():
     if hasattr(message_bus, "disconnect"):
         try:
             await message_bus.disconnect()
-            print("✅ Disconnected basket outbox message bus")
+            print("[OK] Disconnected basket outbox message bus")
         except Exception as exc:  # noqa: BLE001 - log + swallow on shutdown
-            print(f"⚠️ Failed to disconnect basket outbox message bus: {exc}")
+            print(f"[WARN] Failed to disconnect basket outbox message bus: {exc}")
 
 
 register_shutdown_callback(stop_basket_message_bus)

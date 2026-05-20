@@ -15,8 +15,8 @@ router = APIRouter()
 
 @router.get("/{order_id}", response_model=GetOrderByIdResult)
 async def get_order_by_id(
+    http_request: Request,
     order_id: UUID = Path(..., description="Order ID"),
-    http_request: Request | None = None,
     factory: CQRSEndpointFactory = Depends(get_endpoint_factory),
     # RBAC: Query access required (admin, manager, user)
     _: Any = Depends(require_query_access()),

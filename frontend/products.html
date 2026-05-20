@@ -437,6 +437,7 @@
         </div>
     </div>
 
+    <script src="auth.js"></script>
     <script>
         const API_BASE = 'http://localhost:8000';
         let currentUser = null;
@@ -516,7 +517,7 @@
                 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        logout();
+                        handleUnauthorizedResponse(response);
                         return;
                     }
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1006,9 +1007,7 @@
         }
         
         function logout() {
-            // Clear user-specific data
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('username');
+            clearAuthStorage();
             window.location.href = 'index.html';
         }
         

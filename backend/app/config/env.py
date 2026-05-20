@@ -165,12 +165,25 @@ class EnvConfig:
         self, key: str, default: list | None = None, separator: str = ","
     ) -> list[str]:
         """Get list environment variable."""
-        value = self.get(key, default)
+        if not self.has(key):
+            return list(default) if default else []
+
+        value = self.get(key)
         if isinstance(value, list):
-            return value
+            return [str(item) for item in value]
         if isinstance(value, str):
+            stripped = value.strip()
+            if stripped.startswith("[") and stripped.endswith("]"):
+                import json
+
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, list):
+                        return [str(item).strip() for item in parsed if str(item).strip()]
+                except json.JSONDecodeError:
+                    pass
             return [item.strip() for item in value.split(separator) if item.strip()]
-        return default or []
+        return list(default) if default else []
 
     def has(self, key: str) -> bool:
         """Check if environment variable exists in any source."""

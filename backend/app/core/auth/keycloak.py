@@ -34,6 +34,7 @@ class KeycloakService:
         """Initialize Keycloak service."""
         self.keycloak: Any = None
         self._initialized = False
+        self._jwks_client: Any = None
 
     def _initialize_keycloak(self) -> None:
         """Initialize Keycloak connection lazily."""
@@ -151,6 +152,31 @@ class KeycloakService:
         )
         return result
 
+    def _get_jwks_client(self) -> Any:
+        """Return a cached PyJWKClient for the realm JWKS endpoint."""
+        from jwt import PyJWKClient
+
+        if self._jwks_client is None:
+            jwks_url = (
+                f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}"
+                "/protocol/openid-connect/certs"
+            )
+            self._jwks_client = PyJWKClient(jwks_url)
+        return self._jwks_client
+
+    def _reset_jwks_client(self) -> None:
+        """Drop cached JWKS client (e.g. after Keycloak key rotation)."""
+        self._jwks_client = None
+
+    def _verify_issuer(self, token_info: dict[str, Any]) -> None:
+        """Ensure token issuer is in the allowed list."""
+        issuer = token_info.get("iss")
+        allowed = settings.keycloak_allowed_issuers
+        if issuer not in allowed:
+            raise ValueError(
+                f"issuer_mismatch: token iss={issuer!r}, allowed={allowed!r}"
+            )
+
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token with Keycloak."""
         # Ensure Keycloak is available before attempting token verification
@@ -165,16 +191,18 @@ class KeycloakService:
             )
 
         try:
-            # Use JWT decode approach with Keycloak
             import jwt
-            from jwt import PyJWKClient
+            from jwt import PyJWKClientError
 
-            # Get the public key from Keycloak
-            jwks_url = f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/certs"
-            jwks_client = PyJWKClient(jwks_url)
+            jwks_client = self._get_jwks_client()
+            try:
+                signing_key = jwks_client.get_signing_key_from_jwt(token)
+            except PyJWKClientError:
+                # Keycloak may have rotated keys (e.g. after volume wipe); refresh JWKS once
+                self._reset_jwks_client()
+                jwks_client = self._get_jwks_client()
+                signing_key = jwks_client.get_signing_key_from_jwt(token)
 
-            # Decode the token
-            signing_key = jwks_client.get_signing_key_from_jwt(token)
             token_info = jwt.decode(
                 token,
                 signing_key.key,
@@ -182,11 +210,57 @@ class KeycloakService:
                 audience=[
                     "account",
                     settings.keycloak_client_id,
-                ],  # Accept both "account" and client ID
-                issuer=f"{settings.keycloak_server_url}/realms/{settings.keycloak_realm}",
-                leeway=7200,  # Allow 2 hours leeway for time synchronization issues
+                ],
+                options={"verify_iss": False},
+                leeway=7200,
             )
+            self._verify_issuer(token_info)
             return token_info  # type: ignore[no-any-return]
+        except PyJWKClientError as e:
+            logger.log_exception("Token signing key not found (stale kid?)", exception=e)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    "stale_signing_key: token was signed with an old Keycloak key. "
+                    "Clear browser storage and log in again."
+                ),
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from e
+        except jwt.InvalidAlgorithmError as e:
+            logger.log_exception(
+                "Token algorithm not allowed",
+                exception=e,
+                context={"allowed_algorithms": settings.keycloak_jwt_algorithms},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    "invalid_token_algorithm: JWT alg is not in "
+                    f"{settings.keycloak_jwt_algorithms}"
+                ),
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from e
+        except jwt.ExpiredSignatureError as e:
+            logger.log_exception("Token expired", exception=e)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="token_expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from e
+        except ValueError as e:
+            if "issuer_mismatch" in str(e):
+                logger.log_exception("Token issuer mismatch", exception=e)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=str(e),
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from e
+            logger.log_exception("Token verification failed", exception=e)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from e
         except Exception as e:
             logger.log_exception("Token verification failed", exception=e)
             raise HTTPException(

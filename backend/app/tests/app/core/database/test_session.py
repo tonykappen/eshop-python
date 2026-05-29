@@ -1,14 +1,20 @@
-"""Pytest tests for database session management."""
+"""Tests for database session management."""
 
 import contextlib
-from unittest.mock import AsyncMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
-from app.core.database.session import (AsyncSessionLocal, close_db_engine,
-                                       create_db_engine, engine,
-                                       get_db_session)
+from app.core.database.session import (
+    AsyncSessionLocal,
+    close_db_engine,
+    create_db_engine,
+    engine,
+    get_db_session,
+    get_pool_status,
+)
 from app.core.exceptions.common_exceptions import DatabaseError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -19,8 +25,6 @@ class TestDatabaseSession:
     async def test_get_db_session_generator(self):
         """Test that get_db_session is an async generator."""
         session_gen = get_db_session()
-
-        # Should be an async generator
         assert hasattr(session_gen, "__aiter__")
         assert hasattr(session_gen, "__anext__")
 
@@ -34,9 +38,8 @@ class TestDatabaseSession:
 
             async for session in get_db_session():
                 assert session == mock_session
-                break  # Only test first iteration
+                break
 
-            # Verify session was properly managed
             mock_session_local.assert_called_once()
 
     @pytest.mark.asyncio
@@ -49,29 +52,53 @@ class TestDatabaseSession:
             mock_session_local.return_value.__aenter__.return_value = mock_session
 
             async for session in get_db_session():
-                # Should handle exception gracefully
                 with contextlib.suppress(Exception):
                     await session.execute(text("SELECT 1"))
                 break
 
     @pytest.mark.asyncio
+    async def test_get_db_session_handles_sqlalchemy_errors(self):
+        """Test that get_db_session propagates SQLAlchemy errors."""
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_factory:
+            mock_factory.side_effect = SQLAlchemyError("Database connection failed")
+
+            with pytest.raises(SQLAlchemyError):
+                async for _ in get_db_session():
+                    pass
+
+    @pytest.mark.asyncio
+    async def test_get_db_session_with_close(self):
+        """Test that get_db_session closes session properly."""
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_factory:
+            mock_session = AsyncMock()
+            mock_factory.return_value = mock_session
+
+            async for _ in get_db_session():
+                break
+
+            mock_session.close.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_create_db_engine_success(self):
         """Test successful database engine creation."""
         with patch("app.core.database.session.engine") as mock_engine:
-            mock_engine.begin.return_value.__aenter__.return_value.execute.return_value = (
-                None
-            )
+            mock_conn = AsyncMock()
+            mock_engine.begin.return_value.__aenter__.return_value = mock_conn
+            mock_engine.begin.return_value.__aexit__.return_value = None
 
-            await create_db_engine()
+            with patch("app.core.database.session.get_pool_status") as mock_pool_status:
+                mock_pool_status.return_value = {"pool_size": 10}
 
-            # Verify engine.begin was called
-            mock_engine.begin.assert_called_once()
+                await create_db_engine()
+
+                mock_conn.execute.assert_called_once()
+                mock_pool_status.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_db_engine_failure(self):
         """Test database engine creation failure."""
         with patch("app.core.database.session.engine") as mock_engine:
-            mock_engine.begin.side_effect = Exception("Connection failed")
+            mock_engine.begin.side_effect = SQLAlchemyError("Connection failed")
 
             with pytest.raises(DatabaseError, match="Database engine creation failed"):
                 await create_db_engine()
@@ -87,8 +114,8 @@ class TestDatabaseSession:
             mock_engine.dispose.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_close_db_engine_failure(self):
-        """Test database engine closure failure."""
+    async def test_close_db_engine_failure_raises(self):
+        """Test database engine closure failure raises DatabaseError."""
         with patch("app.core.database.session.engine") as mock_engine:
             mock_engine.dispose = AsyncMock(side_effect=Exception("Dispose failed"))
 
@@ -97,16 +124,82 @@ class TestDatabaseSession:
 
     def test_engine_configuration(self):
         """Test that engine is properly configured."""
-        # Test that engine exists and has expected attributes
         assert engine is not None
         assert hasattr(engine, "url")
         assert hasattr(engine, "pool")
 
     def test_async_session_local_configuration(self):
         """Test that AsyncSessionLocal is properly configured."""
-        # Test that AsyncSessionLocal exists and is callable
         assert AsyncSessionLocal is not None
         assert callable(AsyncSessionLocal)
+
+
+class TestDatabasePoolStatus:
+    """Test pool status and extended session configuration."""
+
+    @pytest.mark.asyncio
+    async def test_get_pool_status_success(self):
+        """Test successful pool status retrieval."""
+        with patch("app.core.database.session.engine") as mock_engine:
+            mock_pool = MagicMock()
+            mock_pool.size.return_value = 10
+            mock_pool.checkedin.return_value = 5
+            mock_pool.checkedout.return_value = 3
+            mock_pool.overflow.return_value = 2
+            mock_pool.invalid.return_value = 0
+            mock_engine.pool = mock_pool
+
+            result = await get_pool_status()
+            assert result["pool_size"] == 10
+            assert result["checked_in"] == 5
+            assert result["checked_out"] == 3
+            assert result["overflow"] == 2
+            assert result["invalid"] == 0
+            assert result["total_connections"] == 8
+
+    @pytest.mark.asyncio
+    async def test_get_pool_status_handles_exceptions(self):
+        """Test that get_pool_status handles exceptions properly."""
+        with patch("app.core.database.session.engine") as mock_engine:
+            mock_engine.pool = None
+
+            result = await get_pool_status()
+            assert "error" in result
+
+    def test_engine_pool_settings(self):
+        """Test engine pool configuration values."""
+        assert engine.pool_size == 10
+        assert engine.max_overflow == 20
+        assert engine.pool_pre_ping is True
+        assert engine.pool_recycle == 300
+        assert engine.pool_timeout == 30
+
+    def test_async_session_local_factory_settings(self):
+        """Test AsyncSessionLocal factory settings."""
+        assert AsyncSessionLocal.kw.get("expire_on_commit") is False
+        assert AsyncSessionLocal.kw.get("autoflush") is False
+        assert AsyncSessionLocal.kw.get("autocommit") is False
+
+    def test_session_context_manager(self):
+        """Test that the session context manager works correctly."""
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_factory:
+            mock_session = AsyncMock()
+            mock_factory.return_value = mock_session
+
+            with AsyncSessionLocal() as session:
+                assert session == mock_session
+
+            mock_factory.assert_called_once()
+
+    def test_session_context_manager_with_exception(self):
+        """Test that the session context manager handles exceptions correctly."""
+        with patch("app.core.database.session.AsyncSessionLocal") as mock_factory:
+            mock_session = AsyncMock()
+            mock_session.__aenter__.side_effect = SQLAlchemyError("Session error")
+            mock_factory.return_value = mock_session
+
+            with pytest.raises(SQLAlchemyError), AsyncSessionLocal() as _:
+                pass
 
 
 class TestDatabaseConnectionString:
@@ -115,19 +208,16 @@ class TestDatabaseConnectionString:
     @patch("app.config.settings.settings")
     def test_database_connection_string_format(self, mock_settings):
         """Test database connection string format."""
-        # Mock settings with property
         mock_settings.db_user = "test_user"
         mock_settings.db_password = "test_password"
         mock_settings.db_host = "test_host"
         mock_settings.db_port = 5432
         mock_settings.db_name = "test_db"
 
-        # Mock the property to return the expected value
         type(mock_settings).database_connection_string = PropertyMock(
             return_value="postgresql+asyncpg://test_user:test_password@test_host:5432/test_db"
         )
 
-        # Test connection string format
         connection_string = mock_settings.database_connection_string
         expected = "postgresql+asyncpg://test_user:test_password@test_host:5432/test_db"
 
@@ -136,19 +226,16 @@ class TestDatabaseConnectionString:
     @patch("app.config.settings.settings")
     def test_database_connection_string_with_special_chars(self, mock_settings):
         """Test database connection string with special characters in password."""
-        # Mock settings with special characters in password
         mock_settings.db_user = "test_user"
         mock_settings.db_password = "test@password#123"
         mock_settings.db_host = "test_host"
         mock_settings.db_port = 5432
         mock_settings.db_name = "test_db"
 
-        # Mock the property to return the expected value
         type(mock_settings).database_connection_string = PropertyMock(
             return_value="postgresql+asyncpg://test_user:test@password#123@test_host:5432/test_db"
         )
 
-        # Test connection string format
         connection_string = mock_settings.database_connection_string
         expected = (
             "postgresql+asyncpg://test_user:test@password#123@test_host:5432/test_db"
@@ -165,24 +252,19 @@ class TestDatabaseSessionLifecycle:
         """Test session lifecycle using context manager."""
         mock_session = AsyncMock(spec=AsyncSession)
 
-        # Test the actual get_db_session function which handles session lifecycle
         with patch("app.core.database.session.AsyncSessionLocal") as mock_session_local:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
 
-            # Use get_db_session which properly handles session lifecycle
             session_gen = get_db_session()
             session = await session_gen.__anext__()
 
-            # Simulate some database operations
             await session.execute(text("SELECT 1"))
             await session.commit()
 
-            # Close the generator properly
             with contextlib.suppress(StopAsyncIteration):
                 await session_gen.__anext__()
 
-            # Verify session was properly closed
             mock_session.close.assert_called_once()
 
     @pytest.mark.asyncio
@@ -194,19 +276,15 @@ class TestDatabaseSessionLifecycle:
             mock_session_local.return_value.__aenter__.return_value = mock_session
             mock_session_local.return_value.__aexit__.return_value = None
 
-            # Test that get_db_session properly handles session lifecycle
             session_gen = get_db_session()
             session = await session_gen.__anext__()
 
-            # Simulate normal session usage
             await session.execute(text("SELECT 1"))
             await session.commit()
 
-            # Close the generator properly
             with contextlib.suppress(StopAsyncIteration):
                 await session_gen.__anext__()
 
-            # Verify session was properly closed (rollback is only called on exceptions)
             mock_session.close.assert_called_once()
 
 
@@ -215,29 +293,22 @@ class TestDatabaseEngineConfiguration:
 
     def test_engine_pool_configuration(self):
         """Test engine pool configuration."""
-        # Test that engine has proper pool configuration
         assert hasattr(engine, "pool")
         assert engine.pool is not None
 
-        # Test pool settings - use more flexible checks for SQLAlchemy 2.0
         pool = engine.pool
         assert hasattr(pool, "_pool")
         assert hasattr(pool, "size")
-        # max_overflow might not be directly accessible in SQLAlchemy 2.0
-        # Check for pool configuration methods instead
         assert hasattr(pool, "checkedin")
         assert hasattr(pool, "checkedout")
 
     def test_engine_echo_configuration(self):
         """Test engine echo configuration."""
-        # Test that engine echo is properly configured
-        # This depends on the debug setting
         assert hasattr(engine, "echo")
         assert isinstance(engine.echo, bool)
 
     def test_engine_url_configuration(self):
         """Test engine URL configuration."""
-        # Test that engine URL is properly configured
         assert hasattr(engine, "url")
         assert engine.url is not None
         assert str(engine.url).startswith("postgresql+asyncpg://")

@@ -242,5 +242,9 @@ coverage.xml
 # Pytest
 .pytest_cache/
 
+# Generated tool output
+bandit-report.json
+.mypy-last.txt
+
 # FastAPI uploads
 uploads/

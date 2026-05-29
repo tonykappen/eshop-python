@@ -1,0 +1,12 @@
+{
+  "name": "eshop-frontend-tests",
+  "private": true,
+  "scripts": {
+    "test": "jest --config jest.config.js",
+    "test:unit": "jest --config jest.config.js"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

@@ -845,3 +845,117 @@ class TestMainIntegration:
 
         response = client.get("/docs")
         assert response.status_code == 200
+
+
+class TestMainApplicationSmoke:
+    """Lightweight smoke tests using the real app instance."""
+
+    def test_app_is_fastapi_instance(self) -> None:
+        from app.main import app
+
+        assert isinstance(app, FastAPI)
+        assert app.title == "eShop Modular Monolith"
+        assert app.version == "0.1.0"
+
+    def test_app_has_auth_proxy_router(self) -> None:
+        from app.main import app
+
+        route_paths = [route.path for route in app.routes]
+        assert any("/auth" in path for path in route_paths)
+
+    def test_app_has_catalog_router(self) -> None:
+        from app.main import app
+
+        route_paths = [route.path for route in app.routes]
+        assert any("/catalog" in path for path in route_paths)
+
+    def test_app_has_pagination(self) -> None:
+        from app.main import app
+
+        assert hasattr(app, "state")
+
+    @pytest.mark.asyncio
+    async def test_lifespan_startup_initializes_services(self) -> None:
+        from app.main import app, lifespan
+
+        with (
+            patch("app.main.initialize_logging") as mock_logging,
+            patch("app.main.initialize_dependency_injection") as mock_di,
+            patch("app.main.initialize_database") as mock_db,
+            patch("app.main.initialize_cache") as mock_cache,
+            patch("app.main.initialize_messaging") as mock_messaging,
+            patch("app.main.initialize_auth") as mock_auth,
+            patch("app.main.initialize_health") as mock_health,
+        ):
+            async with lifespan(app):
+                pass
+
+            mock_logging.assert_called_once()
+            mock_di.assert_called_once()
+            mock_db.assert_called_once()
+            mock_cache.assert_called_once()
+            mock_messaging.assert_called_once()
+            mock_auth.assert_called_once()
+            mock_health.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_lifespan_shutdown_cleans_up_services(self) -> None:
+        from app.main import app, lifespan
+
+        with (
+            patch("app.main.cleanup_dependency_injection") as mock_di_cleanup,
+            patch("app.main.database_handler") as mock_db_handler,
+            patch("app.main.cache_handler") as mock_cache_handler,
+            patch("app.main.messaging_handler") as mock_messaging_handler,
+            patch("app.main.auth_handler") as mock_auth_handler,
+            patch("app.main.health_handler") as mock_health_handler,
+        ):
+            mock_db_handler.shutdown = AsyncMock()
+            mock_cache_handler.shutdown = AsyncMock()
+            mock_messaging_handler.shutdown = AsyncMock()
+            mock_auth_handler.shutdown = AsyncMock()
+            mock_health_handler.shutdown = AsyncMock()
+
+            async with lifespan(app):
+                pass
+
+            mock_di_cleanup.assert_called_once()
+            mock_db_handler.shutdown.assert_called_once()
+            mock_cache_handler.shutdown.assert_called_once()
+            mock_messaging_handler.shutdown.assert_called_once()
+            mock_auth_handler.shutdown.assert_called_once()
+            mock_health_handler.shutdown.assert_called_once()
+
+    def test_app_has_proper_tags(self) -> None:
+        from app.main import app
+
+        for route in app.routes:
+            if hasattr(route, "tags") and route.tags:
+                assert isinstance(route.tags, list)
+                assert len(route.tags) > 0
+
+    @pytest.mark.asyncio
+    async def test_lifespan_handles_errors_gracefully(self) -> None:
+        from app.main import app, lifespan
+
+        with patch("app.main.initialize_logging") as mock_logging:
+            mock_logging.side_effect = Exception("Initialization failed")
+
+            with pytest.raises(RuntimeError):
+                async with lifespan(app):
+                    pass
+
+    def test_app_has_proper_cors_configuration(self) -> None:
+        from app.main import app
+
+        cors_middleware = None
+        for middleware in app.user_middleware:
+            if middleware.cls.__name__ == "CORSMiddleware":
+                cors_middleware = middleware
+                break
+
+        assert cors_middleware is not None
+        assert cors_middleware.options.get("allow_origins") == ["*"]
+        assert cors_middleware.options.get("allow_credentials") is True
+        assert cors_middleware.options.get("allow_methods") == ["*"]
+        assert cors_middleware.options.get("allow_headers") == ["*"]

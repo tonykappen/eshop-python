@@ -111,7 +111,6 @@ KEYCLOAK_REALM=eshop
 
 The following files have been updated to use `config.js`:
 - `frontend/index.html`
-- `frontend/debug.html`
 - `frontend/config.js` (new)
 - `frontend/generate-config.sh` (new)
 - `frontend/generate-config.js` (new)

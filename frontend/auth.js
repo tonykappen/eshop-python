@@ -86,3 +86,15 @@ function showSessionExpiredMessage() {
         el.classList.add('error');
     }
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        clearAuthStorage,
+        getAccessToken,
+        getAuthHeaders,
+        handleUnauthorized,
+        validateStoredToken,
+        handleUnauthorizedResponse,
+        showSessionExpiredMessage,
+    };
+}

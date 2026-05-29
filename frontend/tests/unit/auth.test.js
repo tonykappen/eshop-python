@@ -78,4 +78,25 @@ describe('auth helpers', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('handleUnauthorizedResponse', () => {
+    test('redirects with parsed detail', async () => {
+      const response = {
+        json: () => Promise.resolve({ detail: 'token expired' }),
+      };
+      auth.handleUnauthorizedResponse(response);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(window.location.href).toContain('session_expired=1');
+    });
+  });
+
+  describe('showSessionExpiredMessage', () => {
+    test('shows stale signing key message', () => {
+      delete window.location;
+      window.location = { search: '?session_expired=1&reason=stale_signing_key' };
+      document.body.innerHTML = '<div id="error"></div>';
+      auth.showSessionExpiredMessage();
+      expect(document.getElementById('error').textContent).toContain('sign-in key');
+    });
+  });
 });

@@ -6,7 +6,7 @@ This guide is the canonical runbook for starting infrastructure and running the 
 
 - **Docker** and **Docker Compose** (recommended for full stack)
 - **Poetry** (Python 3.12+) for local backend development
-- **Node.js 20+** (optional, for frontend unit tests only)
+- **Node.js 20+** (for frontend unit, E2E, and API contract tests)
 
 ## Service Map
 
@@ -132,15 +132,28 @@ poetry install
 poetry run pytest app/tests/
 ```
 
-### Frontend unit tests
+### Frontend tests
+
+Requires the full stack for E2E and API contract tests.
+
+**Setup (once):**
 
 ```bash
-cd frontend
-npm ci
-npm test
+./scripts/setup-frontend-tests.sh
 ```
 
-See [TESTING.md](TESTING.md) for test layout and markers.
+```bash
+# From repo root — start stack for E2E / API contract tests
+docker compose up -d --wait
+
+cd frontend
+npm test                  # Jest unit tests
+npm run test:api-contracts
+npm run test:e2e
+npm run test:all          # unit + API contracts + E2E
+```
+
+See [TESTING.md](TESTING.md) for layout, env vars, and markers.
 
 ## Troubleshooting
 

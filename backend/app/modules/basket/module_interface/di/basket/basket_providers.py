@@ -1,8 +1,10 @@
 """Dependency injection providers for basket module."""
 
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from functools import lru_cache
+from typing import Any
 
 from app.config.settings import settings
 from app.core.cache.patterns import ICacheService
@@ -11,6 +13,8 @@ from app.core.mediator.mediator import IMediator, Mediator
 from app.core.messaging.bus import IMessageBus, RabbitMQMessageBus
 from app.core.messaging.outbox.outbox_service import (IOutboxService,
                                                       OutboxService)
+from app.modules.basket.application.basket_handler_context import \
+    BasketHandlerContext
 from app.modules.basket.application.services.basket_cache_service import \
     BasketCacheService
 from app.modules.basket.application.unit_of_work.basket_unit_of_work import \
@@ -33,6 +37,66 @@ from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     async_sessionmaker)
 
 logger = logging.getLogger(__name__)
+
+
+async def _finalize_basket_session(session: AsyncSession) -> None:
+    """Commit or roll back a basket session, mirroring get_basket_session()."""
+    from app.core.logging.base_logger import BaseLogger
+
+    session_logger = BaseLogger(__name__)
+
+    if session.in_transaction():
+        try:
+            has_changes = (
+                len(session.new) + len(session.dirty) + len(session.deleted) > 0
+            )
+            if has_changes:
+                await session.commit()
+        except Exception as commit_error:
+            error_msg = str(commit_error) if commit_error else "Unknown commit error"
+            if (
+                "already been committed" not in error_msg.lower()
+                and "no transaction" not in error_msg.lower()
+            ):
+                session_logger.log_warning_with_context(
+                    "Session commit in basket context factory failed",
+                    context={"error": error_msg},
+                )
+
+
+def create_basket_handler_context_factory() -> Callable[[], Any]:
+    """Return an async context manager that yields per-request basket dependencies."""
+
+    session_maker = get_basket_session_maker()
+    cache_service = get_basket_cache_service()
+
+    @asynccontextmanager
+    async def factory():
+        async with session_maker() as session:
+            try:
+                sql_repo = SqlBasketRepository(session)
+                repository = CachedBasketRepository(
+                    repository=sql_repo,
+                    cache_service=cache_service,
+                )
+                outbox_service = OutboxService(
+                    session, outbox_orm_class=BasketOutboxORM
+                )
+                yield BasketHandlerContext(
+                    repository=repository,
+                    outbox_service=outbox_service,
+                )
+                await _finalize_basket_session(session)
+            except Exception as e:
+                if session.in_transaction():
+                    try:
+                        await session.rollback()
+                    except Exception:
+                        pass
+                logger.error("Basket handler context error: %s", e)
+                raise
+
+    return factory
 
 
 @lru_cache(maxsize=1)

@@ -1,7 +1,11 @@
 """GetBasketHandler with 1-1 parity to .NET implementation."""
 
+from collections.abc import Callable
+from typing import Any
+
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
+from app.modules.basket.application.basket_handler_context import use_basket_context
 from app.modules.basket.application.dtos.shopping_cart_dto import (
     ShoppingCartDto, ShoppingCartItemDto)
 from app.modules.basket.domain.repositories.basket import IBasketRepository
@@ -12,14 +16,13 @@ from .get_basket_query import GetBasketQuery, GetBasketResult
 class GetBasketHandler(IRequestHandler[GetBasketQuery, GetBasketResult]):
     """Handler for GetBasketQuery - matches .NET GetBasketHandler."""
 
-    def __init__(self, repository: IBasketRepository) -> None:
-        """
-        Initialize handler.
-
-        Args:
-            repository: Basket repository
-        """
-        self.repository = repository
+    def __init__(
+        self,
+        repository: IBasketRepository | None = None,
+        context_factory: Callable[[], Any] | None = None,
+    ) -> None:
+        self._repository = repository
+        self._context_factory = context_factory
 
     async def handle(
         self, query: GetBasketQuery, cancellation_token: CancellationToken
@@ -34,21 +37,22 @@ class GetBasketHandler(IRequestHandler[GetBasketQuery, GetBasketResult]):
         Returns:
             GetBasketResult containing the shopping cart DTO
         """
-        # Check for cancellation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Get basket with user_name (with tracking for read operations)
-        # If basket doesn't exist, return an empty basket instead of raising an exception
-        # This is a common pattern in e-commerce where baskets are created on first item addition
+        async with use_basket_context(
+            self._context_factory, repository=self._repository
+        ) as ctx:
+            return await self._handle_with_repository(query, ctx.repository)
+
+    async def _handle_with_repository(
+        self, query: GetBasketQuery, repository: IBasketRepository
+    ) -> GetBasketResult:
         from app.modules.basket.domain.exceptions.basket.basket_not_found import \
             BasketNotFoundException
 
         try:
-            basket = await self.repository.get_basket(
-                query.user_name, as_no_tracking=True
-            )
+            basket = await repository.get_basket(query.user_name, as_no_tracking=True)
 
-            # Mapping basket entity to ShoppingCartDto
             items_dto = [
                 ShoppingCartItemDto(
                     id=item.id,
@@ -68,10 +72,8 @@ class GetBasketHandler(IRequestHandler[GetBasketQuery, GetBasketResult]):
                 items=items_dto,
             )
         except BasketNotFoundException:
-            # Return an empty basket if it doesn't exist yet
-            # The basket will be created automatically when the first item is added
             basket_dto = ShoppingCartDto(
-                id=None,  # No ID yet - basket will be created when first item is added
+                id=None,
                 user_name=query.user_name,
                 items=[],
             )

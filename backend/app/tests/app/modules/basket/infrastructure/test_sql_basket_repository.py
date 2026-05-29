@@ -1,5 +1,6 @@
 """Tests for SQL Basket repository implementation."""
 
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -8,9 +9,58 @@ from app.modules.basket.domain.entities.basket import ShoppingCart
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
 from app.modules.basket.infrastructure.persistence.orm.basket.shopping_cart_orm import \
     ShoppingCartORM
-from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import \
-    SqlBasketRepository
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.basket.infrastructure.persistence.repositories.basket import (
+    sql_basket_repository,
+)
+from app.modules.basket.infrastructure.persistence.repositories.basket.sql_basket_repository import (
+    SqlBasketRepository,
+)
+
+
+class RecordingAsyncSession:
+    """Test double for AsyncSession without unittest.mock Mock markers."""
+
+    def __init__(self) -> None:
+        self.execute = AsyncMock()
+        self.add = MagicMock()
+        self.flush = AsyncMock()
+        self.delete = AsyncMock()
+        self.get = AsyncMock()
+        self.identity_map = MagicMock(values=MagicMock(return_value=[]))
+
+
+class FakeBasketORM:
+    def __init__(self, user_name: str) -> None:
+        self.id = uuid4()
+        self.user_name = user_name
+        self.items = []
+
+
+class FakeExecuteResult:
+    def __init__(self, orm: FakeBasketORM | None) -> None:
+        self._orm = orm
+
+    def scalar_one_or_none(self) -> FakeBasketORM | None:
+        return self._orm
+
+    def scalar_one(self) -> FakeBasketORM:
+        if self._orm is None:
+            raise AssertionError("expected ORM")
+        return self._orm
+
+
+class TestExtractValue:
+    @pytest.mark.asyncio
+    async def test_returns_plain_values(self) -> None:
+        assert await sql_basket_repository._extract_value("hello") == "hello"
+        assert await sql_basket_repository._extract_value(None) is None
+
+    @pytest.mark.asyncio
+    async def test_awaits_coroutine(self) -> None:
+        async def inner() -> str:
+            return "done"
+
+        assert await sql_basket_repository._extract_value(inner()) == "done"
 
 
 class TestBasketRepositoryGetBasket:
@@ -18,105 +68,102 @@ class TestBasketRepositoryGetBasket:
 
     @pytest.mark.asyncio
     async def test_get_basket_success(self) -> None:
-        """Test successful get basket."""
-        mock_session = AsyncMock(spec=AsyncSession)
-        repo = SqlBasketRepository(mock_session)
+        session = RecordingAsyncSession()
+        repo = SqlBasketRepository(session)
 
         user_name = "testuser"
-        mock_orm = MagicMock(spec=ShoppingCartORM)
-        mock_orm.id = uuid4()
-        mock_orm.user_name = user_name
-        mock_orm.items = []
-
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = mock_orm
-        mock_session.execute.return_value = mock_result
+        fake_orm = FakeBasketORM(user_name)
+        session.execute.return_value = FakeExecuteResult(fake_orm)
 
         with patch.object(
             repo, "_orm_to_domain", new_callable=AsyncMock
         ) as mock_mapper:
-            mock_basket = MagicMock(spec=ShoppingCart)
+            mock_basket = ShoppingCart.create(cart_id=fake_orm.id, user_name=user_name)
             mock_mapper.return_value = mock_basket
 
             result = await repo.get_basket(user_name)
 
             assert result == mock_basket
-            mock_session.execute.assert_called_once()
-            mock_mapper.assert_called_once_with(mock_orm)
+            session.execute.assert_called_once()
+            mock_mapper.assert_called_once_with(fake_orm)
 
     @pytest.mark.asyncio
     async def test_get_basket_not_found_raises_exception(self) -> None:
-        """Test get basket when basket not found."""
-        mock_session = AsyncMock(spec=AsyncSession)
-        repo = SqlBasketRepository(mock_session)
+        session = RecordingAsyncSession()
+        repo = SqlBasketRepository(session)
 
-        user_name = "testuser"
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = None
-        mock_session.execute.return_value = mock_result
+        mock_result = FakeExecuteResult(None)
+        session.execute.return_value = mock_result
 
         with pytest.raises(BasketNotFoundException):
-            await repo.get_basket(user_name)
+            await repo.get_basket("missing-user")
 
 
 class TestBasketRepositoryCreateBasket:
-    """Test create_basket method."""
-
     @pytest.mark.asyncio
     async def test_create_basket_success(self) -> None:
-        """Test successful basket creation."""
-        mock_session = AsyncMock(spec=AsyncSession)
-        repo = SqlBasketRepository(mock_session)
-
+        session = RecordingAsyncSession()
+        repo = SqlBasketRepository(session)
         basket = ShoppingCart.create(cart_id=uuid4(), user_name="testuser")
 
         with patch.object(repo, "_domain_to_orm") as mock_mapper:
-            mock_orm = MagicMock(spec=ShoppingCartORM)
-            mock_orm.id = basket.id
-            mock_orm.items = []  # Mock items to avoid lazy loading issues
-            mock_mapper.return_value = mock_orm
-
-            # Mock the execute call that reloads the basket after flush
-            mock_result = MagicMock()
-            mock_result.scalar_one.return_value = mock_orm
-            mock_session.execute.return_value = mock_result
+            fake_orm = FakeBasketORM(basket.user_name)
+            fake_orm.id = basket.id
+            mock_mapper.return_value = fake_orm
+            session.get = AsyncMock(return_value=fake_orm)
 
             with patch.object(
                 repo, "_orm_to_domain", new_callable=AsyncMock
             ) as mock_domain_mapper:
                 mock_domain_mapper.return_value = basket
-
                 result = await repo.create_basket(basket)
 
                 assert result == basket
-                mock_session.add.assert_called_once()
-                mock_session.flush.assert_called_once()
-                # Verify that execute was called to reload the basket with relationships
-                assert mock_session.execute.call_count == 1
+                session.add.assert_called_once()
+                session.flush.assert_called_once()
 
 
 class TestBasketRepositoryDeleteBasket:
-    """Test delete_basket method."""
-
     @pytest.mark.asyncio
     async def test_delete_basket_success(self) -> None:
-        """Test successful basket deletion."""
-        mock_session = AsyncMock(spec=AsyncSession)
-        repo = SqlBasketRepository(mock_session)
-
+        session = RecordingAsyncSession()
+        repo = SqlBasketRepository(session)
         user_name = "testuser"
         basket = ShoppingCart.create(cart_id=uuid4(), user_name=user_name)
 
-        # Mock get_basket to return a basket
-        mock_repo_get = AsyncMock(return_value=basket)
-        setattr(repo, "get_basket", mock_repo_get)
+        repo.get_basket = AsyncMock(return_value=basket)  # type: ignore[method-assign]
 
-        # Mock session.get to return ORM
-        mock_orm = MagicMock(spec=ShoppingCartORM)
-        mock_session.get.return_value = mock_orm
+        session.get = AsyncMock(return_value=FakeBasketORM(user_name))
 
         result = await repo.delete_basket(user_name)
 
         assert result is True
-        mock_session.delete.assert_called_once()
-        mock_session.flush.assert_called_once()
+        session.delete.assert_awaited_once()
+
+
+class TestBasketRepositoryAddItems:
+    @pytest.mark.asyncio
+    async def test_add_items_to_basket_appends_new_item(self) -> None:
+        session = RecordingAsyncSession()
+        repo = SqlBasketRepository(session)
+        basket = ShoppingCart.create(cart_id=uuid4(), user_name="buyer")
+        product_id = uuid4()
+        basket.add_item(
+            product_id=product_id,
+            product_name="Gadget",
+            price=Decimal("5.00"),
+            quantity=1,
+            color="Default",
+        )
+
+        fake_orm = FakeBasketORM(basket.user_name)
+        fake_orm.id = basket.id
+        session.execute.return_value = FakeExecuteResult(fake_orm)
+
+        with patch.object(
+            repo, "_orm_to_domain", new_callable=AsyncMock
+        ) as mock_mapper:
+            mock_mapper.return_value = basket
+            result = await repo.add_items_to_basket(basket)
+            assert result == basket
+            session.flush.assert_awaited()

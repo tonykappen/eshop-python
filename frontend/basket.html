@@ -330,9 +330,11 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="js/utils.js"></script>
     <script>
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = window.APP_CONFIG?.API_BASE || 'http://localhost:8000';
         let basket = null;
         let username = null;
         
@@ -399,18 +401,18 @@
             document.getElementById('emptyBasket').style.display = 'none';
             
             const itemsContainer = document.getElementById('basketItems');
-            let subtotal = 0;
             
             if (!basketData.items || basketData.items.length === 0) {
                 showEmptyBasket();
                 return;
             }
+
+            const subtotal = calculateBasketSubtotal(basketData.items);
             
             itemsContainer.innerHTML = basketData.items.map(item => {
                 const itemPrice = parseFloat(item.price) || 0;
                 const itemQuantity = parseInt(item.quantity) || 1;
                 const itemTotal = itemPrice * itemQuantity;
-                subtotal += itemTotal;
                 
                 return `
                     <div class="basket-item" data-product-id="${item.product_id}">
@@ -446,9 +448,7 @@
         }
         
         function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return window.escapeHtml(text);
         }
         
         async function updateQuantity(productId, newQuantity) {

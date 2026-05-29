@@ -1,7 +1,11 @@
 """RemoveItemFromBasketHandler with 1-1 parity to .NET implementation."""
 
+from collections.abc import Callable
+from typing import Any
+
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
+from app.modules.basket.application.basket_handler_context import use_basket_context
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
 from .remove_item_from_basket_command import (RemoveItemFromBasketCommand,
@@ -37,14 +41,13 @@ class RemoveItemFromBasketHandler(
 ):
     """Handler for RemoveItemFromBasketCommand - matches .NET RemoveItemFromBasketHandler."""
 
-    def __init__(self, repository: IBasketRepository) -> None:
-        """
-        Initialize handler.
-
-        Args:
-            repository: Basket repository
-        """
-        self.repository = repository
+    def __init__(
+        self,
+        repository: IBasketRepository | None = None,
+        context_factory: Callable[[], Any] | None = None,
+    ) -> None:
+        self._repository = repository
+        self._context_factory = context_factory
 
     async def handle(
         self,
@@ -70,24 +73,17 @@ class RemoveItemFromBasketHandler(
 
             raise BadRequestException(message="; ".join(errors))
 
-        # Check for cancellation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Get shopping cart (with tracking for updates) - matches .NET GetBasket(userName, false)
-        # In .NET, this returns a tracked entity that can be modified and saved
-        shopping_cart = await self.repository.get_basket(
-            command.user_name, as_no_tracking=False
-        )
-
-        # Remove item - matches .NET shoppingCart.RemoveItem(productId)
-        shopping_cart.remove_item(command.product_id)
-
-        # Sync domain changes to tracked ORM object (matches .NET Entity Framework tracking)
-        # Then save changes (matches .NET SaveChangesAsync)
-        if hasattr(self.repository, "update_basket"):
-            shopping_cart = await self.repository.update_basket(shopping_cart)
-
-        # Save changes - matches .NET repository.SaveChangesAsync(userName, cancellationToken)
-        await self.repository.save_changes_async(command.user_name)
+        async with use_basket_context(
+            self._context_factory, repository=self._repository
+        ) as ctx:
+            shopping_cart = await ctx.repository.get_basket(
+                command.user_name, as_no_tracking=False
+            )
+            shopping_cart.remove_item(command.product_id)
+            if hasattr(ctx.repository, "update_basket"):
+                shopping_cart = await ctx.repository.update_basket(shopping_cart)
+            await ctx.repository.save_changes_async(command.user_name)
 
         return RemoveItemFromBasketResult(id=shopping_cart.id)

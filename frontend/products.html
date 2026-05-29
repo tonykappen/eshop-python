@@ -437,9 +437,11 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="js/utils.js"></script>
     <script>
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = window.APP_CONFIG?.API_BASE || 'http://localhost:8000';
         let currentUser = null;
         let currentPage = 1;
         let pageSize = 10;
@@ -460,31 +462,11 @@
         document.getElementById('username').textContent = username;
         
         // Decode JWT to get user roles
-        function parseJwt(token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
-            } catch (e) {
-                return null;
-            }
+        userRole = resolveUserRole(token);
+        if (canManageProducts(userRole)) {
+            document.getElementById('createProductBtn').style.display = 'block';
         }
-        
-        const tokenData = parseJwt(token);
-        if (tokenData && tokenData.realm_access && tokenData.realm_access.roles) {
-            const roles = tokenData.realm_access.roles;
-            if (roles.includes('admin')) {
-                userRole = 'admin';
-                document.getElementById('createProductBtn').style.display = 'block';
-            } else if (roles.includes('manager')) {
-                userRole = 'manager';
-                document.getElementById('createProductBtn').style.display = 'block';
-            }
-            document.getElementById('userRole').textContent = userRole;
-        }
+        document.getElementById('userRole').textContent = userRole;
         
         // Load basket from API (only for regular users)
         if (userRole !== 'admin' && userRole !== 'manager') {
@@ -591,39 +573,17 @@
         }
         
         function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return window.escapeHtml(text);
         }
         
-        // Field name mapping from backend to frontend
-        const fieldNameMap = {
-            'picture_url': 'productImage',
-            'name': 'productName',
-            'description': 'productDescription',
-            'price': 'productPrice',
-            'category': 'category'
-        };
+        // Field name mapping from backend to frontend (shared via utils.js)
+        const fieldNameMap = FIELD_NAME_MAP;
         
         function displayValidationErrors(validationErrors) {
-            // Clear previous errors
             clearValidationErrors();
-            
-            // Group errors by field
-            const errorsByField = {};
-            const summaryErrors = [];
-            
-            validationErrors.forEach(error => {
-                const fieldName = error.field || 'unknown';
-                const message = error.message || 'Validation error';
-                const frontendFieldName = fieldNameMap[fieldName] || fieldName;
-                
-                if (!errorsByField[frontendFieldName]) {
-                    errorsByField[frontendFieldName] = [];
-                }
-                errorsByField[frontendFieldName].push(message);
-                summaryErrors.push(`${fieldName}: ${message}`);
-            });
+            const grouped = groupValidationErrors(validationErrors);
+            const errorsByField = grouped.errorsByField;
+            const summaryErrors = grouped.summaryErrors;
             
             // Display field-specific errors
             Object.keys(errorsByField).forEach(fieldId => {
@@ -697,42 +657,7 @@
         
         // Get appropriate actions based on user role
         function getProductActions(product) {
-            // Ensure product ID is a string (UUID might be object)
-            let productId = product.id;
-            if (!productId) {
-                console.error('Product ID is missing:', product);
-                return '<span style="color: red;">Error: Product ID missing</span>';
-            }
-            
-            // Convert to string if it's an object or ensure it's a valid UUID string
-            if (typeof productId !== 'string') {
-                productId = String(productId);
-            }
-            
-            // Validate UUID format (basic check)
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            if (!uuidRegex.test(productId)) {
-                console.error('Invalid product ID format:', productId);
-                return '<span style="color: red;">Error: Invalid Product ID</span>';
-            }
-            
-            const productName = product.name || 'Product';
-            const productPrice = product.price || 0;
-            
-            if (userRole === 'admin' || userRole === 'manager') {
-                // Admin and Manager can edit/delete products
-                return `
-                    <button class="btn-edit" onclick="editProduct('${productId}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteProduct('${productId}')">Delete</button>
-                `;
-            } else {
-                // Regular users can only add to cart
-                // Escape the product name for use in HTML attributes (escape single quotes)
-                const escapedName = escapeHtml(productName).replace(/'/g, "&#39;");
-                return `
-                    <button class="btn-add-cart" onclick="addToCart('${productId}', '${escapedName}', ${productPrice})">Add to Cart</button>
-                `;
-            }
+            return getProductActionsHtml(product, userRole, escapeHtml);
         }
         
         // Basket API functionality

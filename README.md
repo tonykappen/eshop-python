@@ -173,6 +173,18 @@ npm ci
 npm test
 ```
 
+### Frontend API Contract and E2E Tests
+
+Requires the full stack (`docker compose up -d --wait`):
+
+```bash
+cd frontend
+npm ci
+npx playwright install chromium
+npm run test:api-contracts
+npm run test:e2e
+```
+
 ## 🔧 Development
 
 ### Local Backend Development

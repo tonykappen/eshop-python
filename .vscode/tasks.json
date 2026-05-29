@@ -131,6 +131,127 @@
                 "clear": false
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Setup Frontend Test Prerequisites",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/setup-frontend-tests.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Backend Tests",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["run", "pytest", "app/tests/"],
+            "options": {
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "POETRY_PYTHON": "${config:python.defaultInterpreterPath}"
+                }
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Frontend Unit Tests",
+            "type": "shell",
+            "command": "npm",
+            "args": ["test"],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Frontend API Contract Tests",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "test:api-contracts"],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Frontend E2E Tests",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "test:e2e"],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run All Tests",
+            "dependsOn": [
+                "Run Backend Tests",
+                "Run Frontend Unit Tests",
+                "Run Frontend API Contract Tests",
+                "Run Frontend E2E Tests"
+            ],
+            "dependsOrder": "sequence",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }

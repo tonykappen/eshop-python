@@ -1,5 +1,6 @@
 """AddItemIntoBasketHandler with 1-1 parity to .NET implementation."""
 
+from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
@@ -8,6 +9,7 @@ from app.core.logging.base_logger import BaseLogger
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
 from app.core.mediator.mediator import IMediator
+from app.modules.basket.application.basket_handler_context import use_basket_context
 from app.modules.basket.domain.entities.basket import ShoppingCart
 from app.modules.basket.domain.exceptions.basket import BasketNotFoundException
 from app.modules.basket.domain.repositories.basket import IBasketRepository
@@ -50,15 +52,14 @@ class AddItemIntoBasketHandler(
 ):
     """Handler for AddItemIntoBasketCommand - matches .NET AddItemIntoBasketHandler."""
 
-    def __init__(self, repository: IBasketRepository, mediator: IMediator) -> None:
-        """
-        Initialize handler.
-
-        Args:
-            repository: Basket repository
-            mediator: Mediator for sending queries to other modules
-        """
-        self.repository = repository
+    def __init__(
+        self,
+        repository: IBasketRepository | None = None,
+        context_factory: Callable[[], Any] | None = None,
+        mediator: IMediator | None = None,
+    ) -> None:
+        self._repository = repository
+        self._context_factory = context_factory
         self.mediator = mediator
         self.logger = BaseLogger(__name__)
 
@@ -88,7 +89,11 @@ class AddItemIntoBasketHandler(
         cancellation_token.throw_if_cancellation_requested()
 
         # Before AddItem into SC, call Catalog Module GetProductById method
-        # Get latest product information and set Price and ProductName when adding item into SC
+        if self.mediator is None:
+            raise RuntimeError(
+                "AddItemIntoBasketHandler requires a mediator for catalog lookups"
+            )
+
         try:
             product_query = GetProductByIdQuery(
                 id=command.shopping_cart_item.product_id
@@ -140,13 +145,29 @@ class AddItemIntoBasketHandler(
             # Re-raise other exceptions
             raise
 
-        # Get shopping cart (with tracking for updates) - matches .NET GetBasket(userName, false)
-        # In .NET, this returns a tracked entity that can be modified and saved
+        async with use_basket_context(
+            self._context_factory, repository=self._repository
+        ) as ctx:
+            shopping_cart = await self._mutate_basket(
+                command, cancellation_token, ctx.repository, product_result
+            )
+            await ctx.repository.save_changes_async(command.user_name)
+
+        return AddItemIntoBasketResult(id=shopping_cart.id)
+
+    async def _mutate_basket(
+        self,
+        command: AddItemIntoBasketCommand,
+        cancellation_token: CancellationToken,
+        repository: IBasketRepository,
+        product_result: Any,
+    ) -> ShoppingCart:
+        cancellation_token.throw_if_cancellation_requested()
+
         try:
-            shopping_cart = await self.repository.get_basket(
+            shopping_cart = await repository.get_basket(
                 command.user_name, as_no_tracking=False
             )
-            # Basket exists - add item to it (matches .NET shoppingCart.AddItem(...))
             shopping_cart.add_item(
                 product_id=command.shopping_cart_item.product_id,
                 quantity=command.shopping_cart_item.quantity,
@@ -154,17 +175,13 @@ class AddItemIntoBasketHandler(
                 price=Decimal(str(product_result.product.price)),
                 product_name=product_result.product.name,
             )
-            # Sync domain changes to tracked ORM object (matches .NET Entity Framework tracking)
-            if hasattr(self.repository, "update_basket"):
-                shopping_cart = await self.repository.update_basket(shopping_cart)
+            if hasattr(repository, "update_basket"):
+                shopping_cart = await repository.update_basket(shopping_cart)
         except BasketNotFoundException:
-            # Basket doesn't exist, create it with the item already included
-            # This matches .NET behavior where basket is created before adding items
             shopping_cart = ShoppingCart.create(
                 cart_id=uuid4(),
                 user_name=command.user_name,
             )
-            # Add item before creating basket so it's included in the ORM
             shopping_cart.add_item(
                 product_id=command.shopping_cart_item.product_id,
                 quantity=command.shopping_cart_item.quantity,
@@ -172,12 +189,6 @@ class AddItemIntoBasketHandler(
                 price=Decimal(str(product_result.product.price)),
                 product_name=product_result.product.name,
             )
-            # Create basket with items already included
-            # Items are already in the domain model, so they'll be created with the basket
-            shopping_cart = await self.repository.create_basket(shopping_cart)
-            # No need to update - items were created with the basket
+            shopping_cart = await repository.create_basket(shopping_cart)
 
-        # Save changes - matches .NET repository.SaveChangesAsync(userName, cancellationToken)
-        await self.repository.save_changes_async(command.user_name)
-
-        return AddItemIntoBasketResult(id=shopping_cart.id)
+        return shopping_cart

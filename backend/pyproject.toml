@@ -99,6 +99,25 @@ disable_error_code = [
     "annotation-unchecked",
 ]
 
+[tool.coverage.run]
+source = [
+    "app/core",
+    "app/config",
+    "app/modules",
+    "app/main.py",
+]
+omit = [
+    "*/migrations/**",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
 [tool.bandit]
 exclude_dirs = ["tests"]
 skips = ["B101", "B601"]
@@ -115,6 +134,7 @@ addopts = [
     "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=html",
+    "--cov-report=xml",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",

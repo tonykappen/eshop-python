@@ -333,9 +333,15 @@ class SqlBasketRepository(IBasketRepository):
 
                 raise BasketNotFoundException(basket.user_name)
 
-            # Ensure items are loaded
-            if not hasattr(basket_orm, "items") or basket_orm.items is None:
-                await self.session.refresh(basket_orm, ["items"])
+            # Ensure items are loaded without issuing a second concurrent query
+            if not basket_orm.items:
+                stmt_items = (
+                    select(ShoppingCartORM)
+                    .where(ShoppingCartORM.id == basket_orm.id)
+                    .options(selectinload(ShoppingCartORM.items))
+                )
+                result_items = await self.session.execute(stmt_items)
+                basket_orm = result_items.scalar_one()
 
             # Add new items that aren't already in the ORM
             existing_item_ids = {item.id for item in (basket_orm.items or [])}
@@ -367,8 +373,6 @@ class SqlBasketRepository(IBasketRepository):
 
             await self.session.flush()
 
-            # Reload to get updated relationships
-            await self.session.refresh(basket_orm)
             stmt_reload = (
                 select(ShoppingCartORM)
                 .where(ShoppingCartORM.id == basket_orm.id)
@@ -451,8 +455,15 @@ class SqlBasketRepository(IBasketRepository):
             basket_orm = None
             if hasattr(self, "_tracked_baskets") and basket.id in self._tracked_baskets:
                 basket_orm = self._tracked_baskets[basket.id]
-                # Refresh to ensure we have latest state
-                await self.session.refresh(basket_orm, ["items"])
+                if not basket_orm.items:
+                    stmt_items = (
+                        select(ShoppingCartORM)
+                        .where(ShoppingCartORM.id == basket.id)
+                        .options(selectinload(ShoppingCartORM.items))
+                    )
+                    result_items = await self.session.execute(stmt_items)
+                    basket_orm = result_items.scalar_one()
+                    self._tracked_baskets[basket.id] = basket_orm
 
             # If not in tracked cache, query for it
             if not basket_orm:
@@ -530,8 +541,6 @@ class SqlBasketRepository(IBasketRepository):
 
             await self.session.flush()
 
-            # Reload to get updated relationships
-            await self.session.refresh(basket_orm)
             stmt = (
                 select(ShoppingCartORM)
                 .where(ShoppingCartORM.id == basket_orm.id)

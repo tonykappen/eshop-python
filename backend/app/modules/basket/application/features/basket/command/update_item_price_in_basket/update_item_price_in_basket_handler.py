@@ -1,7 +1,11 @@
 """UpdateItemPriceInBasketHandler with 1-1 parity to .NET implementation."""
 
+from collections.abc import Callable
+from typing import Any
+
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.handler_registry import IRequestHandler
+from app.modules.basket.application.basket_handler_context import use_basket_context
 from app.modules.basket.domain.repositories.basket import IBasketRepository
 
 from .update_item_price_in_basket_command import (
@@ -37,14 +41,13 @@ class UpdateItemPriceInBasketHandler(
 ):
     """Handler for UpdateItemPriceInBasketCommand - matches .NET UpdateItemPriceInBasketHandler."""
 
-    def __init__(self, repository: IBasketRepository) -> None:
-        """
-        Initialize handler.
-
-        Args:
-            repository: Basket repository (needs access to items)
-        """
-        self.repository = repository
+    def __init__(
+        self,
+        repository: IBasketRepository | None = None,
+        context_factory: Callable[[], Any] | None = None,
+    ) -> None:
+        self._repository = repository
+        self._context_factory = context_factory
 
     async def handle(
         self,
@@ -70,14 +73,16 @@ class UpdateItemPriceInBasketHandler(
 
             raise BadRequestException(message="; ".join(errors))
 
-        # Check for cancellation
         cancellation_token.throw_if_cancellation_requested()
 
-        # Find Shopping Cart Items with given ProductId and update their price
-        # The repository implements update_items_price which queries items directly
-        updated = await self.repository.update_items_price(
-            command.product_id, command.price
-        )
+        async with use_basket_context(
+            self._context_factory, repository=self._repository
+        ) as ctx:
+            updated = await ctx.repository.update_items_price(
+                command.product_id, command.price
+            )
+            if updated:
+                await ctx.repository.save_changes_async()
 
         if not updated:
             return UpdateItemPriceInBasketResult(is_success=False)

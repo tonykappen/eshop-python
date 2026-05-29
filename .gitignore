@@ -197,6 +197,9 @@ yarn-error.log*
 # Frontend build artifacts
 frontend/dist/
 frontend/build/
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/
 
 # Docker
 .dockerignore

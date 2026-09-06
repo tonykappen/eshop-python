@@ -572,10 +572,8 @@
             pagination.style.display = 'flex';
         }
         
-        function escapeHtml(text) {
-            return window.escapeHtml(text);
-        }
-        
+        // escapeHtml is provided globally by js/utils.js
+
         // Field name mapping from backend to frontend (shared via utils.js)
         const fieldNameMap = FIELD_NAME_MAP;
         

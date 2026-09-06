@@ -447,10 +447,8 @@
             }
         }
         
-        function escapeHtml(text) {
-            return window.escapeHtml(text);
-        }
-        
+        // escapeHtml is provided globally by js/utils.js
+
         async function updateQuantity(productId, newQuantity) {
             if (newQuantity <= 0) {
                 await removeItem(productId);

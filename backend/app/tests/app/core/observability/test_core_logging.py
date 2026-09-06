@@ -6,23 +6,12 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from app.core.logging.logger import (
-    AutoLogContext,
-    LoggerMixin,
-    configure_logging,
-    get_logger,
-    log_async,
-)
-from app.core.logging.request_logging import (
-    RequestLoggingMiddleware,
-    add_request_logging_middleware,
-)
-from app.tests.utils.mocks import (
-    create_mock_logger,
-    create_mock_request,
-    create_mock_response,
-)
+from app.core.logging.logger import (AutoLogContext, LoggerMixin,
+                                     configure_logging, get_logger, log_async)
+from app.core.logging.request_logging import (RequestLoggingMiddleware,
+                                              add_request_logging_middleware)
+from app.tests.utils.mocks import (create_mock_logger, create_mock_request,
+                                   create_mock_response)
 
 
 class TestLoggerConfiguration:

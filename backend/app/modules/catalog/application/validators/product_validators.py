@@ -3,15 +3,12 @@
 from uuid import UUID
 
 from app.core.validation.validators import AbstractValidator, ValidationResult
-from app.modules.catalog.application.features.products.commands.create_product.create_product_command import (
-    CreateProductCommand,
-)
-from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import (
-    DeleteProductCommand,
-)
-from app.modules.catalog.application.features.products.commands.update_product.update_product_command import (
-    UpdateProductCommand,
-)
+from app.modules.catalog.application.features.products.commands.create_product.create_product_command import \
+    CreateProductCommand
+from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import \
+    DeleteProductCommand
+from app.modules.catalog.application.features.products.commands.update_product.update_product_command import \
+    UpdateProductCommand
 
 
 class CreateProductCommandValidator(AbstractValidator[CreateProductCommand]):

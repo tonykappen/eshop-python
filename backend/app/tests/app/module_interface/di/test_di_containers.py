@@ -3,29 +3,15 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from app.core.di.assembly_scanner import (
-    AssemblyScanner,
-    function_service,
-    service,
-    singleton_service,
-    transient_service,
-)
-from app.core.di.container import (
-    Container,
-    ServiceProvider,
-    configure_container,
-    create_container,
-    get_container,
-    get_service_provider,
-    scan_assemblies,
-    wire_container,
-)
-from app.tests.utils.mocks import (
-    MockModule,
-    create_mock_container,
-    create_mock_provider,
-)
+from app.core.di.assembly_scanner import (AssemblyScanner, function_service,
+                                          service, singleton_service,
+                                          transient_service)
+from app.core.di.container import (Container, ServiceProvider,
+                                   configure_container, create_container,
+                                   get_container, get_service_provider,
+                                   scan_assemblies, wire_container)
+from app.tests.utils.mocks import (MockModule, create_mock_container,
+                                   create_mock_provider)
 
 
 class TestAssemblyScanner:

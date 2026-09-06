@@ -1,8 +1,12 @@
 """SQLAlchemy ORM models for the Ordering module.
 
-TODO: Implement ordering models when ordering module is developed.
-This is a placeholder to enable the per-module migration system.
+This file imports all ORM models for the ordering module so Alembic can discover them.
 """
 
-# Placeholder - ordering models will be implemented when ordering module is ready
-# For now, this allows the migration system to work without ordering tables
+# Import all ORM models for Alembic autogenerate
+from app.modules.ordering.infrastructure.persistence.orm.orders.order_item_orm import \
+    OrderItemORM
+from app.modules.ordering.infrastructure.persistence.orm.orders.order_orm import \
+    OrderORM
+
+__all__ = ["OrderORM", "OrderItemORM"]

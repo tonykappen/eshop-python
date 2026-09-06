@@ -193,9 +193,7 @@ def create_mock_provider(provides: type | None = None, **kwargs) -> MagicMock:
     """Create a mock dependency injection provider."""
     mock_provider = MagicMock()
     mock_provider.provides = provides
-    mock_provider.__call__ = MagicMock(
-        return_value=kwargs.get("return_value", MagicMock())
-    )
+    mock_provider.return_value = kwargs.get("return_value", MagicMock())
 
     return mock_provider
 

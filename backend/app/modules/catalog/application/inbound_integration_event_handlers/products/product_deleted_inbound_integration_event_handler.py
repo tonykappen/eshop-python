@@ -3,9 +3,8 @@
 from typing import Any
 
 from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import (
-    ProductDeletedIntegrationEvent,
-)
+from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import \
+    ProductDeletedIntegrationEvent
 
 logger = BaseLogger(__name__)
 
@@ -31,7 +30,7 @@ class ProductDeletedInboundIntegrationEventHandler:
         """
         logger.log_with_context(
             "Processing inbound ProductDeleted integration event",
-            context={"event_id": event_data.get('event_id')}
+            context={"event_id": event_data.get("event_id")},
         )
 
         try:
@@ -42,9 +41,13 @@ class ProductDeletedInboundIntegrationEventHandler:
                 "Validated ProductDeleted event",
                 context={
                     "product_id": str(integration_event.product_id),
-                    "deleted_at": str(integration_event.deleted_at) if integration_event.deleted_at else None,
-                    "deletion_reason": integration_event.deletion_reason
-                }
+                    "deleted_at": (
+                        str(integration_event.deleted_at)
+                        if integration_event.deleted_at
+                        else None
+                    ),
+                    "deletion_reason": integration_event.deletion_reason,
+                },
             )
 
             # TODO: (Future) Inbox deduplication check
@@ -60,13 +63,12 @@ class ProductDeletedInboundIntegrationEventHandler:
 
             logger.log_with_context(
                 "Successfully processed inbound ProductDeleted event",
-                context={"product_id": str(integration_event.product_id)}
+                context={"product_id": str(integration_event.product_id)},
             )
 
         except Exception as e:
             logger.log_exception_detailed(
-                "Error processing inbound ProductDeleted integration event",
-                exception=e
+                "Error processing inbound ProductDeleted integration event", exception=e
             )
             # Re-raise to allow message broker to handle retry/dead-letter
             raise
@@ -90,8 +92,8 @@ class ProductDeletedInboundIntegrationEventHandler:
             context={
                 "product_id": str(event.product_id),
                 "deleted_at": str(event.deleted_at) if event.deleted_at else None,
-                "deletion_reason": event.deletion_reason
-            }
+                "deletion_reason": event.deletion_reason,
+            },
         )
 
         # TODO: Implement sync logic

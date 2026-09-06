@@ -109,6 +109,7 @@
 
     <!-- Load configuration from config.js -->
     <script src="config.js"></script>
+    <script src="auth.js"></script>
     <script>
         // Wait for config to load, then initialize
         const API_BASE = window.APP_CONFIG?.API_BASE || 'http://localhost:8000';
@@ -164,7 +165,7 @@
                 
                 if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
                     errorDiv.textContent = 'Login failed: Cannot connect to authentication server. Please ensure the backend is running on localhost:8000.';
-                } else if (error.message.includes('Invalid credentials')) {
+                } else if (/invalid.*credential/i.test(error.message)) {
                     errorDiv.textContent = 'Login failed: Invalid username or password. Please check your credentials.';
                 } else {
                     errorDiv.textContent = 'Login failed: ' + error.message;
@@ -172,10 +173,14 @@
             }
         });
         
-        // Check if already logged in
-        if (localStorage.getItem('access_token')) {
-            window.location.href = 'products.html';
-        }
+        showSessionExpiredMessage();
+
+        // Validate existing token before redirect (avoids stale kid after Keycloak reset)
+        (async () => {
+            if (await validateStoredToken(API_BASE)) {
+                window.location.href = 'products.html';
+            }
+        })();
     </script>
 </body>
 </html>

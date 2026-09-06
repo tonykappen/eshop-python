@@ -1,13 +1,11 @@
 """Factory for creating outbox publisher workers for modules."""
 
 from collections.abc import Callable
-from contextlib import asynccontextmanager
 from typing import Any, AsyncContextManager, TypeVar
-
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.outbox import OutboxPublisherWorker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = BaseLogger(__name__)
 
@@ -51,12 +49,13 @@ def create_outbox_worker(
     )
 
     if auto_register:
-        from app.core.messaging.outbox.worker_registry import outbox_worker_registry
+        from app.core.messaging.outbox.worker_registry import \
+            outbox_worker_registry
 
         outbox_worker_registry.register(module_name, worker)
         logger.log_with_context(
             "Created and registered outbox worker for module",
-            context={"module_name": module_name}
+            context={"module_name": module_name},
         )
 
     return worker

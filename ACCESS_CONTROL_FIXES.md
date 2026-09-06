@@ -57,7 +57,7 @@
    - More accurate descriptions of what each role can do
    - Clear distinction between shopping and administrative functions
 
-### **Postman Collection (`EShop_Postman_Collection_Updated.json`)**
+### **Postman Collection (`tools/postman/EShop_Postman_Collection_Updated.json`)**
 1. **Updated role descriptions**:
    - Changed "User (Read-only)" to "User (Shopping)"
    - Updated test descriptions to match new functionality
@@ -67,7 +67,6 @@
 ### **Test Files Created**
 1. **`test_access_control.html`** - Test different user roles and access levels
 2. **`test_frontend.html`** - Test API connectivity and response parsing
-3. **`products_debug.html`** - Debug version with detailed logging
 
 ### **How to Test**
 1. **Open `http://localhost:3000/test_access_control.html`**

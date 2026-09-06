@@ -10,7 +10,9 @@ from app.core.mapping.profiles.base_mapping_profile import BaseMappingProfile
 
 def __getattr__(name: str):
     if name == "CatalogProductProfile":
-        from app.core.mapping.profiles.catalog_product_profile import CatalogProductProfile
+        from app.core.mapping.profiles.catalog_product_profile import \
+            CatalogProductProfile
+
         return CatalogProductProfile
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

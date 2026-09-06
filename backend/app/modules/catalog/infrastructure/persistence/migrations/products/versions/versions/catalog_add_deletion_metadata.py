@@ -1,19 +1,18 @@
 """Add deletion metadata fields to products
 
-Revision ID: 0002
-Revises: 0001
+Revision ID: 86bbeb18ee91
+Revises: 9a9e867c5d7b
 Create Date: 2025-01-31 12:00:00.000000
 
 """
 
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from alembic import op
-
 # revision identifiers, used by Alembic.
-revision = "0002"
-down_revision = "0001"
+revision = "86bbeb18ee91"
+down_revision = "9a9e867c5d7b"
 branch_labels = None
 depends_on = None
 

@@ -2,19 +2,26 @@
 
 This guide explains how to develop the eShop application using a hybrid approach: Docker for infrastructure services and local development for the application code.
 
+> **First time setup?** See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for the full runbook.
+
 ## 🚀 Quick Start
 
 ### 1. Start Infrastructure Services
 ```bash
-# Start PostgreSQL, Redis, RabbitMQ, and Keycloak
+# Start PostgreSQL, Redis, RabbitMQ, Seq, and Keycloak
 ./scripts/start-infrastructure.sh
 ```
 
-### 2. Setup Keycloak (Optional)
+Uses Docker Compose when available, otherwise Podman Compose.
+
+### 2. Provision Keycloak (if not auto-provisioned)
 ```bash
-# Configure Keycloak realm, client, and users
-./scripts/setup-keycloak.sh
+cp infra/keycloak/credentials.yaml.example infra/keycloak/credentials.yaml
+cd backend
+poetry run python scripts/provision_keycloak.py
 ```
+
+See [infra/keycloak/README.md](infra/keycloak/README.md) for details.
 
 ### 3. Run Backend Locally
 ```bash

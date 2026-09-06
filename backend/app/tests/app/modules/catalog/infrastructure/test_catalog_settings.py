@@ -4,10 +4,8 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlProductRepository as ProductRepository,
-)
+from app.modules.catalog.infrastructure.persistence.repositories.products.sql import \
+    SqlProductRepository as ProductRepository
 
 
 @pytest.fixture(scope="session")
@@ -71,7 +69,8 @@ def sample_product_entity():
     from decimal import Decimal
     from uuid import uuid4
 
-    from app.modules.catalog.infrastructure.models.product_orm import ProductORM
+    from app.modules.catalog.infrastructure.models.product_orm import \
+        ProductORM
 
     product = MagicMock(spec=ProductORM)
     product.id = uuid4()
@@ -89,7 +88,8 @@ def sample_product_dto():
     from decimal import Decimal
     from uuid import uuid4
 
-    from app.modules.catalog.application.public_interface.dto.product import ProductDto
+    from app.modules.catalog.application.public_interface.dto.product import \
+        ProductDto
 
     return ProductDto(
         id=uuid4(),

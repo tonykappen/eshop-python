@@ -3,9 +3,8 @@
 from typing import Any
 
 from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
-    ProductPriceChangedIntegrationEventV1,
-)
+from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import \
+    ProductPriceChangedIntegrationEventV1
 
 logger = BaseLogger(__name__)
 
@@ -31,7 +30,7 @@ class ProductPriceChangedInboundIntegrationEventHandler:
         """
         logger.log_with_context(
             "Processing inbound ProductPriceChanged integration event",
-            context={"event_id": event_data.get('event_id')}
+            context={"event_id": event_data.get("event_id")},
         )
 
         try:
@@ -43,8 +42,8 @@ class ProductPriceChangedInboundIntegrationEventHandler:
                 context={
                     "product_id": str(integration_event.product_id),
                     "old_price": integration_event.old_price_amount,
-                    "new_price": integration_event.new_price_amount
-                }
+                    "new_price": integration_event.new_price_amount,
+                },
             )
 
             # TODO: (Future) Inbox deduplication check
@@ -60,13 +59,13 @@ class ProductPriceChangedInboundIntegrationEventHandler:
 
             logger.log_with_context(
                 "Successfully processed inbound ProductPriceChanged event",
-                context={"product_id": str(integration_event.product_id)}
+                context={"product_id": str(integration_event.product_id)},
             )
 
         except Exception as e:
             logger.log_exception_detailed(
                 "Error processing inbound ProductPriceChanged integration event",
-                exception=e
+                exception=e,
             )
             # Re-raise to allow message broker to handle retry/dead-letter
             raise
@@ -91,8 +90,8 @@ class ProductPriceChangedInboundIntegrationEventHandler:
             context={
                 "product_id": str(event.product_id),
                 "old_price": event.old_price_amount,
-                "new_price": event.new_price_amount
-            }
+                "new_price": event.new_price_amount,
+            },
         )
 
         # TODO: Implement reconciliation logic

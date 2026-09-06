@@ -2,11 +2,10 @@
 
 from typing import Any
 
-from dependency_injector import containers, providers
-
 from app.config.settings import settings
 from app.core.di.assembly_scanner import AssemblyScanner
 from app.core.logging.base_logger import BaseLogger
+from dependency_injector import containers, providers
 
 logger = BaseLogger(__name__)
 

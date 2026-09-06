@@ -2,12 +2,10 @@
 
 import os
 from pathlib import Path
-from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
-
 from app.core.logging.base_logger import BaseLogger
+from pydantic import BaseModel, Field
 
 logger = BaseLogger(__name__)
 
@@ -173,7 +171,7 @@ class CredentialsLoader:
             Path(__file__).parent / "credentials.yaml.example",
             Path("infra/keycloak/credentials.yaml.example"),
         ]
-        
+
         for example_path in example_paths:
             if example_path.exists():
                 logger.warning(
@@ -224,7 +222,7 @@ class CredentialsLoader:
 
             return self._credentials
 
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             logger.error(f"Credentials file not found: {self.credentials_path}")
             raise
         except yaml.YAMLError as e:
@@ -303,4 +301,3 @@ def load_keycloak_credentials(
     """
     loader = get_credentials_loader(credentials_path)
     return loader.load()
-

@@ -4,11 +4,10 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
+from app.modules.catalog.infrastructure.persistence.orm.base import Base
 from sqlalchemy import DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.modules.catalog.infrastructure.persistence.orm.base import Base
 
 
 class OutboxMessageStatus(str, Enum):

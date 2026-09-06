@@ -2,10 +2,9 @@
 
 from uuid import UUID
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import Aggregate
 from app.modules.catalog.domain.value_objects import SKU, Money
+from pydantic import Field, field_validator
 
 
 class Product(Aggregate):
@@ -70,7 +69,7 @@ class Product(Aggregate):
         category: list[str],
         description: str,
         image_file: str = "",
-        price: Money = ...,
+        price: Money | None = None,
     ) -> "Product":
         """
         Create a new product, matching .NET Product.Create static method.
@@ -90,6 +89,9 @@ class Product(Aggregate):
         Raises:
             ValueError: If any validation fails
         """
+        if price is None:
+            raise ValueError("price is required")
+
         # Validation happens in Pydantic validators
         # Use empty string if image_file is None or not provided
         image_file_value = image_file if image_file is not None else ""
@@ -105,9 +107,8 @@ class Product(Aggregate):
         )
 
         # Add domain event
-        from app.modules.catalog.domain.domain_events.products.product_created_domain_event import (
-            ProductCreatedDomainEvent,
-        )
+        from app.modules.catalog.domain.domain_events.products.product_created_domain_event import \
+            ProductCreatedDomainEvent
 
         product.add_domain_event(ProductCreatedDomainEvent(product=product))
 
@@ -119,7 +120,7 @@ class Product(Aggregate):
         category: list[str],
         description: str,
         image_file: str = "",
-        price: Money = ...,
+        price: Money | None = None,
     ) -> None:
         """
         Update product details, matching .NET Product.Update method.
@@ -134,6 +135,9 @@ class Product(Aggregate):
         Raises:
             ValueError: If any validation fails
         """
+        if price is None:
+            raise ValueError("price is required")
+
         # Store old price for comparison
         old_price = self.price
 
@@ -149,11 +153,12 @@ class Product(Aggregate):
 
         # If price changed, add domain event
         if old_price != price:
-            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-                ProductPriceChangedDomainEvent,
-            )
+            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+                ProductPriceChangedDomainEvent
 
-            self.add_domain_event(ProductPriceChangedDomainEvent(product=self, old_price=old_price))
+            self.add_domain_event(
+                ProductPriceChangedDomainEvent(product=self, old_price=old_price)
+            )
 
     def change_price(self, new_price: Money) -> None:
         """
@@ -173,9 +178,8 @@ class Product(Aggregate):
 
         # Add domain event for price change
         if old_price != new_price:
-            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-                ProductPriceChangedDomainEvent,
-            )
+            from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+                ProductPriceChangedDomainEvent
 
             self.add_domain_event(ProductPriceChangedDomainEvent(product=self))
 
@@ -243,8 +247,7 @@ class Product(Aggregate):
             ValueError: If product is already deactivated
         """
         # Add domain event for deletion
-        from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import (
-            ProductDeletedDomainEvent,
-        )
+        from app.modules.catalog.domain.domain_events.products.product_deleted_domain_event import \
+            ProductDeletedDomainEvent
 
         self.add_domain_event(ProductDeletedDomainEvent(product=self))

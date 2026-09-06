@@ -22,7 +22,7 @@ class ProductDeletedIntegrationEvent(BaseModel):
     product_name: str = Field(..., description="Product name")
     product_sku: str = Field(..., description="Product SKU")
     deleted_at: datetime = Field(..., description="When the product was deleted")
-    deletion_reason: str | None = Field(None, description="Reason for deletion")
+    deletion_reason: str | None = Field(default=None, description="Reason for deletion")
 
     # Additional context
     metadata: dict[str, Any] = Field(

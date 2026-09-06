@@ -6,7 +6,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from app.core.logging.trace_context import get_request_id, get_span_id, get_trace_id
+from app.core.logging.trace_context import (get_request_id, get_span_id,
+                                            get_trace_id)
 
 
 def get_service_metadata() -> dict[str, Any]:

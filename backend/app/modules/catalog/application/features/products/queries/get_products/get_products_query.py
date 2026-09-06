@@ -2,10 +2,10 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel
-
 from app.core.pagination.models import PaginatedResult
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
+from pydantic import BaseModel
 
 
 class GetProductsQuery(BaseModel):

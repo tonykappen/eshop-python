@@ -7,9 +7,8 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
 
-from fastapi import FastAPI
-
 from app.core.logging.base_logger import BaseLogger
+from fastapi import FastAPI
 
 logger = BaseLogger(__name__)
 

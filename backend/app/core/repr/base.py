@@ -6,22 +6,17 @@ This module implements the flow: Request -> Command/Query -> Result -> Response
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-from fastapi import Request
-from pydantic import BaseModel, Field
-
-from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.mediator import IMediator
+from fastapi import Request
+from pydantic import BaseModel, Field
 
 # Type variables for REPR pattern
 TRequest = TypeVar("TRequest", bound=BaseModel)
 TResponse = TypeVar("TResponse", bound=BaseModel)
-TCommand = TypeVar("TCommand", bound=ICommand[Any])
-TQuery = TypeVar("TQuery", bound=IQuery[Any])
+TCommand = TypeVar("TCommand", bound=BaseModel)
+TQuery = TypeVar("TQuery", bound=BaseModel)
 TResult = TypeVar("TResult")
-
-# Union type for command or query
-CommandOrQuery = ICommand[Any] | IQuery[Any]
 
 
 class BaseRequest(BaseModel):
@@ -224,7 +219,7 @@ class CommandEndpoint(CQRSEndpoint[TRequest, TResponse], Generic[TRequest, TResp
 
     def __init__(
         self,
-        command_factory: type[ICommand[Any]],
+        command_factory: type[BaseModel],
         result_mapper: IResultMapper[Any, TResponse],
         mediator: IMediator,
     ) -> None:
@@ -237,7 +232,7 @@ class QueryEndpoint(CQRSEndpoint[TRequest, TResponse], Generic[TRequest, TRespon
 
     def __init__(
         self,
-        query_factory: type[IQuery[Any]],
+        query_factory: type[BaseModel],
         result_mapper: IResultMapper[Any, TResponse],
         mediator: IMediator,
     ) -> None:
@@ -348,7 +343,7 @@ class CQRSEndpointFactory:
 
     def create_command_endpoint(
         self,
-        command_factory: type[ICommand[Any]],
+        command_factory: type[BaseModel],
         result_mapper: IResultMapper[Any, Any] | None = None,
         auth_dependency: Any | None = None,
     ) -> CommandEndpoint[Any, Any]:
@@ -376,7 +371,7 @@ class CQRSEndpointFactory:
 
     def create_query_endpoint(
         self,
-        query_factory: type[IQuery[Any]],
+        query_factory: type[BaseModel],
         result_mapper: IResultMapper[Any, Any] | None = None,
         auth_dependency: Any | None = None,
     ) -> QueryEndpoint[Any, Any]:

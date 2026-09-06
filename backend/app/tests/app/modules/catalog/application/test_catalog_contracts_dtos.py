@@ -4,13 +4,11 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from app.modules.catalog.application.features.products.queries.get_product_by_id.get_product_by_id_query import (
-    GetProductByIdQuery,
-    GetProductByIdResult,
-)
-from app.modules.catalog.application.public_interface.dto.product import ProductDto
+    GetProductByIdQuery, GetProductByIdResult)
+from app.modules.catalog.application.public_interface.dto.product import \
+    ProductDto
+from pydantic import ValidationError
 
 
 class TestProductDto:

@@ -39,8 +39,23 @@ class BehaviorWrapper:
     async def handle(self, request: Any, cancellation_token: CancellationToken) -> Any:
         """Handle request through this behavior."""
 
-        def next_callable() -> Any:
-            return self.next_handler.handle(request, cancellation_token)
+        async def next_callable() -> Any:
+            # Check if next_handler is a class (not an instance)
+            import inspect
+
+            if inspect.isclass(self.next_handler):
+                # If it's a class, we cannot call handle() directly because:
+                # 1. Handlers need dependencies (e.g., repositories) injected via __init__
+                # 2. Calling Class.handle(request, token) binds request to self incorrectly
+                # The proper fix is to register handlers as instances, not classes
+                raise TypeError(
+                    f"Handler {self.next_handler.__name__} is registered as a class but must be an instance. "
+                    f"Handlers with dependencies must be registered as instances with their dependencies injected. "
+                    f"Please update the handler registration in ordering_handler_registration.py to create instances."
+                )
+            else:
+                # It's an instance, call handle normally
+                return await self.next_handler.handle(request, cancellation_token)
 
         return await self.behavior.handle(request, next_callable)
 

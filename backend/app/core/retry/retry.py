@@ -5,14 +5,9 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
-
 from app.core.logging.base_logger import BaseLogger
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_exponential)
 
 logger = BaseLogger(__name__)
 

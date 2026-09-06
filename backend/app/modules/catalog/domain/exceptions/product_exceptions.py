@@ -4,7 +4,8 @@ from uuid import UUID
 
 from app.core.exceptions.bad_request_exception import BadRequestException
 from app.core.exceptions.common_exceptions import BaseError
-from app.core.exceptions.internal_server_exception import InternalServerException
+from app.core.exceptions.internal_server_exception import \
+    InternalServerException
 from app.core.exceptions.not_found_exception import NotFoundException
 
 

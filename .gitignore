@@ -197,6 +197,9 @@ yarn-error.log*
 # Frontend build artifacts
 frontend/dist/
 frontend/build/
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/
 
 # Docker
 .dockerignore
@@ -241,6 +244,10 @@ coverage.xml
 
 # Pytest
 .pytest_cache/
+
+# Generated tool output
+bandit-report.json
+.mypy-last.txt
 
 # FastAPI uploads
 uploads/

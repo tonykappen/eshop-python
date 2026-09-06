@@ -1,5 +1,7 @@
 # Environment Variables Configuration Guide
 
+> **Getting started?** See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for infrastructure setup and running the application.
+
 This guide explains how to configure environment variables for the eShop application across different development scenarios.
 
 ## Overview

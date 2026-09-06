@@ -29,11 +29,11 @@ class OutboxMessage(BaseModel):
     created_at: datetime = Field(
         default_factory=datetime.utcnow, description="Creation timestamp"
     )
-    processed_at: datetime | None = Field(None, description="Processing timestamp")
+    processed_at: datetime | None = Field(default=None, description="Processing timestamp")
     retry_count: int = Field(default=0, description="Number of retries")
     max_retries: int = Field(default=3, description="Maximum number of retries")
-    error_message: str | None = Field(None, description="Error message if failed")
-    correlation_id: str | None = Field(None, description="Correlation ID for tracing")
+    error_message: str | None = Field(default=None, description="Error message if failed")
+    correlation_id: str | None = Field(default=None, description="Correlation ID for tracing")
     trace_context: dict[str, Any] = Field(
         default_factory=dict, description="Trace context for distributed tracing"
     )

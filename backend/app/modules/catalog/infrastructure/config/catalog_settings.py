@@ -1,12 +1,9 @@
 """Pydantic BaseSettings for Catalog BC - centralized configuration."""
 
-
-from pydantic_settings import BaseSettings
-
 # Import existing config classes to maintain backward compatibility
-from app.modules.catalog.infrastructure.persistence.db_context import (
-    CatalogDatabaseConfig,
-)
+from app.modules.catalog.infrastructure.persistence.db_context import \
+    CatalogDatabaseConfig
+from pydantic_settings import BaseSettings
 
 
 class CatalogSettings(BaseSettings):

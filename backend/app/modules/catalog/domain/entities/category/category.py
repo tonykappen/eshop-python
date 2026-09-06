@@ -3,9 +3,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import Aggregate
+from pydantic import Field, field_validator
 
 
 class Category(Aggregate):
@@ -13,14 +12,16 @@ class Category(Aggregate):
 
     name: str = Field(..., description="Category name")
     description: str = Field(..., description="Category description")
-    parent_id: UUID | None = Field(None, description="Parent category ID")
+    parent_id: UUID | None = Field(default=None, description="Parent category ID")
     is_active: bool = Field(default=True, description="Whether category is active")
     version: int = Field(default=1, description="Category version")
-    created_at: datetime | None = Field(None, description="Creation timestamp")
-    updated_at: datetime | None = Field(None, description="Last update timestamp")
-    created_by: UUID | None = Field(None, description="User who created the category")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    created_by: UUID | None = Field(
+        default=None, description="User who created the category"
+    )
     updated_by: UUID | None = Field(
-        None, description="User who last updated the category"
+        default=None, description="User who last updated the category"
     )
     is_deleted: bool = Field(default=False, description="Soft delete flag")
 

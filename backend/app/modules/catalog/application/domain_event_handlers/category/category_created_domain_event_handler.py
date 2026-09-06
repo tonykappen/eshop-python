@@ -4,9 +4,8 @@ from typing import Any
 
 from app.core.domain.events import DomainEventHandler
 from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.domain.category.domain_events.category_created_domain_event import (
-    CategoryCreatedDomainEvent,
-)
+from app.modules.catalog.domain.category.domain_events.category_created_domain_event import \
+    CategoryCreatedDomainEvent
 
 logger = BaseLogger(__name__)
 
@@ -25,14 +24,13 @@ class CategoryCreatedDomainEventHandler(DomainEventHandler[CategoryCreatedDomain
             "Category created",
             context={
                 "category_name": event.category_name,
-                "category_id": str(event.category_id)
-            }
+                "category_id": str(event.category_id),
+            },
         )
 
         if event.parent_id:
             logger.log_with_context(
-                "Parent category ID",
-                context={"parent_id": str(event.parent_id)}
+                "Parent category ID", context={"parent_id": str(event.parent_id)}
             )
 
         # Internal reactions (no integration event):

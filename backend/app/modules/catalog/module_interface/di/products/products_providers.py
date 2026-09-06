@@ -3,53 +3,34 @@
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-
-from app.core.logging.base_logger import BaseLogger
-from app.core.mediator.mediator import Mediator
-from app.core.messaging.outbox import (
-    IOutboxService,
-    OutboxService,
-)
+from app.config.settings import settings
 from app.core.context.application_context import RequestContext
+from app.core.logging.base_logger import BaseLogger
+from app.core.mediator.handler_registry import HandlerRegistry
+from app.core.mediator.mediator import Mediator
+from app.core.messaging.bus import IMessageBus, RabbitMQMessageBus
+from app.core.messaging.domain_dispatcher import DomainEventDispatcher
+from app.core.messaging.outbox import IOutboxService, OutboxService
+from app.modules.catalog.application.services.catalog_cache_service import (
+    CatalogCacheService, RedisCacheService)
 from app.modules.catalog.application.unit_of_work import ICatalogUnitOfWork
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
-from app.config.settings import settings
-from app.core.messaging.bus import (
-    IMessageBus,
-    InMemoryMessageBus,
-    RabbitMQMessageBus,
-)
-from app.core.messaging.domain_dispatcher import (
-    DomainEventDispatcher,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
 from app.modules.catalog.infrastructure.persistence.db_context import (
-    get_engine,
-    get_session_maker,
-)
-from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-    RedisCacheService,
-)
-from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import (
-    CachedProductRepository,
-)
+    get_engine, get_session_maker)
+from app.modules.catalog.infrastructure.persistence.repositories.products.redis.cached_product_repository import \
+    CachedProductRepository
 from app.modules.catalog.infrastructure.persistence.repositories.products.sql import (
-    SqlCategoryRepository,
-    SqlInventoryRepository,
-    SqlProductRepository,
-)
-from app.modules.catalog.infrastructure.persistence.unit_of_work import (
-    SqlCatalogUnitOfWork,
-)
-from app.modules.catalog.module_interface.di.products.products_containers import (
-    get_catalog_container,
-)
+    SqlCategoryRepository, SqlInventoryRepository, SqlProductRepository)
+from app.modules.catalog.infrastructure.persistence.unit_of_work import \
+    SqlCatalogUnitOfWork
+from app.modules.catalog.module_interface.di.products.products_containers import \
+    get_catalog_container
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker)
 
 logger = BaseLogger(__name__)
 
@@ -168,7 +149,7 @@ async def get_unit_of_work(
     Returns:
         ICatalogUnitOfWork: Unit of work instance
     """
-    return SqlCatalogUnitOfWork(session)
+    return SqlCatalogUnitOfWork(session, get_catalog_cache_service())
 
 
 async def get_request_context() -> RequestContext:
@@ -220,9 +201,8 @@ async def get_catalog_outbox_service(
     Returns:
         IOutboxService: Outbox service instance
     """
-    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-        OutboxORM,
-    )
+    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+        OutboxORM
 
     return OutboxService(session, outbox_orm_class=OutboxORM)
 
@@ -240,8 +220,7 @@ async def get_catalog_mediator() -> Mediator:
     container = get_catalog_container()
     mediator = container.get_optional(Mediator)
     if mediator is None:
-        # Create a new mediator instance
-        mediator = Mediator()
+        mediator = Mediator(HandlerRegistry())
         container.register(Mediator, mediator)
     return mediator
 

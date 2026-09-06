@@ -3,15 +3,12 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
-
 from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.catalog.application.features.products.commands.delete_product.delete_product_command import (
-    DeleteProductCommand,
-    DeleteProductResult,
-)
+    DeleteProductCommand, DeleteProductResult)
 from app.modules.catalog.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Request
 
 router = APIRouter()
 

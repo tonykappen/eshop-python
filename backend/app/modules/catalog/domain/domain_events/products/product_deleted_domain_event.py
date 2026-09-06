@@ -2,10 +2,9 @@
 
 from uuid import UUID
 
-from pydantic import Field
-
 from app.core.domain.events import DomainEvent
 from app.modules.catalog.domain.entities.product.product import Product
+from pydantic import Field
 
 
 class ProductDeletedDomainEvent(DomainEvent):

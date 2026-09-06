@@ -14,7 +14,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from app.modules.catalog.application.public_interface.dto.product import ProductDto
+    from app.modules.catalog.application.public_interface.dto.product import \
+        ProductDto
 
 
 class ProductPublicDto(BaseModel):
@@ -40,7 +41,7 @@ class ProductPublicDto(BaseModel):
 
     # Essential product information
     name: str = Field(..., description="Product name")
-    description: str | None = Field(None, description="Product description")
+    description: str | None = Field(default=None, description="Product description")
 
     # Pricing information
     price_amount: Decimal = Field(..., description="Product price amount")
@@ -54,7 +55,7 @@ class ProductPublicDto(BaseModel):
     )
 
     # Media
-    image_file: str | None = Field(None, description="Product image file path/URL")
+    image_file: str | None = Field(default=None, description="Product image file path/URL")
 
     # Status and versioning
     is_active: bool = Field(
@@ -66,9 +67,7 @@ class ProductPublicDto(BaseModel):
 
     # Timestamps (ISO 8601 strings for cross-BC compatibility)
     created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
-    updated_at: str | None = Field(
-        None, description="Last update timestamp (ISO 8601)"
-    )
+    updated_at: str | None = Field(default=None, description="Last update timestamp (ISO 8601)")
 
     # Optional metadata for cross-BC context
     metadata: dict | None = Field(
@@ -134,9 +133,8 @@ class ProductPublicDto(BaseModel):
         """
         # Type checking only - import here to avoid circular dependency
 
-
         return cls(
-            id=product_dto.id,
+            id=product_dto.id if isinstance(product_dto.id, UUID) else UUID(str(product_dto.id)),
             sku=product_dto.sku,
             name=product_dto.name,
             description=product_dto.description,
@@ -148,6 +146,7 @@ class ProductPublicDto(BaseModel):
             version=product_dto.version,
             created_at=product_dto.created_at,
             updated_at=product_dto.updated_at,
+            metadata=None,
         )
 
 

@@ -38,6 +38,28 @@ A simple HTML/JavaScript frontend for the eShop application.
 | adminuser| password | admin | Full access (view + create products) |
 | testuser | password | user | Read-only access to products |
 
+## Running Tests
+
+See [docs/TESTING.md](../docs/TESTING.md) for full details.
+
+**Setup (once, from repo root):**
+
+```bash
+./scripts/setup-frontend-tests.sh
+```
+
+```bash
+# Start stack from repo root
+docker compose up -d --wait
+
+cd frontend
+npm test                  # Jest unit tests
+npm run test:api-contracts
+npm run test:e2e
+```
+
+Test users for automated tests use password `changeme123` (see `index.html` quick-login buttons).
+
 ## Usage
 
 1. Start the backend services (PostgreSQL, Keycloak, FastAPI)

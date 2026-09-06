@@ -4,13 +4,10 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-
-from app.modules.catalog.domain.domain_events.products.product_created_domain_event import (
-    ProductCreatedDomainEvent,
-)
-from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-    ProductPriceChangedDomainEvent,
-)
+from app.modules.catalog.domain.domain_events.products.product_created_domain_event import \
+    ProductCreatedDomainEvent
+from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+    ProductPriceChangedDomainEvent
 from app.modules.catalog.domain.entities.product.product import Product
 
 

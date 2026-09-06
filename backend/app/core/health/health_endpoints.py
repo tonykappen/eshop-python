@@ -3,10 +3,9 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter
-
 from app.config.settings import settings
 from app.core.health.health_service import health_service
+from fastapi import APIRouter
 
 # Create router for health endpoints
 health_router = APIRouter()

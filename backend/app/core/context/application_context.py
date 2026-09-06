@@ -10,19 +10,17 @@ class RequestContext(BaseModel):
     """Request context holding tenant/user info for auditing/policies."""
 
     # User information
-    user_id: UUID | None = Field(None, description="Current user ID")
-    username: str | None = Field(None, description="Current username")
+    user_id: UUID | None = Field(default=None, description="Current user ID")
+    username: str | None = Field(default=None, description="Current username")
     user_roles: list[str] = Field(default_factory=list, description="User roles")
 
     # Tenant information
-    tenant_id: UUID | None = Field(None, description="Current tenant ID")
-    tenant_name: str | None = Field(None, description="Current tenant name")
+    tenant_id: UUID | None = Field(default=None, description="Current tenant ID")
+    tenant_name: str | None = Field(default=None, description="Current tenant name")
 
     # Request information
-    request_id: str | None = Field(None, description="Request ID for tracing")
-    correlation_id: str | None = Field(
-        None, description="Correlation ID for tracing"
-    )
+    request_id: str | None = Field(default=None, description="Request ID for tracing")
+    correlation_id: str | None = Field(default=None, description="Correlation ID for tracing")
 
     # Additional context
     metadata: dict[str, Any] = Field(

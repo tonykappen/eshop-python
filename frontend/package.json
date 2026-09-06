@@ -1,0 +1,19 @@
+{
+  "name": "eshop-frontend-tests",
+  "private": true,
+  "scripts": {
+    "setup": "npm ci && npx playwright install chromium",
+    "test": "jest --config jest.config.js",
+    "test:unit": "jest --config jest.config.js",
+    "test:e2e": "playwright test --project=e2e",
+    "test:e2e:ui": "playwright test --project=e2e --ui",
+    "test:e2e:report": "playwright show-report playwright-report",
+    "test:api-contracts": "playwright test --project=api-contracts",
+    "test:all": "npm run test:unit && npm run test:api-contracts && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

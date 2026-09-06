@@ -112,3 +112,17 @@ class DomainException(BaseError):
     def __init__(self, message: str = "Domain error", details: str | None = None):
         """Initialize domain error."""
         super().__init__(message, details)
+
+
+__all__ = [
+    "BaseError",
+    "ValidationError",
+    "UnauthorizedError",
+    "ForbiddenError",
+    "ConflictError",
+    "DatabaseError",
+    "ConnectionError",
+    "ConfigurationError",
+    "DomainException",
+    "NotFoundError",
+]

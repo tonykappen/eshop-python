@@ -2,10 +2,9 @@
 
 from abc import ABC, abstractmethod
 
-from sqlalchemy import text
-
 from app.core.database.session import AsyncSessionLocal
 from app.core.logging.base_logger import BaseLogger
+from sqlalchemy import text
 
 logger = BaseLogger(__name__)
 
@@ -27,7 +26,13 @@ class DataSeederManager:
         self.logger = BaseLogger(__name__)
 
     def register_seeder(self, seeder_class: type[IDataSeeder]) -> None:
-        """Register a seeder class."""
+        """Register a seeder class (idempotent: same class is not registered twice)."""
+        if seeder_class in self.seeders:
+            self.logger.log_debug_with_context(
+                "Seeder already registered, skipping",
+                context={"name": seeder_class.__name__},
+            )
+            return
         self.seeders.append(seeder_class)
         self.logger.debug(f"Registered seeder: {seeder_class.__name__}")
 
@@ -61,6 +66,17 @@ _seeder_manager = DataSeederManager()
 def register_seeder(seeder_class: type[IDataSeeder]) -> None:
     """Register a seeder class - matches .NET DI registration pattern."""
     _seeder_manager.register_seeder(seeder_class)
+
+
+def register_default_application_seeders() -> None:
+    """Register built-in IDataSeeder implementations for startup (composition root).
+
+    Called during application initialization so ``run_seeding()`` has work to do.
+    """
+    from app.modules.catalog.infrastructure.seeding.products.catalog_data_seeder import \
+        CatalogDataSeeder
+
+    register_seeder(CatalogDataSeeder)
 
 
 async def run_seeding() -> None:

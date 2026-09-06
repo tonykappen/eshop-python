@@ -2,18 +2,31 @@
 
 from uuid import UUID
 
+from app.core.logging.base_logger import BaseLogger
+from app.modules.catalog.domain.entities.product.product import Product
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
+from app.modules.catalog.domain.value_objects import SKU, Money
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import \
+    ProductORM
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
-from app.modules.catalog.domain.value_objects import SKU, Money
-from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
-
 logger = BaseLogger(__name__)
+
+SESSION_INFO_CACHE_INVALIDATION_KEY = "catalog_invalidate_product_ids"
+
+
+def schedule_catalog_product_cache_invalidation(
+    session: AsyncSession, product_id: UUID
+) -> None:
+    """Queue product id for post-commit cache invalidation.
+
+    ``session.new`` no longer contains ORMs after ``flush()``, so the unit of work
+    cannot discover inserted products from session state alone at commit time.
+    """
+    bag: list[UUID] = session.info.setdefault(SESSION_INFO_CACHE_INVALIDATION_KEY, [])
+    bag.append(product_id)
 
 
 class SqlProductRepository(ProductRepository):
@@ -44,8 +57,8 @@ class SqlProductRepository(ProductRepository):
                 context={
                     "product_id": str(product_id),
                     "source": "database",
-                    "operation": "get_by_id"
-                }
+                    "operation": "get_by_id",
+                },
             )
             stmt = select(ProductORM).where(
                 ProductORM.id == product_id, ProductORM.is_deleted == False
@@ -60,8 +73,8 @@ class SqlProductRepository(ProductRepository):
                         "product_id": str(product_id),
                         "source": "database",
                         "operation": "get_by_id",
-                        "found": True
-                    }
+                        "found": True,
+                    },
                 )
                 return self._orm_to_domain(product_orm)
             logger.log_debug_with_context(
@@ -70,8 +83,8 @@ class SqlProductRepository(ProductRepository):
                     "product_id": str(product_id),
                     "source": "database",
                     "operation": "get_by_id",
-                    "found": False
-                }
+                    "found": False,
+                },
             )
             return None
 
@@ -82,8 +95,8 @@ class SqlProductRepository(ProductRepository):
                 context={
                     "product_id": str(product_id),
                     "source": "database",
-                    "operation": "get_by_id"
-                }
+                    "operation": "get_by_id",
+                },
             )
             raise
 
@@ -186,8 +199,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_by_category"
-                }
+                    "operation": "get_by_category",
+                },
             )
             count_stmt = select(func.count(ProductORM.id)).where(
                 ProductORM.categories.contains([category]),
@@ -223,8 +236,8 @@ class SqlProductRepository(ProductRepository):
                     "source": "database",
                     "operation": "get_by_category",
                     "product_count": len(products),
-                    "total_count": total_count
-                }
+                    "total_count": total_count,
+                },
             )
             return products, total_count
 
@@ -237,8 +250,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_by_category"
-                }
+                    "operation": "get_by_category",
+                },
             )
             raise
 
@@ -359,6 +372,8 @@ class SqlProductRepository(ProductRepository):
                 )
             )
             result = await self.session.execute(stmt)
+            if result.rowcount > 0:
+                schedule_catalog_product_cache_invalidation(self.session, product_id)
             return result.rowcount > 0
 
         except Exception as e:
@@ -379,6 +394,7 @@ class SqlProductRepository(ProductRepository):
             product_orm = self._domain_to_orm(product)
             self.session.add(product_orm)
             await self.session.flush()
+            schedule_catalog_product_cache_invalidation(self.session, product_orm.id)
 
             # Return the domain model
             return self._orm_to_domain(product_orm)
@@ -393,9 +409,8 @@ class SqlProductRepository(ProductRepository):
         The WHERE clause includes the expected version; if no rows are affected
         another transaction has already modified this aggregate.
         """
-        from app.modules.catalog.domain.exceptions.product import (
-            OptimisticLockException,
-        )
+        from app.modules.catalog.domain.exceptions.product import \
+            OptimisticLockException
 
         try:
             current_version = product.version
@@ -425,7 +440,13 @@ class SqlProductRepository(ProductRepository):
                     f"(expected version {current_version})"
                 )
 
-            return await self.get_by_id(product.id)
+            schedule_catalog_product_cache_invalidation(self.session, product.id)
+            updated = await self.get_by_id(product.id)
+            if updated is None:
+                raise RuntimeError(
+                    f"Product {product.id} missing after successful update"
+                )
+            return updated
 
         except OptimisticLockException:
             raise
@@ -524,8 +545,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_all"
-                }
+                    "operation": "get_all",
+                },
             )
 
             # Get total count
@@ -560,8 +581,8 @@ class SqlProductRepository(ProductRepository):
                         context={
                             "product_id": str(product_orm.id),
                             "source": "database",
-                            "operation": "get_all"
-                        }
+                            "operation": "get_all",
+                        },
                     )
                     raise
 
@@ -573,8 +594,8 @@ class SqlProductRepository(ProductRepository):
                     "source": "database",
                     "operation": "get_all",
                     "product_count": len(products),
-                    "total_count": total_count
-                }
+                    "total_count": total_count,
+                },
             )
             return products, total_count
 
@@ -586,8 +607,8 @@ class SqlProductRepository(ProductRepository):
                     "page": page,
                     "page_size": page_size,
                     "source": "database",
-                    "operation": "get_all"
-                }
+                    "operation": "get_all",
+                },
             )
             raise
 

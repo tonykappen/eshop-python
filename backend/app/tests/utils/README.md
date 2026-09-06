@@ -8,7 +8,6 @@ This directory contains shared utilities for reducing test code duplication and 
 tests/utils/
 ├── __init__.py          # Package initialization
 ├── mocks.py            # Shared mock objects and factories
-├── fixtures.py         # Shared pytest fixtures
 └── README.md           # This documentation
 ```
 
@@ -17,7 +16,7 @@ tests/utils/
 ### Mock Utilities (`mocks.py`)
 
 ```python
-from tests.utils.mocks import (
+from app.tests.utils.mocks import (
     MockKeycloakService,
     MockKeycloakUser,
     create_mock_settings,
@@ -28,15 +27,6 @@ from tests.utils.mocks import (
 # Use in tests
 mock_service = MockKeycloakService()
 mock_user = MockKeycloakUser(sub="test-id", roles=["admin"])
-```
-
-### Fixtures (`fixtures.py`)
-
-```python
-# In test files, use the fixtures directly
-def test_something(mock_settings, mock_keycloak_user):
-    # Test implementation
-    pass
 ```
 
 ## Benefits
@@ -51,6 +41,6 @@ def test_something(mock_settings, mock_keycloak_user):
 As we add more modules, we can expand these utilities:
 
 - `db_mocks.py` - Database-related mocks
-- `cache_mocks.py` - Cache-related mocks  
+- `cache_mocks.py` - Cache-related mocks
 - `messaging_mocks.py` - Message queue mocks
 - `auth_mocks.py` - Authentication mocks (current)

@@ -2,16 +2,17 @@
 
 from uuid import uuid4
 
+from app.core.logging.base_logger import BaseLogger
+from app.modules.catalog.infrastructure.persistence.orm.category_orm import \
+    CategoryORM
+from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import \
+    InventoryItemORM
+from app.modules.catalog.infrastructure.persistence.orm.product_orm import \
+    ProductORM
+from app.modules.catalog.infrastructure.seeding.products.seed_registry import \
+    Seed
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.infrastructure.persistence.orm.category_orm import CategoryORM
-from app.modules.catalog.infrastructure.persistence.orm.inventory_item_orm import (
-    InventoryItemORM,
-)
-from app.modules.catalog.infrastructure.persistence.orm.product_orm import ProductORM
-from app.modules.catalog.infrastructure.seeding.products.seed_registry import Seed
 
 logger = BaseLogger(__name__)
 
@@ -104,15 +105,14 @@ class CatalogInitialSeed(Seed):
             },
         ]
 
-        category_ids = {}
+        category_ids: dict[str, str] = {}
 
         for category_data in categories_data:
             await session.execute(insert(CategoryORM).values(**category_data))
-            category_ids[category_data["name"]] = category_data["id"]
+            category_ids[str(category_data["name"])] = str(category_data["id"])
 
         logger.log_with_context(
-            "Created categories",
-            context={"category_count": len(categories_data)}
+            "Created categories", context={"category_count": len(categories_data)}
         )
         return category_ids
 
@@ -204,15 +204,14 @@ class CatalogInitialSeed(Seed):
             },
         ]
 
-        product_ids = {}
+        product_ids: dict[str, str] = {}
 
         for product_data in products_data:
             await session.execute(insert(ProductORM).values(**product_data))
-            product_ids[product_data["sku"]] = product_data["id"]
+            product_ids[str(product_data["sku"])] = str(product_data["id"])
 
         logger.log_with_context(
-            "Created products",
-            context={"product_count": len(products_data)}
+            "Created products", context={"product_count": len(products_data)}
         )
         return product_ids
 
@@ -295,6 +294,5 @@ class CatalogInitialSeed(Seed):
             )
 
         logger.log_with_context(
-            "Created inventory items",
-            context={"inventory_count": len(inventory_data)}
+            "Created inventory items", context={"inventory_count": len(inventory_data)}
         )

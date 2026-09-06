@@ -2,16 +2,19 @@
 
 import json
 from abc import ABC, abstractmethod
+from datetime import date, datetime
+from decimal import Decimal
+from enum import Enum
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel
 
 from app.core.context.request_context import get_baggage, get_trace_context
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.integration_event import IntegrationEvent
-from app.core.messaging.outbox.outbox_message_orm import (
-    OutboxMessage,
-    OutboxMessageStatus,
-)
+from app.core.messaging.outbox.outbox_message_orm import (OutboxMessage,
+                                                          OutboxMessageStatus)
 
 logger = BaseLogger(__name__)
 
@@ -21,7 +24,7 @@ class IOutboxService(ABC):
 
     @abstractmethod
     async def write_integration_event(
-        self, event: IntegrationEvent | dict[str, Any]
+        self, event: IntegrationEvent | dict[str, Any] | BaseModel
     ) -> None:
         """
         Write integration event to outbox within the same transaction.
@@ -84,7 +87,7 @@ class OutboxService(IOutboxService):
         )
 
     async def write_integration_event(
-        self, event: IntegrationEvent | dict[str, Any]
+        self, event: IntegrationEvent | dict[str, Any] | BaseModel
     ) -> None:
         """
         Write integration event to outbox within the same transaction.
@@ -97,15 +100,15 @@ class OutboxService(IOutboxService):
             trace_context = get_trace_context()
             baggage = get_baggage()
 
-            # Convert event to dict if it's an IntegrationEvent or Pydantic model
+            event_data: dict[str, Any]
             # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
             if isinstance(event, IntegrationEvent):
-                event_data = event.model_dump(mode='json')
+                event_data = event.model_dump(mode="json")
                 event_type = event.event_type
             elif hasattr(event, "model_dump") and hasattr(event, "event_type"):
                 # Handle Pydantic models that have event_type (like ProductDeletedIntegrationEvent)
                 # Use mode='json' to ensure UUIDs, datetime, etc. are JSON-serializable
-                event_data = event.model_dump(mode='json')
+                event_data = event.model_dump(mode="json")
                 event_type = event.event_type
             elif isinstance(event, dict):
                 event_data = event
@@ -113,10 +116,14 @@ class OutboxService(IOutboxService):
             else:
                 # Fallback: try to get event_type attribute or use class name
                 if hasattr(event, "model_dump"):
-                    event_data = event.model_dump(mode='json')
+                    event_data = event.model_dump(mode="json")
                 else:
-                    event_data = str(event)
-                event_type = getattr(event, "event_type", getattr(event, "__class__", type(event)).__name__)
+                    event_data = {"payload": str(event)}
+                event_type = getattr(
+                    event,
+                    "event_type",
+                    getattr(event, "__class__", type(event)).__name__,
+                )
 
             # Create outbox message
             message = OutboxMessage(
@@ -134,13 +141,12 @@ class OutboxService(IOutboxService):
 
             logger.log_debug_with_context(
                 "Written integration event to outbox",
-                context={"message_id": str(message.id), "event_type": event_type}
+                context={"message_id": str(message.id), "event_type": event_type},
             )
 
         except Exception as e:
             logger.log_error_with_context(
-                "Error writing integration event to outbox",
-                error=e
+                "Error writing integration event to outbox", error=e
             )
             raise
 
@@ -153,28 +159,33 @@ class OutboxService(IOutboxService):
         """
         try:
             # Try catalog module first (most common)
-            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import (
-                OutboxORM,
-            )
+            from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+                OutboxORM as CatalogOutboxORM
 
-            return OutboxORM
+            return CatalogOutboxORM
         except ImportError:
             pass
 
         try:
             # Try ordering module
-            from app.modules.ordering.infrastructure.orm_models import OutboxORM
+            import importlib
 
-            return OutboxORM
-        except ImportError:
+            ordering_mod = importlib.import_module(
+                "app.modules.ordering.infrastructure.orm_models"
+            )
+            return getattr(ordering_mod, "OutboxORM")
+        except (ImportError, AttributeError):
             pass
 
         try:
             # Try basket module
-            from app.modules.basket.infrastructure.orm_models import OutboxORM
+            import importlib
 
-            return OutboxORM
-        except ImportError:
+            basket_mod = importlib.import_module(
+                "app.modules.basket.infrastructure.orm_models"
+            )
+            return getattr(basket_mod, "OutboxORM")
+        except (ImportError, AttributeError):
             pass
 
         logger.log_warning_with_context(
@@ -197,15 +208,38 @@ class OutboxService(IOutboxService):
                     "Please provide outbox_orm_class when initializing OutboxService."
                 )
 
-            # Convert event_data to JSON string if it's a dict
-            event_data_str = (
-                json.dumps(message.event_data)
-                if isinstance(message.event_data, dict)
-                else str(message.event_data)
-            )
+            def _json_default(obj: Any) -> Any:
+                if isinstance(obj, UUID):
+                    return str(obj)
+                if isinstance(obj, (datetime, date)):
+                    return obj.isoformat()
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                raise TypeError(f"Type {type(obj)} not serializable")
 
-            # Convert timezone-aware datetime to timezone-naive for database
-            # Database column is TIMESTAMP WITHOUT TIME ZONE
+            if isinstance(message.event_data, str):
+                event_data_str = message.event_data
+            elif isinstance(message.event_data, dict):
+                event_data_str = json.dumps(message.event_data, default=_json_default)
+            else:
+                try:
+                    if hasattr(message.event_data, "model_dump"):
+                        payload = message.event_data.model_dump(mode="json")
+                    elif hasattr(message.event_data, "dict"):
+                        payload = message.event_data.dict()
+                    else:
+                        payload = message.event_data
+                    event_data_str = json.dumps(payload, default=_json_default)
+                except (TypeError, ValueError):
+                    event_data_str = str(message.event_data)
+
+            if isinstance(message.status, Enum):
+                status_value = message.status.value
+            elif isinstance(message.status, str):
+                status_value = message.status
+            else:
+                status_value = str(message.status)
+
             created_at_naive = (
                 message.created_at.replace(tzinfo=None)
                 if message.created_at.tzinfo is not None
@@ -217,33 +251,44 @@ class OutboxService(IOutboxService):
                 else message.processed_at
             )
 
-            # Create outbox ORM record
-            outbox_record = self.outbox_orm_class(
-                id=message.id,
-                event_type=message.event_type,
-                event_data=event_data_str,
-                status=message.status.value,
-                created_at=created_at_naive,
-                retry_count=message.retry_count,
-                max_retries=message.max_retries,
-                correlation_id=message.correlation_id,
-            )
-            
-            # Set processed_at if provided
-            if processed_at_naive:
+            col_keys = {c.key for c in self.outbox_orm_class.__table__.columns}
+            orm_kwargs: dict[str, Any] = {
+                "id": message.id,
+                "event_type": message.event_type,
+                "event_data": event_data_str,
+                "status": status_value,
+                "created_at": created_at_naive,
+                "retry_count": message.retry_count,
+                "max_retries": message.max_retries,
+                "correlation_id": message.correlation_id,
+            }
+            if "error_message" in col_keys:
+                orm_kwargs["error_message"] = message.error_message
+            if "trace_context" in col_keys:
+                orm_kwargs["trace_context"] = (
+                    message.trace_context if message.trace_context else None
+                )
+            if "baggage" in col_keys:
+                orm_kwargs["baggage"] = message.baggage if message.baggage else None
+
+            outbox_record = self.outbox_orm_class(**orm_kwargs)
+
+            if processed_at_naive and "processed_at" in col_keys:
                 outbox_record.processed_at = processed_at_naive
 
-            # Add to session (will be committed with the transaction)
             self.session.add(outbox_record)
 
             logger.log_with_context(
                 "Written outbox message to database",
-                context={"message_id": str(message.id), "event_type": message.event_type}
+                context={
+                    "message_id": str(message.id),
+                    "event_type": message.event_type,
+                    "orm": self.outbox_orm_class.__name__,
+                },
             )
 
         except Exception as e:
             logger.log_exception_detailed(
-                "Error writing outbox message to database",
-                exception=e
+                "Error writing outbox message to database", exception=e
             )
             raise

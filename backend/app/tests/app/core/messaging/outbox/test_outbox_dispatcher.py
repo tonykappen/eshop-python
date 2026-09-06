@@ -5,22 +5,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
+from app.core.messaging.integration_event import (BasketIntegrationEvent,
+                                                  CatalogIntegrationEvent,
+                                                  EventBus,
+                                                  FastStreamEventHandler,
+                                                  FastStreamEventPublisher,
+                                                  IIntegrationEventHandler,
+                                                  IntegrationEvent,
+                                                  ModuleIntegrationEvent,
+                                                  OrderingIntegrationEvent,
+                                                  OutboxMessage)
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker
 from pydantic import BaseModel
-
-from app.core.messaging.integration_event import (
-    BasketIntegrationEvent,
-    CatalogIntegrationEvent,
-    EventBus,
-    FastStreamEventHandler,
-    FastStreamEventPublisher,
-    IIntegrationEventHandler,
-    IntegrationEvent,
-    ModuleIntegrationEvent,
-    OrderingIntegrationEvent,
-    OutboxMessage,
-)
 
 
 @pytest.mark.no_collect

@@ -2,12 +2,10 @@
 
 from app.core.logging.base_logger import BaseLogger
 from app.core.messaging.bus import IMessageBus
-from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
-    ProductPriceChangedIntegrationEventV1,
-)
-from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import (
-    ProductPriceChangedDomainEvent,
-)
+from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import \
+    ProductPriceChangedIntegrationEventV1
+from app.modules.catalog.domain.domain_events.products.product_price_changed_domain_event import \
+    ProductPriceChangedDomainEvent
 
 logger = BaseLogger(__name__)
 
@@ -36,7 +34,7 @@ class ProductPriceChangedDirectPublisher:
         """
         logger.log_with_context(
             "Publishing product price changed integration event",
-            context={"product_id": str(domain_event.product_id)}
+            context={"product_id": str(domain_event.product_id)},
         )
 
         try:
@@ -51,7 +49,7 @@ class ProductPriceChangedDirectPublisher:
             else:
                 logger.log_warning_with_context(
                     "Old price not available in domain event, using 0.0",
-                    context={"product_id": str(domain_event.product_id)}
+                    context={"product_id": str(domain_event.product_id)},
                 )
 
             # Create integration event
@@ -65,7 +63,9 @@ class ProductPriceChangedDirectPublisher:
                 metadata={
                     "domain_event_id": str(domain_event.event_id),
                     "domain_event_type": domain_event.event_type,
-                    "domain_event_version": str(getattr(domain_event, 'version', '1.0')),
+                    "domain_event_version": str(
+                        getattr(domain_event, "version", "1.0")
+                    ),
                 },
             )
 
@@ -74,7 +74,7 @@ class ProductPriceChangedDirectPublisher:
             await self.message_bus.publish(
                 integration_event.to_dict(),
                 topic=integration_event.event_type,
-                exchange="catalog.events"
+                exchange="catalog.events",
             )
             integration_event_id = str(integration_event.event_id)
 
@@ -84,14 +84,13 @@ class ProductPriceChangedDirectPublisher:
                     "product_id": str(domain_event.product_id),
                     "old_price": old_price_amount,
                     "new_price": new_price_amount,
-                    "event_id": integration_event_id
-                }
+                    "event_id": integration_event_id,
+                },
             )
 
         except Exception as e:
             logger.log_exception_detailed(
-                "Error publishing product price changed integration event",
-                exception=e
+                "Error publishing product price changed integration event", exception=e
             )
             # Don't re-raise - best-effort delivery means failures are acceptable
             # Consumers can reconcile state via get_product_by_id API

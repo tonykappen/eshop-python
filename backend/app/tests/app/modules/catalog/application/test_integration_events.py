@@ -4,13 +4,10 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytest
-
-from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import (
-    ProductDeletedIntegrationEvent,
-)
-from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import (
-    ProductPriceChangedIntegrationEventV1,
-)
+from app.modules.catalog.contracts.products.integration_events.v1.product_deleted_integration_event import \
+    ProductDeletedIntegrationEvent
+from app.modules.catalog.contracts.products.integration_events.v1.product_price_changed_integration_event import \
+    ProductPriceChangedIntegrationEventV1
 
 
 class TestProductPriceChangedIntegrationEventV1:

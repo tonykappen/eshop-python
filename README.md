@@ -41,53 +41,23 @@ This project follows a **modular monolith** architecture with **Domain-Driven De
 
 ## 🚀 Quick Start
 
-### Prerequisites
+See **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** for the full runbook. Short version:
 
-- Docker and Docker Compose
-- (Optional) Python 3.12+ and Poetry for local development
-
-### 1. Start Infrastructure Services
+### Full stack (Docker)
 
 ```bash
-# Start infrastructure services (PostgreSQL, Redis, RabbitMQ, Keycloak)
+docker compose up --build -d
+```
+
+Open http://localhost:3000 (frontend), http://localhost:8000/docs (API).
+
+### Hybrid local development
+
+```bash
 ./scripts/start-infrastructure.sh
+cd backend && poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+cd frontend && python3 -m http.server 3000
 ```
-
-### 2. Start Application Services
-
-```bash
-# Start backend (from backend directory)
-cd backend
-DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/eshop" \
-REDIS_URL="redis://localhost:6379" \
-RABBITMQ_URL="amqp://guest:guest@localhost:5672/" \
-KEYCLOAK_SERVER_URL="http://localhost:8080" \
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-# Start frontend (from frontend directory, in another terminal)
-cd frontend
-python3 -m http.server 3000
-```
-
-The backend will automatically:
-- Set up Keycloak realm, client, roles, and users
-- Run database migrations and seeding
-- Provide access URLs and credentials
-
-### 3. Database Setup
-
-The application automatically initializes the database with:
-- PostgreSQL 17 (latest stable)
-- Automatic migration creation and execution using Alembic
-- Initial data seeding (catalog products)
-- Programmatic schema management (keycloak, catalog schemas)
-
-### 4. Access the Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Keycloak Admin**: http://localhost:8080 (admin/admin)
 
 ## 👥 Test Users
 
@@ -125,8 +95,8 @@ The application implements comprehensive **Role-Based Access Control**:
 
 ### Modules
 - **Catalog**: Product management with CRUD operations
-- **Basket**: Shopping cart functionality (placeholder)
-- **Ordering**: Order processing (placeholder)
+- **Basket**: Shopping cart (add/remove items, checkout)
+- **Ordering**: Order management and history
 
 ### API Endpoints
 - `GET /api/v1/products/` - List products (requires: user role)
@@ -149,15 +119,23 @@ The application implements comprehensive **Role-Based Access Control**:
 - Real-time token validation
 - Automatic logout on session expiry
 
+### Basket Page (`basket.html`)
+- View and manage cart items
+- Update quantities, remove items, checkout
+
+### Orders Page (`orders.html`)
+- View order history and order details
+
 ## 🐳 Docker Deployment
 
 ### Services
-- **backend**: FastAPI application (port 8000→80)
-- **frontend**: Nginx serving static files (port 3000→80)
-- **db**: PostgreSQL database
+- **backend**: FastAPI application (port 8000)
+- **frontend**: Nginx serving static files (port 3000)
+- **postgres**: PostgreSQL database
 - **redis**: Redis cache
 - **rabbitmq**: Message broker (management UI on port 15672)
 - **keycloak**: Authentication server (port 8080)
+- **seq**: Structured log aggregation (port 5341)
 
 ### Commands
 ```bash
@@ -179,22 +157,33 @@ docker-compose down -v
 
 ## 🧪 Testing
 
+See **[docs/TESTING.md](docs/TESTING.md)** for the full testing guide.
+
 ### Backend Tests
 ```bash
 cd backend
 poetry install
-poetry run pytest tests/
+poetry run pytest app/tests/
 ```
 
-### Manual Testing
-1. Start infrastructure: `./scripts/start-infrastructure.sh`
-2. Start backend and frontend (see Quick Start above)
-3. Open frontend: http://localhost:3000
-4. Login as different users
-5. Test RBAC features:
-   - Regular user: can only view products
-   - Manager: can view and create products
-   - Admin: can view and create products
+### Frontend Unit Tests
+```bash
+cd frontend
+npm ci
+npm test
+```
+
+### Frontend API Contract and E2E Tests
+
+Requires the full stack (`docker compose up -d --wait`):
+
+```bash
+cd frontend
+npm ci
+npx playwright install chromium
+npm run test:api-contracts
+npm run test:e2e
+```
 
 ## 🔧 Development
 
@@ -290,10 +279,13 @@ For detailed instructions, see the [Keycloak documentation](infra/keycloak/READM
 
 ## 📚 Additional Documentation
 
+- [Getting Started](docs/GETTING_STARTED.md) - Infrastructure setup and running the app
+- [Testing Guide](docs/TESTING.md) - Backend and frontend test layout
 - [Frontend README](frontend/README.md) - Detailed frontend documentation
 - [Backend API Docs](http://localhost:8000/docs) - Interactive API documentation
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development setup and debugging guide
 - [Keycloak Setup Guide](infra/keycloak/README.md) - Keycloak provisioning guide
+- [Postman Collections](tools/postman/README.md) - Manual API testing
 
 ## 🤝 Contributing
 

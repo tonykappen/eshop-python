@@ -11,7 +11,7 @@ class CategoryDVO(BaseModel):
     id: UUID = Field(..., description="Category ID")
     name: str = Field(..., description="Category name")
     description: str = Field(..., description="Category description")
-    parent_id: UUID | None = Field(None, description="Parent category ID")
+    parent_id: UUID | None = Field(default=None, description="Parent category ID")
     is_active: bool = Field(..., description="Whether category is active")
     version: int = Field(..., description="Category version")
     created_at: str = Field(..., description="Creation timestamp")

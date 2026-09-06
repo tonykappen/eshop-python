@@ -45,7 +45,7 @@ def get_exchange_for_event_type(event_type: str | None) -> str | None:
             exchange = custom_mappings[event_type]
             logger.log_debug_with_context(
                 "Found custom exchange mapping",
-                context={"event_type": event_type, "exchange": exchange}
+                context={"event_type": event_type, "exchange": exchange},
             )
             return exchange
 
@@ -54,7 +54,11 @@ def get_exchange_for_event_type(event_type: str | None) -> str | None:
             if pattern.endswith(".*") and event_type.startswith(pattern[:-2]):
                 logger.log_debug_with_context(
                     "Found custom pattern mapping",
-                    context={"pattern": pattern, "event_type": event_type, "exchange": exchange}
+                    context={
+                        "pattern": pattern,
+                        "event_type": event_type,
+                        "exchange": exchange,
+                    },
                 )
                 return exchange
 
@@ -63,14 +67,14 @@ def get_exchange_for_event_type(event_type: str | None) -> str | None:
     if default_exchange:
         logger.log_debug_with_context(
             "Using default exchange mapping",
-            context={"event_type": event_type, "exchange": default_exchange}
+            context={"event_type": event_type, "exchange": default_exchange},
         )
         return default_exchange
 
     # 3. No mapping found, use default exchange
     logger.log_debug_with_context(
         "No exchange mapping found, using default exchange",
-        context={"event_type": event_type}
+        context={"event_type": event_type},
     )
     return None
 
@@ -100,13 +104,11 @@ def _get_custom_exchange_mappings() -> dict[str, str]:
                 )
     except json.JSONDecodeError as e:
         logger.log_warning_with_context(
-            "Failed to parse EVENT_EXCHANGE_MAPPINGS",
-            context={"error": str(e)}
+            "Failed to parse EVENT_EXCHANGE_MAPPINGS", context={"error": str(e)}
         )
     except Exception as e:
         logger.log_debug_with_context(
-            "Could not load custom exchange mappings",
-            context={"error": str(e)}
+            "Could not load custom exchange mappings", context={"error": str(e)}
         )
 
     return {}
@@ -128,13 +130,21 @@ def _get_default_exchange_for_event_type(event_type: str) -> str | None:
     Returns:
         Exchange name or None
     """
-    # Default module-based mappings
+    # Default module-based mappings. Both dotted ("basket.") and snake_case
+    # ("basket_") forms are accepted because IntegrationEvent._generate_event_type
+    # converts CamelCase class names to snake_case (e.g.
+    # ``BasketCheckoutIntegrationEvent`` -> ``basket_checkout_integration``).
     default_mappings = {
         "product.": "catalog.events",
+        "product_": "catalog.events",
         "order.": "ordering.events",
+        "order_": "ordering.events",
         "basket.": "basket.events",
+        "basket_": "basket.events",
         "payment.": "payment.events",
+        "payment_": "payment.events",
         "inventory.": "inventory.events",
+        "inventory_": "inventory.events",
     }
 
     # Check if event type matches any module prefix

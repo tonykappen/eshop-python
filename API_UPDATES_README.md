@@ -88,7 +88,7 @@ The eShop catalog API has been updated with:
 ## 📮 Postman Collection Updates
 
 ### New Collection
-- `EShop_Postman_Collection_Updated.json` - Complete updated collection
+- `tools/postman/EShop_Postman_Collection_Updated.json` - Complete updated collection
 
 ### Collection Features
 - **Automatic token management** - Auto-refresh expired tokens
@@ -156,7 +156,7 @@ cd backend
 poetry run pytest
 
 # Test with Postman
-# Import EShop_Postman_Collection_Updated.json
+# Import tools/postman/EShop_Postman_Collection_Updated.json
 # Set environment variables
 # Run collection
 ```

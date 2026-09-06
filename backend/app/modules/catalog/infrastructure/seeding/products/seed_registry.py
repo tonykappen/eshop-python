@@ -44,9 +44,8 @@ class SeedRegistry:
 
         try:
             # Import here to avoid circular import
-            from app.modules.catalog.infrastructure.seeding.products.versions.catalog_seed_20250115_initial import (
-                CatalogInitialSeed,
-            )
+            from app.modules.catalog.infrastructure.seeding.products.versions.catalog_seed_20250115_initial import \
+                CatalogInitialSeed
 
             # Register initial catalog seed
             initial_seed = CatalogInitialSeed()
@@ -56,7 +55,7 @@ class SeedRegistry:
             # If import fails (e.g., during module scanning), we'll try again later
             logger.log_debug_with_context(
                 "Could not register default seeds yet (will retry)",
-                context={"error": str(e)}
+                context={"error": str(e)},
             )
 
     def _register_default_seeds(self) -> None:
@@ -73,13 +72,12 @@ class SeedRegistry:
         if seed.version in self._seeds:
             logger.log_warning_with_context(
                 "Seed already registered, overwriting",
-                context={"version": seed.version}
+                context={"version": seed.version},
             )
 
         self._seeds[seed.version] = seed
         logger.log_debug_with_context(
-            "Registered seed",
-            context={"version": seed.version}
+            "Registered seed", context={"version": seed.version}
         )
 
     def get_seed(self, version: str) -> Seed | None:
@@ -133,8 +131,7 @@ class SeedRegistry:
         if version in self._seeds:
             del self._seeds[version]
             logger.log_debug_with_context(
-                "Unregistered seed",
-                context={"version": version}
+                "Unregistered seed", context={"version": version}
             )
 
     def clear_seeds(self) -> None:

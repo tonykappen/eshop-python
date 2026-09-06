@@ -180,8 +180,7 @@ class CatalogInitialData:
         )
 
         logger.log_with_context(
-            "Generated initial products",
-            context={"product_count": len(products)}
+            "Generated initial products", context={"product_count": len(products)}
         )
         return products
 

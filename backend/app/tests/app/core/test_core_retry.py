@@ -5,18 +5,11 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from app.core.retry.retry import (RetryableOperation, RetryConfig,
+                                  retry_api_call, retry_database_operation,
+                                  retry_messaging_operation, retry_operation,
+                                  retry_with_backoff, retry_with_timeout)
 from tenacity import RetryError
-
-from app.core.retry.retry import (
-    RetryableOperation,
-    RetryConfig,
-    retry_api_call,
-    retry_database_operation,
-    retry_messaging_operation,
-    retry_operation,
-    retry_with_backoff,
-    retry_with_timeout,
-)
 
 
 class TestRetryConfig:

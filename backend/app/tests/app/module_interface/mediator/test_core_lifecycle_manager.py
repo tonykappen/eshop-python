@@ -5,15 +5,11 @@ import signal
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from app.core.lifecycle.manager import (LifecycleManager, lifecycle_manager,
+                                        register_shutdown_callback,
+                                        register_startup_callback,
+                                        set_shutdown_timeout)
 from fastapi import FastAPI
-
-from app.core.lifecycle.manager import (
-    LifecycleManager,
-    lifecycle_manager,
-    register_shutdown_callback,
-    register_startup_callback,
-    set_shutdown_timeout,
-)
 
 
 class TestLifecycleManager:

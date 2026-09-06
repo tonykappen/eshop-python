@@ -5,19 +5,11 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from app.core.mapping.mapper import (MsgspecMapper, from_json, from_redis,
+                                     map_list_to_dtos, map_list_to_entities,
+                                     map_to_dto, map_to_entity, to_json,
+                                     to_redis)
 from pydantic import BaseModel
-
-from app.core.mapping.mapper import (
-    MsgspecMapper,
-    from_json,
-    from_redis,
-    map_list_to_dtos,
-    map_list_to_entities,
-    map_to_dto,
-    map_to_entity,
-    to_json,
-    to_redis,
-)
 
 
 @pytest.mark.no_collect

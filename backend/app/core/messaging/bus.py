@@ -25,9 +25,9 @@ def _message_to_json_serializable(message: Any) -> Any:
         return message
     if isinstance(message, list):
         return message
-    if hasattr(message, "to_dict") and callable(getattr(message, "to_dict")):
+    if hasattr(message, "to_dict") and callable(message.to_dict):
         return message.to_dict()
-    if hasattr(message, "model_dump") and callable(getattr(message, "model_dump")):
+    if hasattr(message, "model_dump") and callable(message.model_dump):
         return message.model_dump(mode="json")
     if isinstance(message, str):
         return message
@@ -68,6 +68,7 @@ def build_message_envelope(
         "payload": payload,
     }
 
+
 try:
     import aio_pika
 except ImportError:
@@ -82,7 +83,9 @@ class IMessageBus(ABC):
     """Interface for message bus."""
 
     @abstractmethod
-    async def publish(self, message: Any, topic: str | None = None, exchange: str | None = None) -> None:
+    async def publish(
+        self, message: Any, topic: str | None = None, exchange: str | None = None
+    ) -> None:
         """
         Publish a message to the bus.
 
@@ -115,6 +118,24 @@ class IMessageBus(ABC):
         """
         pass
 
+    async def subscribe_to_exchange(
+        self,
+        exchange: str,
+        routing_key: str,
+        queue_name: str,
+        handler: Any,
+        durable: bool = True,
+    ) -> None:
+        """
+        Subscribe to a named exchange via a dedicated queue + binding.
+
+        Default implementation raises NotImplementedError; concrete
+        message bus implementations (e.g. RabbitMQ) should override.
+        """
+        raise NotImplementedError(
+            "subscribe_to_exchange is not supported by this message bus"
+        )
+
 
 class InMemoryMessageBus(IMessageBus):
     """In-memory message bus implementation."""
@@ -124,7 +145,9 @@ class InMemoryMessageBus(IMessageBus):
         self._subscribers: dict[str, list[Any]] = {}
         self._message_history: list[dict[str, Any]] = []
 
-    async def publish(self, message: Any, topic: str | None = None, exchange: str | None = None) -> None:
+    async def publish(
+        self, message: Any, topic: str | None = None, exchange: str | None = None
+    ) -> None:
         """
         Publish a message to the bus.
 
@@ -154,14 +177,12 @@ class InMemoryMessageBus(IMessageBus):
                         await handler(message)
                 except Exception as e:
                     logger.log_error_with_context(
-                        "Error in message handler",
-                        error=e,
-                        context={"topic": topic}
+                        "Error in message handler", error=e, context={"topic": topic}
                     )
 
         logger.log_debug_with_context(
             "Published message to topic",
-            context={"topic": topic, "message": str(message)}
+            context={"topic": topic, "message": str(message)},
         )
 
     async def subscribe(self, topic: str, handler: Any) -> None:
@@ -177,8 +198,7 @@ class InMemoryMessageBus(IMessageBus):
 
         self._subscribers[topic].append(handler)
         logger.log_debug_with_context(
-            "Subscribed handler to topic",
-            context={"topic": topic}
+            "Subscribed handler to topic", context={"topic": topic}
         )
 
     async def unsubscribe(self, topic: str, handler: Any) -> None:
@@ -192,8 +212,7 @@ class InMemoryMessageBus(IMessageBus):
         if topic in self._subscribers and handler in self._subscribers[topic]:
             self._subscribers[topic].remove(handler)
             logger.log_debug_with_context(
-                "Unsubscribed handler from topic",
-                context={"topic": topic}
+                "Unsubscribed handler from topic", context={"topic": topic}
             )
 
     def get_message_history(self) -> list[dict[str, Any]]:
@@ -231,11 +250,15 @@ class RabbitMQMessageBus(IMessageBus):
             connection_string: RabbitMQ connection string
         """
         self.connection_string = connection_string
-        self._connection = None
-        self._channel = None
+        self._connection: Any = None
+        self._channel: Any = None
 
     async def _log_connection_event(
-        self, status: str, error: str | None = None, outbox_orm_class: Any = None, get_session_maker: Any = None
+        self,
+        status: str,
+        error: str | None = None,
+        outbox_orm_class: Any = None,
+        get_session_maker: Any = None,
     ) -> None:
         """
         Log RabbitMQ connection event to outbox table.
@@ -285,19 +308,18 @@ class RabbitMQMessageBus(IMessageBus):
 
                     logger.log_debug_with_context(
                         "Logged RabbitMQ connection event to outbox",
-                        context={"status": status}
+                        context={"status": status},
                     )
                 except Exception as e:
                     await session.rollback()
                     logger.log_warning_with_context(
                         "Failed to log RabbitMQ connection event to outbox",
-                        context={"error": str(e), "status": status}
+                        context={"error": str(e), "status": status},
                     )
         except Exception as e:
             # Don't fail connection if logging fails
             logger.log_debug_with_context(
-                "Could not log connection event to outbox",
-                context={"error": str(e)}
+                "Could not log connection event to outbox", context={"error": str(e)}
             )
 
     async def _ensure_exchanges(self) -> None:
@@ -322,7 +344,9 @@ class RabbitMQMessageBus(IMessageBus):
                     except Exception:
                         pass
 
-    async def connect(self, outbox_orm_class: Any = None, get_session_maker: Any = None) -> None:
+    async def connect(
+        self, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
         """
         Connect to RabbitMQ.
 
@@ -344,21 +368,24 @@ class RabbitMQMessageBus(IMessageBus):
             # Log connection event to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
-                    self._log_connection_event("connected", None, outbox_orm_class, get_session_maker)
+                    self._log_connection_event(
+                        "connected", None, outbox_orm_class, get_session_maker
+                    )
                 )
         except Exception as e:
-            logger.log_error_with_context(
-                "Failed to connect to RabbitMQ",
-                error=e
-            )
+            logger.log_error_with_context("Failed to connect to RabbitMQ", error=e)
             # Log connection failure to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
-                    self._log_connection_event("failed", str(e), outbox_orm_class, get_session_maker)
+                    self._log_connection_event(
+                        "failed", str(e), outbox_orm_class, get_session_maker
+                    )
                 )
             raise
 
-    async def disconnect(self, outbox_orm_class: Any = None, get_session_maker: Any = None) -> None:
+    async def disconnect(
+        self, outbox_orm_class: Any = None, get_session_maker: Any = None
+    ) -> None:
         """
         Disconnect from RabbitMQ.
 
@@ -370,16 +397,17 @@ class RabbitMQMessageBus(IMessageBus):
         if self._channel:
             try:
                 # Robust channels should be closed gracefully
-                if hasattr(self._channel, 'close') and not (hasattr(self._channel, 'is_closed') and self._channel.is_closed):
+                if hasattr(self._channel, "close") and not (
+                    hasattr(self._channel, "is_closed") and self._channel.is_closed
+                ):
                     await self._channel.close()
             except Exception as e:
                 logger.log_warning_with_context(
-                    "Error closing channel during disconnect",
-                    context={"error": str(e)}
+                    "Error closing channel during disconnect", context={"error": str(e)}
                 )
             finally:
                 self._channel = None
-        
+
         if self._connection:
             try:
                 await self._connection.close()
@@ -387,18 +415,22 @@ class RabbitMQMessageBus(IMessageBus):
             except Exception as e:
                 logger.log_warning_with_context(
                     "Error closing connection during disconnect",
-                    context={"error": str(e)}
+                    context={"error": str(e)},
                 )
             finally:
                 self._connection = None
-            
+
             # Log disconnection event to outbox if dependencies provided
             if outbox_orm_class and get_session_maker:
                 asyncio.create_task(
-                    self._log_connection_event("disconnected", None, outbox_orm_class, get_session_maker)
+                    self._log_connection_event(
+                        "disconnected", None, outbox_orm_class, get_session_maker
+                    )
                 )
 
-    async def publish(self, message: Any, topic: str | None = None, exchange: str | None = None) -> None:
+    async def publish(
+        self, message: Any, topic: str | None = None, exchange: str | None = None
+    ) -> None:
         """
         Publish a message to RabbitMQ.
 
@@ -410,16 +442,16 @@ class RabbitMQMessageBus(IMessageBus):
         # Ensure connection is established and ready
         if not self._connection or not self._channel:
             await self.connect()
-        
+
         # Check if connection is closed and wait for it to be restored
         # Robust connections automatically restore, but we should wait if it's currently closed
-        if hasattr(self._connection, 'is_closed') and self._connection.is_closed:
+        if hasattr(self._connection, "is_closed") and self._connection.is_closed:
             # Wait a bit for robust connection to restore
             await asyncio.sleep(0.1)
             # If still closed after wait, try to reconnect
-            if hasattr(self._connection, 'is_closed') and self._connection.is_closed:
+            if hasattr(self._connection, "is_closed") and self._connection.is_closed:
                 await self.connect()
-        
+
         # Robust channels automatically restore when connection is restored
         # Just ensure we have a channel reference
         if not self._channel:
@@ -435,7 +467,7 @@ class RabbitMQMessageBus(IMessageBus):
             # Publish to exchange
             if aio_pika is None:
                 raise ImportError("aio_pika is not installed")
-            
+
             if exchange:
                 # Try to get existing exchange first (passive=True doesn't create, just checks)
                 # If exchange exists, use it as-is to avoid type mismatch errors
@@ -444,8 +476,7 @@ class RabbitMQMessageBus(IMessageBus):
                         exchange, aio_pika.ExchangeType.DIRECT, passive=True
                     )
                     logger.log_debug_with_context(
-                        "Using existing exchange",
-                        context={"exchange": exchange}
+                        "Using existing exchange", context={"exchange": exchange}
                     )
                 except Exception:
                     # Exchange doesn't exist, declare it as DIRECT to match CatalogEventPublisher
@@ -455,16 +486,20 @@ class RabbitMQMessageBus(IMessageBus):
                     )
                     logger.log_debug_with_context(
                         "Declared new exchange as DIRECT",
-                        context={"exchange": exchange}
+                        context={"exchange": exchange},
                     )
-                
+
                 await exchange_obj.publish(
                     aio_pika.Message(message_json.encode()),
                     routing_key=topic,
                 )
                 logger.log_debug_with_context(
                     "Published message to RabbitMQ exchange",
-                    context={"exchange": exchange, "topic": topic, "message": str(message)}
+                    context={
+                        "exchange": exchange,
+                        "topic": topic,
+                        "message": str(message),
+                    },
                 )
             else:
                 # Use default exchange
@@ -474,7 +509,7 @@ class RabbitMQMessageBus(IMessageBus):
                 )
                 logger.log_debug_with_context(
                     "Published message to RabbitMQ topic",
-                    context={"topic": topic, "message": str(message)}
+                    context={"topic": topic, "message": str(message)},
                 )
 
         except RuntimeError as e:
@@ -483,7 +518,8 @@ class RabbitMQMessageBus(IMessageBus):
                 await asyncio.sleep(0.5)
                 try:
                     if not self._connection or (
-                        hasattr(self._connection, "is_closed") and self._connection.is_closed
+                        hasattr(self._connection, "is_closed")
+                        and self._connection.is_closed
                     ):
                         await self.connect()
                     if not self._channel:
@@ -521,7 +557,7 @@ class RabbitMQMessageBus(IMessageBus):
             logger.log_error_with_context(
                 "Error publishing message to RabbitMQ",
                 error=e,
-                context={"topic": topic, "exchange": exchange}
+                context={"topic": topic, "exchange": exchange},
             )
             raise
 
@@ -535,10 +571,11 @@ class RabbitMQMessageBus(IMessageBus):
         """
         if not self._connection or not self._channel:
             await self.connect()
-        
+
         # Check if connection is closed and wait for it to be restored
-        if hasattr(self._connection, 'is_closed') and self._connection.is_closed:
+        if hasattr(self._connection, "is_closed") and self._connection.is_closed:
             import asyncio
+
             await asyncio.sleep(0.1)
             if self._connection.is_closed:
                 await self.connect()
@@ -561,20 +598,101 @@ class RabbitMQMessageBus(IMessageBus):
                         logger.log_error_with_context(
                             "Error processing message",
                             error=e,
-                            context={"topic": topic}
+                            context={"topic": topic},
                         )
 
             await queue.consume(message_handler)
             logger.log_debug_with_context(
-                "Subscribed to RabbitMQ topic",
-                context={"topic": topic}
+                "Subscribed to RabbitMQ topic", context={"topic": topic}
             )
 
         except Exception as e:
             logger.log_error_with_context(
-                "Error subscribing to RabbitMQ topic",
+                "Error subscribing to RabbitMQ topic", error=e, context={"topic": topic}
+            )
+            raise
+
+    async def subscribe_to_exchange(
+        self,
+        exchange: str,
+        routing_key: str,
+        queue_name: str,
+        handler: Any,
+        durable: bool = True,
+    ) -> None:
+        """
+        Subscribe to a named exchange via a dedicated queue + binding.
+
+        Mirrors MassTransit-style endpoint consumers: declares a durable queue
+        named after the consumer endpoint and binds it to the integration-event
+        exchange with the message-type routing key.
+
+        Args:
+            exchange: Exchange name to bind against (e.g. "basket.events").
+            routing_key: Routing key to bind / filter on (event_type string).
+            queue_name: Durable queue name owned by the consumer (e.g.
+                "basket-checkout-queue").
+            handler: Async callable invoked with the decoded JSON dict.
+            durable: Whether the queue should be durable. Defaults to True.
+        """
+        if not self._connection or not self._channel:
+            await self.connect()
+
+        if hasattr(self._connection, "is_closed") and self._connection.is_closed:
+            await asyncio.sleep(0.1)
+            if self._connection.is_closed:
+                await self.connect()
+
+        try:
+            import aio_pika
+
+            try:
+                exchange_obj = await self._channel.declare_exchange(
+                    exchange, aio_pika.ExchangeType.DIRECT, passive=True
+                )
+            except Exception:
+                exchange_obj = await self._channel.declare_exchange(
+                    exchange, aio_pika.ExchangeType.DIRECT, durable=False
+                )
+
+            queue = await self._channel.declare_queue(queue_name, durable=durable)
+            await queue.bind(exchange_obj, routing_key=routing_key)
+
+            async def message_handler(message: aio_pika.IncomingMessage) -> None:
+                async with message.process():
+                    try:
+                        message_data = json.loads(message.body.decode())
+                        await handler(message_data)
+                    except Exception as e:
+                        logger.log_error_with_context(
+                            "Error processing message from exchange queue",
+                            error=e,
+                            context={
+                                "exchange": exchange,
+                                "routing_key": routing_key,
+                                "queue": queue_name,
+                            },
+                        )
+
+            await queue.consume(message_handler)
+            logger.log_with_context(
+                "Subscribed to RabbitMQ exchange queue",
+                "info",
+                context={
+                    "exchange": exchange,
+                    "routing_key": routing_key,
+                    "queue": queue_name,
+                },
+            )
+        except Exception as e:
+            logger.log_error_with_context(
+                "Error subscribing to RabbitMQ exchange",
                 error=e,
-                context={"topic": topic}
+                context={
+                    "exchange": exchange,
+                    "routing_key": routing_key,
+                    "queue": queue_name,
+                },
             )
             raise
 

@@ -3,16 +3,13 @@
 from uuid import UUID
 
 from app.core.logging.base_logger import BaseLogger
-from app.modules.catalog.application.services.catalog_cache_patterns import (
-    CatalogCachePatterns,
-)
-from app.modules.catalog.application.services.catalog_cache_service import (
-    CatalogCacheService,
-)
+from app.modules.catalog.application.services.catalog_cache_patterns import \
+    CatalogCachePatterns
+from app.modules.catalog.application.services.catalog_cache_service import \
+    CatalogCacheService
 from app.modules.catalog.domain.entities.product.product import Product
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
 
 logger = BaseLogger(__name__)
 
@@ -55,8 +52,8 @@ class CachedProductRepository(ProductRepository):
                         "product_id": str(product_id),
                         "cache_key": cache_key,
                         "cache_status": "hit",
-                        "source": "cache"
-                    }
+                        "source": "cache",
+                    },
                 )
                 return self._deserialize_product(cached_data)
             except Exception as e:
@@ -65,8 +62,8 @@ class CachedProductRepository(ProductRepository):
                     context={
                         "product_id": str(product_id),
                         "cache_key": cache_key,
-                        "cache_status": "deserialization_error"
-                    }
+                        "cache_status": "deserialization_error",
+                    },
                 )
 
         # Cache miss - get from repository
@@ -76,8 +73,8 @@ class CachedProductRepository(ProductRepository):
                 "product_id": str(product_id),
                 "cache_key": cache_key,
                 "cache_status": "miss",
-                "source": "database"
-            }
+                "source": "database",
+            },
         )
         product = await self._repository.get_by_id(product_id)
 
@@ -92,8 +89,8 @@ class CachedProductRepository(ProductRepository):
                     "product_id": str(product_id),
                     "cache_key": cache_key,
                     "cache_status": "stored",
-                    "ttl": self._default_ttl
-                }
+                    "ttl": self._default_ttl,
+                },
             )
         else:
             logger.log_debug_with_context(
@@ -101,8 +98,8 @@ class CachedProductRepository(ProductRepository):
                 context={
                     "product_id": str(product_id),
                     "cache_key": cache_key,
-                    "cache_status": "not_found"
-                }
+                    "cache_status": "not_found",
+                },
             )
 
         return product
@@ -142,8 +139,8 @@ class CachedProductRepository(ProductRepository):
                         "cache_status": "hit",
                         "source": "cache",
                         "product_count": len(products),
-                        "total_count": total_count
-                    }
+                        "total_count": total_count,
+                    },
                 )
                 total = cached_data.get("total_count", len(products))
                 return products, total
@@ -155,8 +152,8 @@ class CachedProductRepository(ProductRepository):
                         "page": page,
                         "page_size": page_size,
                         "cache_key": cache_key,
-                        "cache_status": "deserialization_error"
-                    }
+                        "cache_status": "deserialization_error",
+                    },
                 )
 
         # Cache miss - get from repository
@@ -168,8 +165,8 @@ class CachedProductRepository(ProductRepository):
                 "page_size": page_size,
                 "cache_key": cache_key,
                 "cache_status": "miss",
-                "source": "database"
-            }
+                "source": "database",
+            },
         )
         products, total_count = await self._repository.get_by_category(
             category, page, page_size
@@ -195,8 +192,8 @@ class CachedProductRepository(ProductRepository):
                 "cache_status": "stored",
                 "ttl": self._default_ttl,
                 "product_count": len(products),
-                "total_count": total_count
-            }
+                "total_count": total_count,
+            },
         )
         return products, total_count
 
@@ -227,8 +224,8 @@ class CachedProductRepository(ProductRepository):
                         "cache_status": "hit",
                         "source": "cache",
                         "product_count": len(products),
-                        "total_count": total_count
-                    }
+                        "total_count": total_count,
+                    },
                 )
                 return products, total_count
             except Exception as e:
@@ -238,8 +235,8 @@ class CachedProductRepository(ProductRepository):
                         "page": page,
                         "page_size": page_size,
                         "cache_key": cache_key,
-                        "cache_status": "deserialization_error"
-                    }
+                        "cache_status": "deserialization_error",
+                    },
                 )
 
         logger.log_with_context(
@@ -249,8 +246,8 @@ class CachedProductRepository(ProductRepository):
                 "page_size": page_size,
                 "cache_key": cache_key,
                 "cache_status": "miss",
-                "source": "database"
-            }
+                "source": "database",
+            },
         )
         products, total_count = await self._repository.get_all(page, page_size)
 
@@ -273,8 +270,8 @@ class CachedProductRepository(ProductRepository):
                 "cache_status": "stored",
                 "ttl": self._default_ttl,
                 "product_count": len(products),
-                "total_count": total_count
-            }
+                "total_count": total_count,
+            },
         )
 
         return products, total_count
@@ -367,8 +364,8 @@ class CachedProductRepository(ProductRepository):
             name=data["name"],
             sku=SKU(value=data["sku"]),
             category=data["category"],
-            description=data.get("description"),
-            image_file=data.get("image_file"),
+            description=data.get("description") or "",
+            image_file=data.get("image_file") or "",
             price=Money(
                 amount=Decimal(data["price_amount"]),
                 currency=data["price_currency"],

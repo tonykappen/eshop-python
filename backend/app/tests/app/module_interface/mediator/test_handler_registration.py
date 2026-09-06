@@ -1,18 +1,16 @@
 """Tests for mediator extensions."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from app.core.contracts.cqrs import ICommand as Command
 from app.core.contracts.cqrs import IQuery as Query
 from app.core.cqrs.base import CommandResult as Result
-from app.core.mediator.extensions import (
-    _extract_request_type,
-    _is_request_handler,
-    _register_handlers_from_assembly,
-    add_mediator_with_assemblies,
-    get_handler_registry,
-    get_mediator,
-)
+from app.core.mediator.extensions import (_extract_request_type,
+                                          _is_request_handler,
+                                          _register_handlers_from_assembly,
+                                          add_mediator_with_assemblies,
+                                          get_handler_registry, get_mediator)
 from app.core.mediator.handler_registry import HandlerRegistry
 from app.core.mediator.mediator import Mediator
 
@@ -32,7 +30,7 @@ class MockQuery(Query[Result]):
 class MockResult(Result):
     """Mock result for testing."""
 
-    pass
+    success: bool = True
 
 
 class MockRequestHandler:
@@ -108,7 +106,7 @@ class TestAddMediatorWithAssemblies:
 
     def test_add_mediator_with_assemblies_success(self) -> None:
         """Test successfully adding mediator with assemblies."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         # Create mock assembly with handlers
         mock_assembly = MagicMock()
@@ -133,7 +131,7 @@ class TestAddMediatorWithAssemblies:
 
     def test_add_mediator_with_multiple_assemblies(self) -> None:
         """Test adding mediator with multiple assemblies."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         mock_assembly1 = MagicMock()
         mock_assembly1.__name__ = "test_assembly1"
@@ -157,7 +155,7 @@ class TestAddMediatorWithAssemblies:
 
     def test_add_mediator_with_no_handlers(self) -> None:
         """Test adding mediator with no handlers found."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         mock_assembly = MagicMock()
         mock_assembly.__name__ = "test_assembly"
@@ -377,7 +375,7 @@ class TestGetMediator:
 
     def test_get_mediator_not_found(self) -> None:
         """Test getting mediator when not found in services."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         result = get_mediator(services)
         assert result is None
@@ -401,7 +399,7 @@ class TestGetHandlerRegistry:
 
     def test_get_handler_registry_not_found(self) -> None:
         """Test getting handler registry when not found in services."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         result = get_handler_registry(services)
         assert result is None
@@ -417,7 +415,7 @@ class TestMediatorExtensionsIntegration:
 
     def test_full_mediator_registration_flow(self) -> None:
         """Test complete mediator registration flow."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         # Create mock assembly
         mock_assembly = MagicMock()
@@ -454,7 +452,7 @@ class TestMediatorExtensionsIntegration:
 
     def test_mediator_extensions_with_real_handlers(self) -> None:
         """Test mediator extensions with real handler instances."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         # Create a real assembly-like object
         class TestAssembly:
@@ -485,7 +483,7 @@ class TestMediatorExtensionsIntegration:
 
     def test_mediator_extensions_error_handling(self) -> None:
         """Test error handling in mediator extensions."""
-        services = {}
+        services: dict[Any, Any] = {}
 
         # Create mock assembly that will cause errors
         mock_assembly = MagicMock()

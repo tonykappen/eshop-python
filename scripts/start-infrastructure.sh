@@ -1,40 +1,54 @@
 #!/bin/bash
 
-echo "🚀 Starting eShop Infrastructure Services..."
+set -e
 
-# Check if Podman is running
-if ! podman info > /dev/null 2>&1; then
-    echo "❌ Podman is not running. Please run: podman machine start"
-    exit 1
-fi
+echo "Starting eShop Infrastructure Services..."
 
-echo "✅ Podman is running"
+COMPOSE_FILE="docker-compose.infrastructure.yml"
 
-# Start infrastructure services
-echo "🐳 Starting PostgreSQL, Redis, RabbitMQ, and Keycloak..."
-podman-compose -f docker-compose.infrastructure.yml up -d
+run_compose() {
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        echo "Using Docker Compose"
+        docker compose -f "$COMPOSE_FILE" "$@"
+    elif command -v podman-compose >/dev/null 2>&1; then
+        if ! podman info >/dev/null 2>&1; then
+            echo "Podman is not running. Please run: podman machine start"
+            exit 1
+        fi
+        echo "Using Podman Compose"
+        podman-compose -f "$COMPOSE_FILE" "$@"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        echo "Using docker-compose"
+        docker-compose -f "$COMPOSE_FILE" "$@"
+    else
+        echo "No container runtime found. Install Docker Compose or Podman."
+        exit 1
+    fi
+}
 
-# Wait for services to be ready
-echo "⏳ Waiting for services to be ready..."
+echo "Starting PostgreSQL, Redis, RabbitMQ, Seq, and Keycloak..."
+run_compose up -d
+
+echo "Waiting for services to be ready..."
 sleep 10
 
-# Check service status
-echo "📊 Service Status:"
-podman-compose -f docker-compose.infrastructure.yml ps
+echo "Service Status:"
+run_compose ps
 
 echo ""
-echo "✅ Infrastructure services started successfully!"
+echo "Infrastructure services started successfully!"
 echo ""
-echo "📋 Access Points:"
-echo "  • PostgreSQL: localhost:5432"
-echo "  • Redis: localhost:6379"
-echo "  • RabbitMQ: localhost:5672"
-echo "  • RabbitMQ Management: http://localhost:15672 (guest/guest)"
-echo "  • Keycloak Admin: http://localhost:8080 (admin/admin)"
+echo "Access Points:"
+echo "  PostgreSQL:          localhost:5432"
+echo "  Redis:               localhost:6379"
+echo "  RabbitMQ:            localhost:5672"
+echo "  RabbitMQ Management: http://localhost:15672 (guest/guest)"
+echo "  Seq:                 http://localhost:5341"
+echo "  Keycloak Admin:      http://localhost:8080 (admin/admin)"
 echo ""
-echo "🔧 Next Steps:"
-echo "  1. Run backend locally: cd backend && poetry run uvicorn app.main:app --reload"
-echo "  2. Run frontend locally: cd frontend && python -m http.server 3000"
-echo "  3. Or use VS Code debug configurations"
+echo "Next Steps:"
+echo "  1. Run backend:  cd backend && poetry run uvicorn app.main:app --reload"
+echo "  2. Run frontend: cd frontend && python3 -m http.server 3000"
 echo ""
-echo "🛑 To stop services: podman-compose -f docker-compose.infrastructure.yml down"
+echo "See docs/GETTING_STARTED.md for the full runbook."
+echo "To stop: ./scripts/stop-infrastructure.sh"

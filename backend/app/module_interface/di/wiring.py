@@ -1,12 +1,8 @@
 """Wire DI into FastAPI lifespan."""
 
-
+from app.core.initialization import (cleanup_dependency_injection,
+                                     get_app_container)
 from fastapi import FastAPI
-
-from app.core.initialization import (
-    cleanup_dependency_injection,
-    get_app_container,
-)
 
 
 def wire_di_to_fastapi(app: FastAPI) -> None:
@@ -29,7 +25,7 @@ def initialize_di() -> None:
     pass
 
 
-def cleanup_di() -> None:
+async def cleanup_di() -> None:
     """Cleanup dependency injection (called during shutdown)."""
     # This is handled by the lifecycle manager in main.py
-    cleanup_dependency_injection()
+    await cleanup_dependency_injection()

@@ -2,21 +2,14 @@
 
 from app.core.context.application_context import RequestContext
 from app.core.logging.base_logger import BaseLogger
-from app.core.transactions.commit_interceptors import (
-    commit_interceptor_registry,
-)
+from app.core.transactions.commit_interceptors import \
+    commit_interceptor_registry
 from app.core.transactions.interceptor_implementations import (
-    AuditStampInterceptor,
-    CacheInvalidationInterceptor,
-)
+    AuditStampInterceptor, CacheInvalidationInterceptor)
 from app.modules.catalog.application.transactions.commit_interceptor_impl import (
-    DomainEventPublisherInterceptor,
-    OutboxEnqueuerInterceptor,
-)
+    DomainEventPublisherInterceptor, OutboxEnqueuerInterceptor)
 from app.modules.catalog.module_interface.di.products.products_providers import (
-    get_catalog_dispatcher,
-    get_catalog_message_bus,
-)
+    get_catalog_dispatcher, get_catalog_message_bus)
 
 logger = BaseLogger(__name__)
 
@@ -25,6 +18,7 @@ _interceptors_registered = False
 
 class InterceptorDependencyError(RuntimeError):
     """Raised when a required interceptor dependency is missing at registration time."""
+
     pass
 
 
@@ -39,7 +33,9 @@ def register_catalog_commit_interceptors() -> None:
     """
     global _interceptors_registered
     if _interceptors_registered:
-        logger.log_with_context("Catalog commit interceptors already registered — skipping", "info")
+        logger.log_with_context(
+            "Catalog commit interceptors already registered — skipping", "info"
+        )
         return
 
     errors: list[str] = []
@@ -54,9 +50,8 @@ def register_catalog_commit_interceptors() -> None:
     cache_service = None
     try:
         from app.modules.catalog.application.services.catalog_cache_service import (
-            CatalogCacheService,
-            RedisCacheService,
-        )
+            CatalogCacheService, RedisCacheService)
+
         cache_service = CatalogCacheService(RedisCacheService())
     except Exception as e:
         logger.log_warning_with_context(
@@ -79,9 +74,7 @@ def register_catalog_commit_interceptors() -> None:
         message_bus = get_catalog_message_bus()
         domain_event_dispatcher = get_catalog_dispatcher()
     except Exception as e:
-        msg = (
-            f"Message bus or dispatcher unavailable for DomainEventPublisherInterceptor: {e}"
-        )
+        msg = f"Message bus or dispatcher unavailable for DomainEventPublisherInterceptor: {e}"
         logger.log_warning_with_context(msg)
         errors.append(msg)
 

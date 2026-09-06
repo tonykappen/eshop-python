@@ -1,13 +1,13 @@
 """Catalog Unit of Work interface."""
 
 from abc import ABC, abstractmethod
+from types import TracebackType
 from typing import TypeVar
 
 from app.modules.catalog.domain.category.repository import CategoryRepository
 from app.modules.catalog.domain.inventory.repository import InventoryRepository
-from app.modules.catalog.domain.repositories.product.product_repository import (
-    ProductRepository,
-)
+from app.modules.catalog.domain.repositories.product.product_repository import \
+    ProductRepository
 
 T = TypeVar("T")
 
@@ -62,7 +62,7 @@ class ICatalogUnitOfWork(ABC):
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: type[BaseException] | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Async context manager exit."""
         ...

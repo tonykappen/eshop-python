@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eShop - Shopping Basket</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logout-btn, .back-btn {
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .basket-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .basket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .basket-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .basket-item:last-child {
+            border-bottom: none;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-name {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .item-details {
+            color: #666;
+            font-size: 14px;
+        }
+        .item-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .quantity-btn {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .quantity-btn:hover {
+            background-color: #f8f9fa;
+        }
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .item-price {
+            font-weight: bold;
+            font-size: 18px;
+            color: #007bff;
+            min-width: 100px;
+            text-align: right;
+        }
+        .remove-btn {
+            padding: 5px 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        .basket-summary {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .summary-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 20px;
+            margin-top: 10px;
+        }
+        .checkout-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .checkout-btn:hover {
+            background-color: #218838;
+        }
+        .checkout-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .empty-basket {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .empty-basket a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+        .checkout-form {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .prefill-btn {
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .prefill-btn:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛒 Shopping Basket</h1>
+        <div class="user-info">
+            <span>Welcome, <strong id="username"></strong></span>
+            <a href="products.html" class="back-btn">Products</a>
+            <a href="orders.html" class="back-btn">Orders</a>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="basket-container">
+        <div id="loading" class="loading">Loading basket...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="basketContent" style="display: none;">
+            <div id="basketItems"></div>
+            
+            <div id="basketSummary" class="basket-summary">
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total:</span>
+                    <span id="total">$0.00</span>
+                </div>
+                <button id="checkoutBtn" class="checkout-btn" onclick="showCheckoutForm()">Proceed to Checkout</button>
+            </div>
+            
+            <div id="checkoutForm" class="checkout-form" style="display: none;">
+                <h3>Checkout Information</h3>
+                <button type="button" id="prefillBtn" class="prefill-btn" onclick="prefillCheckoutForm()" style="display: none;">🔧 Prefill Form (Dev)</button>
+                <form id="checkoutFormElement">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First Name:</label>
+                            <input type="text" id="firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name:</label>
+                            <input type="text" id="lastName" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addressLine">Address Line:</label>
+                        <input type="text" id="addressLine" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="country">Country:</label>
+                            <input type="text" id="country" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="state">State:</label>
+                            <input type="text" id="state" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="zipCode">Zip Code:</label>
+                        <input type="text" id="zipCode" required>
+                    </div>
+                    <h4>Payment Information</h4>
+                    <div class="form-group">
+                        <label for="cardName">Card Name:</label>
+                        <input type="text" id="cardName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardNumber">Card Number:</label>
+                        <input type="text" id="cardNumber" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expiration">Expiration:</label>
+                            <input type="text" id="expiration" placeholder="MM/YY" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cvv">CVV:</label>
+                            <input type="text" id="cvv" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentMethod">Payment Method:</label>
+                        <input type="number" id="paymentMethod" value="1" required>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="checkout-btn" style="flex: 1;">Complete Checkout</button>
+                        <button type="button" onclick="hideCheckoutForm()" style="flex: 1; padding: 15px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="emptyBasket" class="empty-basket" style="display: none;">
+            <h2>Your basket is empty</h2>
+            <p>Start shopping to add items to your basket!</p>
+            <a href="products.html">Browse Products</a>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        const API_BASE = window.APP_CONFIG?.API_BASE || 'http://localhost:8000';
+        let basket = null;
+        let username = null;
+        
+        // Check authentication
+        const token = localStorage.getItem('access_token');
+        username = localStorage.getItem('username');
+        
+        if (!token || !username) {
+            window.location.href = 'index.html';
+        }
+        
+        document.getElementById('username').textContent = username;
+        
+        // Load basket from API
+        async function loadBasket() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        // Basket doesn't exist yet - show empty basket
+                        showEmptyBasket();
+                        return;
+                    }
+                    if (response.status === 401) {
+                        handleUnauthorizedResponse(response);
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                basket = data.shopping_cart || data;
+                
+                if (!basket || !basket.items || basket.items.length === 0) {
+                    showEmptyBasket();
+                } else {
+                    displayBasket(basket);
+                }
+                
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'Failed to load basket: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+        
+        function showEmptyBasket() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('basketContent').style.display = 'none';
+            document.getElementById('emptyBasket').style.display = 'block';
+        }
+        
+        function displayBasket(basketData) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('basketContent').style.display = 'block';
+            document.getElementById('emptyBasket').style.display = 'none';
+            
+            const itemsContainer = document.getElementById('basketItems');
+            
+            if (!basketData.items || basketData.items.length === 0) {
+                showEmptyBasket();
+                return;
+            }
+
+            const subtotal = calculateBasketSubtotal(basketData.items);
+            
+            itemsContainer.innerHTML = basketData.items.map(item => {
+                const itemPrice = parseFloat(item.price) || 0;
+                const itemQuantity = parseInt(item.quantity) || 1;
+                const itemTotal = itemPrice * itemQuantity;
+                
+                return `
+                    <div class="basket-item" data-product-id="${item.product_id}">
+                        <div class="item-info">
+                            <div class="item-name">${escapeHtml(item.product_name || 'Unknown Product')}</div>
+                            <div class="item-details">
+                                Color: ${escapeHtml(item.color || 'Default')} | Price: $${itemPrice.toFixed(2)} each
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateQuantity('${item.product_id}', ${itemQuantity - 1})" title="Decrease quantity">-</button>
+                                <input type="number" class="quantity-input" value="${itemQuantity}" min="1" 
+                                    onchange="updateQuantity('${item.product_id}', parseInt(this.value) || 1)"
+                                    onblur="if(this.value < 1) { this.value = 1; updateQuantity('${item.product_id}', 1); }">
+                                <button class="quantity-btn" onclick="updateQuantity('${item.product_id}', ${itemQuantity + 1})" title="Increase quantity">+</button>
+                            </div>
+                            <div class="item-price">$${itemTotal.toFixed(2)}</div>
+                            <button class="remove-btn" onclick="removeItem('${item.product_id}')" title="Remove item">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('total').textContent = `$${subtotal.toFixed(2)}`;
+            
+            // Update checkout button state
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            if (checkoutBtn) {
+                checkoutBtn.disabled = subtotal <= 0;
+            }
+        }
+        
+        // escapeHtml is provided globally by js/utils.js
+
+        async function updateQuantity(productId, newQuantity) {
+            if (newQuantity <= 0) {
+                await removeItem(productId);
+                return;
+            }
+            
+            try {
+                // Find the item in the current basket
+                const item = basket.items.find(i => i.product_id === productId);
+                if (!item) {
+                    throw new Error('Item not found in basket');
+                }
+                
+                // Remove the item first
+                await removeItem(productId, false);
+                
+                // Then add it back with new quantity
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}/items`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        shopping_cart_item: {
+                            id: null, // Let backend generate new ID
+                            shopping_cart_id: null, // Will be set by backend
+                            product_id: productId,
+                            quantity: newQuantity,
+                            color: item.color || 'Default',
+                            price: item.price,
+                            product_name: item.product_name
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // Reload basket to get updated state
+                await loadBasket();
+                
+            } catch (error) {
+                console.error('Failed to update quantity:', error);
+                alert('Failed to update quantity: ' + error.message);
+                // Reload basket to sync state
+                await loadBasket();
+            }
+        }
+        
+        async function removeItem(productId, reload = true) {
+            if (!confirm('Are you sure you want to remove this item from your basket?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}/items/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        // Item already removed, just reload
+                        if (reload) await loadBasket();
+                        return;
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                if (reload) {
+                    await loadBasket();
+                }
+                
+            } catch (error) {
+                console.error('Failed to remove item:', error);
+                alert('Failed to remove item: ' + error.message);
+                if (reload) {
+                    await loadBasket();
+                }
+            }
+        }
+        
+        function showCheckoutForm() {
+            document.getElementById('checkoutForm').style.display = 'block';
+            document.getElementById('checkoutBtn').style.display = 'none';
+            
+            // Show prefill button only in dev environment (localhost)
+            const prefillBtn = document.getElementById('prefillBtn');
+            if (prefillBtn && (API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1'))) {
+                prefillBtn.style.display = 'block';
+            }
+        }
+        
+        function prefillCheckoutForm() {
+            // Prefill checkout form with test data for development
+            document.getElementById('firstName').value = 'John';
+            document.getElementById('lastName').value = 'Doe';
+            document.getElementById('email').value = 'john.doe@example.com';
+            document.getElementById('addressLine').value = '123 Main Street';
+            document.getElementById('country').value = 'United States';
+            document.getElementById('state').value = 'California';
+            document.getElementById('zipCode').value = '90210';
+            document.getElementById('cardName').value = 'John Doe';
+            document.getElementById('cardNumber').value = '4111111111111111'; // Test card number
+            document.getElementById('expiration').value = '12/25';
+            document.getElementById('cvv').value = '123';
+            document.getElementById('paymentMethod').value = '1';
+        }
+        
+        function hideCheckoutForm() {
+            document.getElementById('checkoutForm').style.display = 'none';
+            document.getElementById('checkoutBtn').style.display = 'block';
+        }
+        
+        document.getElementById('checkoutFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                // Calculate total from basket
+                let totalPrice = 0;
+                if (basket && basket.items) {
+                    basket.items.forEach(item => {
+                        totalPrice += parseFloat(item.price) * item.quantity;
+                    });
+                }
+                
+                // Generate a UUID for customer_id (simple version)
+                function generateUUID() {
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                }
+                
+                const checkoutData = {
+                    basket_checkout: {
+                        user_name: username,
+                        customer_id: generateUUID(),
+                        total_price: totalPrice,
+                        first_name: document.getElementById('firstName').value.trim(),
+                        last_name: document.getElementById('lastName').value.trim(),
+                        email_address: document.getElementById('email').value.trim(),
+                        address_line: document.getElementById('addressLine').value.trim(),
+                        country: document.getElementById('country').value.trim(),
+                        state: document.getElementById('state').value.trim(),
+                        zip_code: document.getElementById('zipCode').value.trim(),
+                        card_name: document.getElementById('cardName').value.trim(),
+                        card_number: document.getElementById('cardNumber').value.trim(),
+                        expiration: document.getElementById('expiration').value.trim(),
+                        cvv: document.getElementById('cvv').value.trim(),
+                        payment_method: parseInt(document.getElementById('paymentMethod').value) || 1
+                    }
+                };
+                
+                // Validate required fields
+                if (!checkoutData.basket_checkout.first_name || 
+                    !checkoutData.basket_checkout.last_name ||
+                    !checkoutData.basket_checkout.email_address ||
+                    !checkoutData.basket_checkout.address_line ||
+                    !checkoutData.basket_checkout.country ||
+                    !checkoutData.basket_checkout.state ||
+                    !checkoutData.basket_checkout.zip_code ||
+                    !checkoutData.basket_checkout.card_name ||
+                    !checkoutData.basket_checkout.card_number ||
+                    !checkoutData.basket_checkout.expiration ||
+                    !checkoutData.basket_checkout.cvv) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Disable submit button to prevent double submission
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing...';
+                
+                const response = await fetch(`${API_BASE}/api/v1/basket/${username}/checkout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(checkoutData)
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = 'Failed to checkout';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.detail || errorData.message || errorMessage;
+                    } catch (parseError) {
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const result = await response.json();
+                
+                if (result.is_success) {
+                    alert('Checkout successful! Your order has been placed.');
+                    // Clear basket from localStorage if stored
+                    localStorage.removeItem('basket');
+                    // Redirect to orders page to view the new order
+                    window.location.href = 'orders.html';
+                } else {
+                    throw new Error('Checkout was not successful. Please try again.');
+                }
+                
+            } catch (error) {
+                alert('Failed to checkout: ' + error.message);
+                // Re-enable submit button
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Complete Checkout';
+                }
+            }
+        });
+        
+        function logout() {
+            clearAuthStorage();
+            window.location.href = 'index.html';
+        }
+        
+        // Load basket on page load
+        loadBasket();
+    </script>
+</body>
+</html>

@@ -5,10 +5,9 @@ import os
 import subprocess
 from pathlib import Path
 
-from sqlalchemy import text
-
-from app.core.database.session import AsyncSessionLocal
+from app.core.database.session import AsyncSessionLocal, engine
 from app.core.logging.base_logger import BaseLogger
+from sqlalchemy import text
 
 logger = BaseLogger(__name__)
 
@@ -22,7 +21,16 @@ MODULE_CONFIGS = [
         "path": "app/modules/catalog",
         "schema": "catalog",
     },
-    # Future modules (basket, ordering) can be added here
+    {
+        "name": "basket",
+        "path": "app/modules/basket",
+        "schema": "basket",
+    },
+    {
+        "name": "ordering",
+        "path": "app/modules/ordering",
+        "schema": "ordering",
+    },
 ]
 
 
@@ -90,8 +98,8 @@ async def ensure_schemas_exist() -> None:
     """Ensure all required database schemas exist (module schemas only)."""
     logger.info("[SETUP] Ensuring database schemas exist...")
 
-    # Currently only catalog is active; add more as modules are implemented
-    schemas = ["catalog"]
+    # Get schemas from module configs
+    schemas = [config["schema"] for config in MODULE_CONFIGS]
 
     try:
         async with AsyncSessionLocal() as session:
@@ -117,6 +125,26 @@ async def ensure_schemas_exist() -> None:
 # ---------------------------------------------------------------------------
 
 
+async def ensure_outbox_tables_from_orm() -> None:
+    """Create catalog and basket outbox tables from ORM if missing (checkfirst).
+
+    Runs after Alembic so local/dev DBs self-heal when migrations were skipped or
+    failed historically. Ordering has no outbox table in this codebase.
+    """
+    from app.modules.basket.infrastructure.persistence.orm.basket.outbox_orm import \
+        OutboxORM as BasketOutboxORM
+    from app.modules.catalog.infrastructure.persistence.orm.outbox_orm import \
+        OutboxORM as CatalogOutboxORM
+
+    def _create_outbox_tables(sync_conn) -> None:
+        CatalogOutboxORM.__table__.create(sync_conn, checkfirst=True)
+        BasketOutboxORM.__table__.create(sync_conn, checkfirst=True)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(_create_outbox_tables)
+    logger.info("[OK] Outbox tables verified via ORM DDL (checkfirst)")
+
+
 async def run_migrations() -> None:
     """Run database migrations for all modules using Alembic."""
     try:
@@ -133,6 +161,8 @@ async def run_migrations() -> None:
         # Run migrations for each module
         for module_config in MODULE_CONFIGS:
             await run_module_migrations(module_config)
+
+        await ensure_outbox_tables_from_orm()
 
         logger.info("[OK] All database migrations completed successfully")
 
@@ -176,20 +206,25 @@ async def run_module_migrations(module_config: dict) -> None:
             return
 
         # Check migrations directory - try multiple locations:
-        # 1. Blueprint location: infrastructure/persistence/migrations/products/versions/
+        # 1. Blueprint location: infrastructure/persistence/migrations/{module_name}/versions/versions/
         # 2. Standard location: migrations/versions/ or alembic/versions/
         versions_dir = None
         use_blueprint_location = False
 
-        # Try blueprint location first (infrastructure/persistence/migrations/products/versions/)
+        # Try blueprint location first (infrastructure/persistence/migrations/{module_name}/versions/)
+        # For catalog: infrastructure/persistence/migrations/products/versions/
+        # For basket: infrastructure/persistence/migrations/basket/versions/
+        blueprint_module_name = "products" if module_name == "catalog" else module_name
         blueprint_versions_dir = (
             module_path
             / "infrastructure"
             / "persistence"
             / "migrations"
-            / "products"
+            / blueprint_module_name
             / "versions"
         )
+
+        # Check if blueprint location exists (with nested versions/ directory)
         if (
             blueprint_versions_dir.exists()
             and (blueprint_versions_dir / "versions").exists()
@@ -259,11 +294,13 @@ async def run_module_migrations(module_config: dict) -> None:
             logger.error(
                 f"[FAILED] Migration execution failed for module {module_name}: {error_msg}"
             )
-            logger.warning("[WARNING] Continuing with other modules...")
-        else:
-            if stdout_str:
-                logger.debug(f"Migration output for {module_name}: {stdout_str}")
-            logger.info(f"[OK] Migrations completed for module: {module_name}")
+            raise RuntimeError(
+                f"Alembic upgrade failed for module {module_name} (exit {returncode}): {error_msg}"
+            )
+
+        if stdout_str:
+            logger.debug(f"Migration output for {module_name}: {stdout_str}")
+        logger.info(f"[OK] Migrations completed for module: {module_name}")
 
     except Exception as e:
         import traceback
@@ -273,7 +310,7 @@ async def run_module_migrations(module_config: dict) -> None:
             f"[FAILED] Migration execution failed for module {module_name}: {e}\n"
             f"Traceback: {error_traceback}"
         )
-        logger.warning("[WARNING] Continuing with other modules...")
+        raise
 
 
 # ---------------------------------------------------------------------------

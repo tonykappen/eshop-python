@@ -1,1 +1,1 @@
-"""Basket application layer - CQRS commands and queries."""
+"""Basket application module."""

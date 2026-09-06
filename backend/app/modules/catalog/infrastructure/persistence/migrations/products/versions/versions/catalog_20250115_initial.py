@@ -1,18 +1,17 @@
 """Initial catalog schema
 
-Revision ID: 0001
+Revision ID: 9a9e867c5d7b
 Revises: 
 Create Date: 2025-01-15 10:00:00.000000
 
 """
 
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from alembic import op
-
 # revision identifiers, used by Alembic.
-revision = "0001"
+revision = "9a9e867c5d7b"
 down_revision = None
 branch_labels = None
 depends_on = None

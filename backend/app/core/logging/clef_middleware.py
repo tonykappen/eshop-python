@@ -8,14 +8,14 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from app.core.logging.base_logger import BaseLogger
+from app.core.logging.clef_dispatcher import get_dispatcher
+from app.core.logging.w3c_trace import (extract_or_generate_trace_context,
+                                        format_traceparent)
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.core.logging.clef_dispatcher import get_dispatcher
-from app.core.logging.w3c_trace import (
-    extract_or_generate_trace_context,
-    format_traceparent,
-)
+logger = BaseLogger(__name__)
 
 
 def get_service_metadata() -> dict[str, Any]:
@@ -263,12 +263,10 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
         request.state.trace_context = trace_ctx
 
         # Set trace context in contextvars for propagation to all logs
-        from app.core.logging.trace_context import (
-            set_http_request_context,
-            set_identity_context,
-            set_operation_context,
-            set_trace_context,
-        )
+        from app.core.logging.trace_context import (set_http_request_context,
+                                                    set_identity_context,
+                                                    set_operation_context,
+                                                    set_trace_context)
 
         set_trace_context(trace_ctx.trace_id, trace_ctx.span_id, request_id)
 
@@ -488,165 +486,170 @@ class CLEFLoggingMiddleware(BaseHTTPMiddleware):
             raise
 
         finally:
-            # Re-extract user info AFTER call_next (auth middleware has now run)
-            # This ensures we have the user for response_sent event
-            user = getattr(request.state, "user", None)
-            if user:
-                # Update identity fields with actual user data
-                auth_subject = user.sub if hasattr(user, "sub") else auth_subject
-                user_id = auth_subject
-                kc_user_id = user.sub if hasattr(user, "sub") else None
-                kc_user_name = getattr(user, "preferred_username", None)
-                tenant_id = getattr(user, "tenant_id", None)
-                roles = getattr(user, "roles", [])
-                token_id = getattr(user, "jti", None)
-                # Get session_id from Keycloak (sid claim) or fallback to request_id
-                session_id = getattr(user, "sid", None) or request_id
-
-            # Set identity context for propagation to all logs
-            set_identity_context(
-                kc_user_id=kc_user_id,
-                kc_user_name=kc_user_name,
-                user_id=user_id,
-                auth_subject=auth_subject,
-                roles=roles,
-                token_id=token_id,
-                session_id=session_id,
-                tenant_id=tenant_id,
-            )
-
-            # Update operation_id and controller from request state if set by handlers
-            # Use the values from outer scope (defined earlier) as defaults
-            current_operation_id = (
-                getattr(request.state, "operation_id", None) or operation_id
-            )
-            current_controller = (
-                getattr(request.state, "controller", None) or controller
-            )
-            set_operation_context(
-                operation_id=current_operation_id, controller=current_controller
-            )
-
-            # Calculate timings
-            duration_ms = round((time.time() - start_time) * 1000, 2)
-
-            # Extract DB/cache timings from request state if available
-            db_time_ms = getattr(request.state, "db_time_ms", 0)
-            cache_time_ms = getattr(request.state, "cache_time_ms", 0)
-            cache_hit = getattr(request.state, "cache_hit", None)
-            app_time_ms = max(0, duration_ms - db_time_ms - cache_time_ms)
-
-            # Extract policy info if available
-            policy = {
-                "rate_limited": getattr(request.state, "rate_limited", False),
-                "retry_count": getattr(request.state, "retry_count", 0),
-            }
-
-            # Extract response info
-            status_code = response.status_code if response else 500
-            response_size = 0
-            content_type = None
-
-            if response:
-                response_size = int(response.headers.get("content-length", 0))
-                content_type = response.headers.get("content-type")
-
-            # Use ERROR level for any error condition (4xx or 5xx)
-            # This provides consistent error visibility in logs
-            if status_code >= 400 or exception_info:
-                level = "ERROR"
-            else:
-                level = "INFO"
-
-            # Extract operation_id and controller if available (may have been set by handlers)
-            operation_id = getattr(request.state, "operation_id", operation_id)
-            controller = getattr(request.state, "controller", controller)
-
-            # Determine data_source based on cache hit and DB usage
-            if cache_hit is True:
-                data_source = "cache"
-            elif db_time_ms > 0:
-                data_source = "db"
-            else:
-                data_source = "none"
-
-            # Get actual location info for consistent logging structure
-            frame = inspect.currentframe()
             try:
-                # Get the current frame (dispatch method) info
-                if frame:
-                    module_name = frame.f_globals.get(
-                        "__name__", "app.core.logging.clef_middleware"
-                    )
-                    function_name = frame.f_code.co_name
-                    line_number = frame.f_lineno
+                # Re-extract user info AFTER call_next (auth middleware has now run)
+                # This ensures we have the user for response_sent event
+                user = getattr(request.state, "user", None)
+                if user:
+                    # Update identity fields with actual user data
+                    auth_subject = user.sub if hasattr(user, "sub") else auth_subject
+                    user_id = auth_subject
+                    kc_user_id = user.sub if hasattr(user, "sub") else None
+                    kc_user_name = getattr(user, "preferred_username", None)
+                    tenant_id = getattr(user, "tenant_id", None)
+                    roles = getattr(user, "roles", [])
+                    token_id = getattr(user, "jti", None)
+                    # Get session_id from Keycloak (sid claim) or fallback to request_id
+                    session_id = getattr(user, "sid", None) or request_id
+
+                # Set identity context for propagation to all logs
+                set_identity_context(
+                    kc_user_id=kc_user_id,
+                    kc_user_name=kc_user_name,
+                    user_id=user_id,
+                    auth_subject=auth_subject,
+                    roles=roles,
+                    token_id=token_id,
+                    session_id=session_id,
+                    tenant_id=tenant_id,
+                )
+
+                # Update operation_id and controller from request state if set by handlers
+                # Use the values from outer scope (defined earlier) as defaults
+                current_operation_id = (
+                    getattr(request.state, "operation_id", None) or operation_id
+                )
+                current_controller = (
+                    getattr(request.state, "controller", None) or controller
+                )
+                set_operation_context(
+                    operation_id=current_operation_id, controller=current_controller
+                )
+
+                # Calculate timings
+                duration_ms = round((time.time() - start_time) * 1000, 2)
+
+                # Extract DB/cache timings from request state if available
+                db_time_ms = getattr(request.state, "db_time_ms", 0)
+                cache_time_ms = getattr(request.state, "cache_time_ms", 0)
+                cache_hit = getattr(request.state, "cache_hit", None)
+                app_time_ms = max(0, duration_ms - db_time_ms - cache_time_ms)
+
+                # Extract policy info if available
+                policy = {
+                    "rate_limited": getattr(request.state, "rate_limited", False),
+                    "retry_count": getattr(request.state, "retry_count", 0),
+                }
+
+                # Extract response info
+                status_code = response.status_code if response else 500
+                response_size = 0
+                content_type = None
+
+                if response:
+                    response_size = int(response.headers.get("content-length", 0))
+                    content_type = response.headers.get("content-type")
+
+                # Use ERROR level for any error condition (4xx or 5xx)
+                # This provides consistent error visibility in logs
+                if status_code >= 400 or exception_info:
+                    level = "ERROR"
                 else:
-                    module_name = "app.core.logging.clef_middleware"
-                    function_name = "dispatch"
-                    line_number = 295
-            finally:
-                del frame
+                    level = "INFO"
 
-            # EMIT response_sent event
-            success_value = status_code < 400 and not exception_info
-            response_event = create_clef_event(
-                event_name="response_sent",
-                level=level,
-                logger=module_name,
-                module=module_name,
-                function=function_name,
-                line=line_number,
-                # Template rendering parameters
-                method=method,
-                path=path,
-                status_code=status_code,
-                duration_ms=duration_ms,
-                # Additional fields
-                request_id=request_id,
-                traceparent_raw=traceparent_raw or format_traceparent(trace_ctx),
-                tracestate=tracestate,
-                trace_id=trace_ctx.trace_id,
-                span_id=trace_ctx.span_id,
-                parent_span_id=trace_ctx.parent_span_id,
-                session_id=session_id,  # Keycloak session ID or request_id
-                session_id_prefix=(
-                    session_id[:6]
-                    if session_id and len(session_id) >= 6
-                    else request_id[:6]
-                ),
-                auth_subject=auth_subject,
-                kc_user_id=kc_user_id,  # Keycloak user ID
-                kc_user_name=kc_user_name,  # Keycloak username
-                token_id=token_id,
-                user_id=user_id,
-                tenant_id=tenant_id,
-                roles=roles,
-                response_size=response_size,
-                content_type=content_type,
-                db_time_ms=db_time_ms,
-                cache_time_ms=cache_time_ms,
-                cache_hit=cache_hit,
-                app_time_ms=app_time_ms,
-                data_source=data_source,  # "db", "cache", or "none"
-                policy=policy,
-                success=success_value,
-                dispatcher_lag_ms=0,
-                operation_id=operation_id,
-                controller=controller,
-                **(exception_info or {}),
-            )
+                # Extract operation_id and controller if available (may have been set by handlers)
+                operation_id = getattr(request.state, "operation_id", operation_id)
+                controller = getattr(request.state, "controller", controller)
 
-            await dispatcher.enqueue(response_event)
+                # Determine data_source based on cache hit and DB usage
+                if cache_hit is True:
+                    data_source = "cache"
+                elif db_time_ms > 0:
+                    data_source = "db"
+                else:
+                    data_source = "none"
 
-            # Echo traceparent in response headers if we have a response
-            if response:
-                response.headers["traceparent"] = format_traceparent(trace_ctx)
+                # Get actual location info for consistent logging structure
+                frame = inspect.currentframe()
+                try:
+                    # Get the current frame (dispatch method) info
+                    if frame:
+                        module_name = frame.f_globals.get(
+                            "__name__", "app.core.logging.clef_middleware"
+                        )
+                        function_name = frame.f_code.co_name
+                        line_number = frame.f_lineno
+                    else:
+                        module_name = "app.core.logging.clef_middleware"
+                        function_name = "dispatch"
+                        line_number = 295
+                finally:
+                    del frame
 
-            # Clear trace context after request
-            from app.core.logging.trace_context import clear_trace_context
+                # EMIT response_sent event
+                success_value = status_code < 400 and not exception_info
+                response_event = create_clef_event(
+                    event_name="response_sent",
+                    level=level,
+                    logger=module_name,
+                    module=module_name,
+                    function=function_name,
+                    line=line_number,
+                    # Template rendering parameters
+                    method=method,
+                    path=path,
+                    status_code=status_code,
+                    duration_ms=duration_ms,
+                    # Additional fields
+                    request_id=request_id,
+                    traceparent_raw=traceparent_raw or format_traceparent(trace_ctx),
+                    tracestate=tracestate,
+                    trace_id=trace_ctx.trace_id,
+                    span_id=trace_ctx.span_id,
+                    parent_span_id=trace_ctx.parent_span_id,
+                    session_id=session_id,  # Keycloak session ID or request_id
+                    session_id_prefix=(
+                        session_id[:6]
+                        if session_id and len(session_id) >= 6
+                        else request_id[:6]
+                    ),
+                    auth_subject=auth_subject,
+                    kc_user_id=kc_user_id,  # Keycloak user ID
+                    kc_user_name=kc_user_name,  # Keycloak username
+                    token_id=token_id,
+                    user_id=user_id,
+                    tenant_id=tenant_id,
+                    roles=roles,
+                    response_size=response_size,
+                    content_type=content_type,
+                    db_time_ms=db_time_ms,
+                    cache_time_ms=cache_time_ms,
+                    cache_hit=cache_hit,
+                    app_time_ms=app_time_ms,
+                    data_source=data_source,  # "db", "cache", or "none"
+                    policy=policy,
+                    success=success_value,
+                    dispatcher_lag_ms=0,
+                    operation_id=operation_id,
+                    controller=controller,
+                    **(exception_info or {}),
+                )
 
-            clear_trace_context()
+                await dispatcher.enqueue(response_event)
 
+                # Echo traceparent in response headers if we have a response
+                if response:
+                    response.headers["traceparent"] = format_traceparent(trace_ctx)
+
+                # Clear trace context after request
+                from app.core.logging.trace_context import clear_trace_context
+
+                clear_trace_context()
+            except Exception as log_exc:
+                logger.log_warning_with_context(
+                    "Failed to emit response_sent CLEF event",
+                    context={"error": str(log_exc), "path": path, "method": method},
+                )
         return response
 
     def _get_client_ip(self, request: Request) -> str:

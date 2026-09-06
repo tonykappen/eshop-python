@@ -2,14 +2,42 @@
 
 from pathlib import Path
 
-from pydantic import Field
+from app.config.env import get_env, get_env_bool, get_env_int, get_env_list
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
-from app.config.env import get_env, get_env_bool, get_env_int, get_env_list
+
+def _normalize_str_list(values: list[str], *, fallback: list[str] | None = None) -> list[str]:
+    """Flatten env/list parsing artifacts like \"['RS256']\" into RS256."""
+    normalized: list[str] = []
+    for item in values:
+        stripped = item.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            import json
+
+            try:
+                parsed = json.loads(stripped.replace("'", '"'))
+                if isinstance(parsed, list):
+                    for entry in parsed:
+                        s = str(entry).strip()
+                        if s and s not in normalized:
+                            normalized.append(s)
+                    continue
+            except json.JSONDecodeError:
+                pass
+        if stripped and stripped not in normalized:
+            normalized.append(stripped)
+    if normalized:
+        return normalized
+    return list(fallback) if fallback else []
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 _PROJECT_ROOT = _BACKEND_DIR.parent
-_ENV_FILE = _BACKEND_DIR / ".env" if (_BACKEND_DIR / ".env").exists() else _PROJECT_ROOT / ".env"
+_ENV_FILE = (
+    _BACKEND_DIR / ".env"
+    if (_BACKEND_DIR / ".env").exists()
+    else _PROJECT_ROOT / ".env"
+)
 
 
 class Settings(BaseSettings):
@@ -69,9 +97,7 @@ class Settings(BaseSettings):
     )
 
     # Database pool configuration (all configurable via env vars)
-    db_pool_size: int = Field(
-        default_factory=lambda: get_env_int("DB_POOL_SIZE", 10)
-    )
+    db_pool_size: int = Field(default_factory=lambda: get_env_int("DB_POOL_SIZE", 10))
     db_max_overflow: int = Field(
         default_factory=lambda: get_env_int("DB_MAX_OVERFLOW", 20)
     )
@@ -81,9 +107,7 @@ class Settings(BaseSettings):
     db_pool_timeout: int = Field(
         default_factory=lambda: get_env_int("DB_POOL_TIMEOUT", 30)
     )
-    db_echo: bool = Field(
-        default_factory=lambda: get_env_bool("DB_ECHO", False)
-    )
+    db_echo: bool = Field(default_factory=lambda: get_env_bool("DB_ECHO", False))
 
     # Legacy database fields for backward compatibility
     @property
@@ -177,7 +201,27 @@ class Settings(BaseSettings):
         default_factory=lambda: get_env("KEYCLOAK_GRANT_TYPE", "password")
     )
     keycloak_jwt_algorithms: list[str] = Field(
-        default_factory=lambda: get_env_list("KEYCLOAK_JWT_ALGORITHMS", "RS256")
+        default_factory=lambda: get_env_list("KEYCLOAK_JWT_ALGORITHMS", ["RS256"])
+    )
+
+    @field_validator("keycloak_jwt_algorithms", mode="before")
+    @classmethod
+    def _validate_keycloak_jwt_algorithms(cls, value: object) -> list[str]:
+        if value is None:
+            return ["RS256"]
+        if isinstance(value, str):
+            value = [value]
+        if isinstance(value, list):
+            return _normalize_str_list([str(v) for v in value], fallback=["RS256"])
+        return ["RS256"]
+
+    keycloak_issuer: str | None = Field(
+        default_factory=lambda: get_env("KEYCLOAK_ISSUER", "") or None,
+        description="Override JWT issuer claim (defaults to KEYCLOAK_SERVER_URL/realms/REALM)",
+    )
+    keycloak_extra_issuers: list[str] = Field(
+        default_factory=lambda: get_env_list("KEYCLOAK_EXTRA_ISSUERS", []),
+        description="Additional accepted JWT issuers (e.g. http://localhost:8080/realms/eshop)",
     )
 
     # Keycloak Credentials File
@@ -225,6 +269,23 @@ class Settings(BaseSettings):
     log_response_body: bool = Field(
         default_factory=lambda: get_env_bool("LOG_RESPONSE_BODY", False)
     )
+
+    @property
+    def keycloak_allowed_issuers(self) -> list[str]:
+        """JWT issuer values accepted during token verification."""
+        primary = self.keycloak_issuer or (
+            f"{self.keycloak_server_url.rstrip('/')}/realms/{self.keycloak_realm}"
+        )
+        issuers = [primary]
+        for extra in self.keycloak_extra_issuers:
+            if extra and extra not in ("[]", "") and extra not in issuers:
+                issuers.append(extra)
+        realm_path = f"/realms/{self.keycloak_realm}"
+        for host in ("http://localhost:8080", "http://keycloak:8080"):
+            candidate = f"{host}{realm_path}"
+            if candidate not in issuers:
+                issuers.append(candidate)
+        return issuers
 
     class Config:
         """Pydantic configuration."""

@@ -3,19 +3,12 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from app.core.auth.keycloak import (KeycloakService, KeycloakUser,
+                                    add_keycloak_routes, get_current_user,
+                                    get_current_user_optional,
+                                    get_keycloak_app, keycloak_service,
+                                    require_role, security)
 from fastapi import HTTPException, status
-
-from app.core.auth.keycloak import (
-    KeycloakService,
-    KeycloakUser,
-    add_keycloak_routes,
-    get_current_user,
-    get_current_user_optional,
-    get_keycloak_app,
-    keycloak_service,
-    require_role,
-    security,
-)
 
 
 class TestKeycloakUser:
@@ -156,25 +149,22 @@ class TestKeycloakService:
             "sub": "user123",
             "email": "test@example.com",
             "name": "Test User",
+            "iss": "http://localhost:8080/realms/eshop",
         }
 
-        with (
-            patch("jwt.decode") as mock_jwt_decode,
-            patch("jwt.PyJWKClient") as mock_jwks_client,
-        ):
-            # Mock the JWT decoding process
+        mock_jwks = MagicMock()
+        mock_signing_key = MagicMock()
+        mock_signing_key.key = "mock-key"
+        mock_jwks.get_signing_key_from_jwt.return_value = mock_signing_key
+
+        with patch("jwt.decode") as mock_jwt_decode:
             mock_jwt_decode.return_value = expected_token_info
-            mock_signing_key = MagicMock()
-            mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
 
             service = KeycloakService()
-            # Mock the service to be available
             service.keycloak = MagicMock()
             service._initialized = True
-            result = await service.verify_token("valid-token")
+            with patch.object(service, "_get_jwks_client", return_value=mock_jwks):
+                result = await service.verify_token("valid-token")
 
             assert result["sub"] == "user123"
             assert result["email"] == "test@example.com"
@@ -188,20 +178,16 @@ class TestKeycloakService:
         service.keycloak = MagicMock()  # Make it available
         service._initialized = True
 
-        with (
-            patch("jwt.decode") as mock_jwt_decode,
-            patch("jwt.PyJWKClient") as mock_jwks_client,
-        ):
-            # Mock JWT decode to raise an exception
-            mock_jwt_decode.side_effect = Exception("Invalid token")
-            mock_signing_key = MagicMock()
-            mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
+        mock_jwks = MagicMock()
+        mock_signing_key = MagicMock()
+        mock_signing_key.key = "mock-key"
+        mock_jwks.get_signing_key_from_jwt.return_value = mock_signing_key
 
-            with pytest.raises(HTTPException) as exc_info:
-                await service.verify_token("invalid-token")
+        with patch("jwt.decode") as mock_jwt_decode:
+            mock_jwt_decode.side_effect = Exception("Invalid token")
+            with patch.object(service, "_get_jwks_client", return_value=mock_jwks):
+                with pytest.raises(HTTPException) as exc_info:
+                    await service.verify_token("invalid-token")
 
             assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
             assert exc_info.value.detail == "Invalid token"
@@ -231,25 +217,22 @@ class TestKeycloakService:
             "name": "Test User",
             "preferred_username": "testuser",
             "realm_access": {"roles": ["user", "admin"]},
+            "iss": "http://localhost:8080/realms/eshop",
         }
 
-        with (
-            patch("jwt.decode") as mock_jwt_decode,
-            patch("jwt.PyJWKClient") as mock_jwks_client,
-        ):
-            # Mock the JWT decoding process
+        mock_jwks = MagicMock()
+        mock_signing_key = MagicMock()
+        mock_signing_key.key = "mock-key"
+        mock_jwks.get_signing_key_from_jwt.return_value = mock_signing_key
+
+        with patch("jwt.decode") as mock_jwt_decode:
             mock_jwt_decode.return_value = expected_token_info
-            mock_signing_key = MagicMock()
-            mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
 
             service = KeycloakService()
-            # Mock the service to be available
             service.keycloak = MagicMock()
             service._initialized = True
-            user = await service.get_user_info("valid-token")
+            with patch.object(service, "_get_jwks_client", return_value=mock_jwks):
+                user = await service.get_user_info("valid-token")
 
             assert isinstance(user, KeycloakUser)
             assert user.sub == "user123"
@@ -261,25 +244,24 @@ class TestKeycloakService:
     @pytest.mark.asyncio
     async def test_get_user_info_minimal_token(self) -> None:
         """Test user info retrieval with minimal token data."""
-        expected_token_info = {"sub": "user123"}
+        expected_token_info = {
+            "sub": "user123",
+            "iss": "http://localhost:8080/realms/eshop",
+        }
 
-        with (
-            patch("jwt.decode") as mock_jwt_decode,
-            patch("jwt.PyJWKClient") as mock_jwks_client,
-        ):
-            # Mock the JWT decoding process
+        mock_jwks = MagicMock()
+        mock_signing_key = MagicMock()
+        mock_signing_key.key = "mock-key"
+        mock_jwks.get_signing_key_from_jwt.return_value = mock_signing_key
+
+        with patch("jwt.decode") as mock_jwt_decode:
             mock_jwt_decode.return_value = expected_token_info
-            mock_signing_key = MagicMock()
-            mock_signing_key.key = "mock-key"
-            mock_jwks_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
 
             service = KeycloakService()
-            # Mock the service to be available
             service.keycloak = MagicMock()
             service._initialized = True
-            user = await service.get_user_info("valid-token")
+            with patch.object(service, "_get_jwks_client", return_value=mock_jwks):
+                user = await service.get_user_info("valid-token")
 
             assert isinstance(user, KeycloakUser)
             assert user.sub == "user123"

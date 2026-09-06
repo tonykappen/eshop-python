@@ -40,6 +40,9 @@ services:
       DB_NAME: "eshop"
       DB_USER: "postgres"
       DB_PASSWORD: "postgres"
+      BASKET_DB_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/eshop"
+      CATALOG_DB_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/eshop"
+      ORDERING_DB_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/eshop"
       
       # Redis
       REDIS_HOST: "redis"

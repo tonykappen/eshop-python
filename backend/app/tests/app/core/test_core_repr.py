@@ -6,33 +6,20 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 import pytest
-from fastapi import Request
-from pydantic import BaseModel
-
 from app.core.contracts.cqrs import ICommand, IQuery
 from app.core.mediator.cancellation import CancellationToken
 from app.core.mediator.mediator import IMediator
-from app.core.repr.base import (
-    BaseRequest,
-    BaseResponse,
-    CommandEndpoint,
-    CQRSEndpoint,
-    CQRSEndpointFactory,
-    CQRSErrorHandler,
-    DataResponse,
-    Endpoint,
-    ErrorResponse,
-    IRequestMapper,
-    IResultMapper,
-    PaginatedRequest,
-    PaginatedResponse,
-    PaginatedResultToResponseMapper,
-    QueryEndpoint,
-    RequestToCommandMapper,
-    RequestToQueryMapper,
-    ResultToBaseResponseMapper,
-    ResultToDataResponseMapper,
-)
+from app.core.repr.base import (BaseRequest, BaseResponse, CommandEndpoint,
+                                CQRSEndpoint, CQRSEndpointFactory,
+                                CQRSErrorHandler, DataResponse, Endpoint,
+                                ErrorResponse, IRequestMapper, IResultMapper,
+                                PaginatedRequest, PaginatedResponse,
+                                PaginatedResultToResponseMapper, QueryEndpoint,
+                                RequestToCommandMapper, RequestToQueryMapper,
+                                ResultToBaseResponseMapper,
+                                ResultToDataResponseMapper)
+from fastapi import Request
+from pydantic import BaseModel
 
 
 @pytest.mark.no_collect

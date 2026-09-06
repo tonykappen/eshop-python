@@ -5,11 +5,10 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request, status
-from pydantic import BaseModel
-
 from app.core.auth.keycloak import KeycloakUser, get_current_user_optional
 from app.core.logging.base_logger import BaseLogger
+from fastapi import Depends, HTTPException, Request, status
+from pydantic import BaseModel
 
 logger = BaseLogger(__name__)
 
@@ -41,8 +40,8 @@ def require_command_access(
     """
 
     async def command_access_checker(
+        request: Request,
         current_user: KeycloakUser | None = Depends(get_current_user_optional),
-        request: Request = None,
     ) -> KeycloakUser:
         """Check if user has command access."""
         if not current_user:
@@ -127,8 +126,8 @@ def require_query_access(
     """
 
     async def query_access_checker(
+        request: Request,
         current_user: KeycloakUser | None = Depends(get_current_user_optional),
-        request: Request = None,
     ) -> KeycloakUser:
         """Check if user has query access."""
         if not current_user:

@@ -1,7 +1,8 @@
 """Application initialization functions for eShop Modular Monolith."""
 
 from app.config.settings import settings
-from app.core.di.container import create_container, scan_assemblies, wire_container
+from app.core.di.container import (create_container, scan_assemblies,
+                                   wire_container)
 from app.core.logging.base_logger import BaseLogger
 from app.core.logging.logger import configure_logging
 from app.core.mediator.fastapi_integration import configure_mediator
@@ -94,6 +95,10 @@ async def initialize_dependency_injection(app=None):
 
     logger.log_with_context("Dependency injection container initialized", "info")
 
+    from app.core.database.seeding import register_default_application_seeders
+
+    register_default_application_seeders()
+
     return container
 
 
@@ -169,6 +174,4 @@ async def shutdown_logging() -> None:
         await shutdown_dispatcher()
         logger.log_with_context("Async CLEF dispatcher shutdown completed", "info")
     except Exception as e:
-        logger.log_error_with_context(
-            "Error during CLEF dispatcher shutdown", error=e
-        )
+        logger.log_error_with_context("Error during CLEF dispatcher shutdown", error=e)

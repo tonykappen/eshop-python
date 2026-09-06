@@ -157,6 +157,25 @@ class ProductRepository(Repository["Product", UUID], ABC):
         pass
 
     @abstractmethod
+    async def get_deleted_by_id(self, product_id: UUID) -> Product | None:
+        """Get a soft-deleted product by ID."""
+        pass
+
+    @abstractmethod
+    async def get_deleted_products(
+        self, page: int = 1, page_size: int = 10
+    ) -> tuple[list[Product], int]:
+        """Get soft-deleted products with pagination."""
+        pass
+
+    @abstractmethod
+    async def restore_product(
+        self, product_id: UUID, restored_by: UUID | None = None
+    ) -> bool:
+        """Restore a soft-deleted product."""
+        pass
+
+    @abstractmethod
     async def search(
         self, search_term: str, page: int = 1, page_size: int = 10
     ) -> tuple[list[Product], int]:

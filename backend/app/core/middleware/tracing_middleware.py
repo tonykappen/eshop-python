@@ -3,17 +3,14 @@
 import time
 from typing import Any
 
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-
 from app.core.logging.base_logger import BaseLogger
 from app.core.logging.trace_context import set_trace_context
-from app.core.logging.w3c_trace import (
-    extract_or_generate_trace_context,
-    format_traceparent,
-)
+from app.core.logging.w3c_trace import (extract_or_generate_trace_context,
+                                        format_traceparent)
 from app.core.observability.baggage import BaggageManager
 from app.core.observability.tracing import TracingProvider
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = BaseLogger(__name__)
 

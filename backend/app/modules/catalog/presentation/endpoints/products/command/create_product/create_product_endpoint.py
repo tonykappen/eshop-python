@@ -2,15 +2,12 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
-
 from app.core.auth.rbac import require_command_access
 from app.core.repr.base import CQRSEndpointFactory
 from app.modules.catalog.application.features.products.commands.create_product.create_product_command import (
-    CreateProductCommand,
-    CreateProductResult,
-)
+    CreateProductCommand, CreateProductResult)
 from app.modules.catalog.utils import get_endpoint_factory
+from fastapi import APIRouter, Depends, Request
 
 router = APIRouter()
 

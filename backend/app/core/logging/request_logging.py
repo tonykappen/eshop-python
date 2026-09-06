@@ -4,11 +4,10 @@ import time
 import uuid
 from typing import Any
 
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-
 from app.core.logging.base_logger import BaseLogger
 from app.core.logging.logger import _sanitize_log_data
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = BaseLogger(__name__)
 
@@ -100,14 +99,20 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 request_info["body_error"] = str(e)
 
         # Log incoming request as security event
+        def _str_field(key: str) -> str | None:
+            v = request_info.get(key)
+            if v is None or isinstance(v, str):
+                return v
+            return str(v)
+
         logger.log_security_event(
             event_type="http_request",
             user_id=user_id,
             session_id=session_id,
-            authentication_method=request_info["authentication_method"],
-            authorization_outcome=request_info["authorization_outcome"],
-            source_ip=request_info["client_ip"],
-            user_agent=request_info["user_agent"],
+            authentication_method=_str_field("authentication_method"),
+            authorization_outcome=_str_field("authorization_outcome"),
+            source_ip=_str_field("client_ip"),
+            user_agent=_str_field("user_agent"),
             # Remove duplicate fields that are already in request_info
             method=request_info["method"],
             path=request_info["path"],
@@ -145,7 +150,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                         body_size = len(response.body) if response.body else 0
                         if body_size < 10000:  # 10KB limit
                             body_text = (
-                                response.body.decode("utf-8") if response.body else None
+                                response.body.decode("utf-8") if response.body else ""
                             )
                             # Sanitize sensitive data in response body
                             sanitized_body = _sanitize_log_data({"body": body_text})

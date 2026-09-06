@@ -3,9 +3,8 @@
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import Field, field_validator
-
 from app.core.domain.entity import Aggregate
+from pydantic import Field, field_validator
 
 
 class Product(Aggregate):
@@ -138,7 +137,8 @@ class Product(Aggregate):
 
         # If price changed, add domain event
         if old_price != price:
-            from app.modules.catalog.domain.events import ProductPriceChangedEvent
+            from app.modules.catalog.domain.events import \
+                ProductPriceChangedEvent
 
             self.add_domain_event(ProductPriceChangedEvent(product=self))
 
@@ -160,7 +160,8 @@ class Product(Aggregate):
 
         # Add domain event for price change
         if old_price != new_price:
-            from app.modules.catalog.domain.events import ProductPriceChangedEvent
+            from app.modules.catalog.domain.events import \
+                ProductPriceChangedEvent
 
             self.add_domain_event(ProductPriceChangedEvent(product=self))
 
